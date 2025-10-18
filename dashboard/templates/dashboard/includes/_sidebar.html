@@ -1,0 +1,68 @@
+<nav class="mt-4 flex-grow-1">
+  <ul class="nav flex-column">
+    <!-- Tableau de bord -->
+    <li class="nav-item">
+      <a href="{% url 'dashboard_home' %}"
+         class="nav-link {% if request.resolver_match.url_name == 'dashboard_home' %}active{% endif %}">
+        <span class="material-icons">dashboard</span>
+        Tableau de bord
+      </a>
+    </li>
+
+    <!-- Sessions -->
+    <li class="nav-item">
+      <a href="{% url 'sessions' %}"
+         class="nav-link {% if request.resolver_match.url_name == 'sessions' %}active{% endif %}">
+        <span class="material-icons">groups</span>
+        Sessions
+      </a>
+    </li>
+
+    <!-- Clics -->
+    <li class="nav-item">
+      <a href="{% url 'clicks' %}"
+         class="nav-link {% if request.resolver_match.url_name == 'clicks' %}active{% endif %}">
+        <span class="material-icons">mouse</span>
+        Clics
+      </a>
+    </li>
+
+    <!-- Produits -->
+    <li class="nav-item">
+      <a href="{% url 'produits' %}"
+         class="nav-link {% if request.resolver_match.url_name == 'produits' %}active{% endif %}">
+        <span class="material-icons">shopping_bag</span>
+        Produits
+      </a>
+    </li>
+
+    <!-- Chatbot -->
+    <li class="nav-item">
+      <a href="{% url 'chatbot' %}"
+         class="nav-link {% if request.resolver_match.url_name == 'chatbot' %}active{% endif %}">
+        <span class="material-icons">smart_toy</span>
+        Chatbot
+      </a>
+    </li>
+
+    <!-- Exports -->
+    <li class="nav-item">
+      <a href="{% url 'exports' %}"
+         class="nav-link {% if request.resolver_match.url_name == 'exports' %}active{% endif %}">
+        <span class="material-icons">download</span>
+        Exports
+      </a>
+    </li>
+
+    <!-- Gestion des comptes (visible uniquement pour les admins) -->
+    {% if request.user.role == "ADMIN" %}
+    <li class="nav-item">
+      <a href="{% url 'users_management' %}"
+         class="nav-link {% if request.resolver_match.url_name == 'users_management' %}active{% endif %}">
+        <span class="material-icons">manage_accounts</span>
+        Gestion des comptes
+      </a>
+    </li>
+    {% endif %}
+  </ul>
+</nav>

@@ -1,0 +1,276 @@
+{% extends 'dashboard/base.html' %}
+{% load humanize %}
+{% block content %}
+<div class="container-fluid py-4">
+
+  <!-- En-tête -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0">
+      <i class="bi bi-box-seam-fill me-2 text-primary"></i> Produits les plus demandés
+    </h4>
+    <button id="exportProductsBtn" class="btn btn-primary shadow-sm">
+      <i class="bi bi-download me-1"></i> Exporter les données
+    </button>
+  </div>
+
+  <!-- Zone de feedback export -->
+  <div id="exportAlert" class="alert d-none" role="alert"></div>
+
+  <!-- Section analytique -->
+  <div class="row g-4 mb-4">
+    <!-- Corrélation clics / recommandations -->
+    <div class="col-lg-8">
+      <div class="card p-3 chart-card">
+        <h6 class="fw-bold text-primary mb-2">
+          <i class="bi bi-graph-up me-1"></i> Corrélation entre clics et recommandations chatbot
+        </h6>
+        <div style="height: 360px; position: relative;">
+          <canvas id="productBubbleChart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top 5 produits -->
+    <div class="col-lg-4">
+      <div class="card p-3 h-100">
+        <h6 class="fw-bold text-primary mb-3">
+          <i class="bi bi-trophy-fill me-1"></i> Top 5 produits populaires
+        </h6>
+        <table class="table table-sm align-middle mb-0" id="topProductsTable">
+          <thead class="table-light">
+            <tr>
+              <th>Produit</th>
+              <th class="text-end">Clics</th>
+              <th class="text-end">Recommand.</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in products|slice:":5" %}
+            <tr data-product="{{ p.name }}">
+              <td class="fw-semibold text-dark">{{ p.name|truncatechars:22 }}</td>
+              <td class="text-end">{{ p.clicks|intcomma }}</td>
+              <td class="text-end">{{ p.chatbot_interactions|intcomma }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="3" class="text-center text-muted py-3">Aucun produit.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tableau complet -->
+  <div class="card p-3">
+    <h6 class="fw-bold text-primary mb-3">Statistiques complètes</h6>
+
+    <div class="table-responsive d-none d-md-block">
+      <table class="table align-middle table-hover">
+        <thead class="table-light">
+          <tr>
+            <th>Nom du produit</th>
+            <th>Référence</th>
+            <th>Catégorie</th>
+            <th>Nb clics</th>
+            <th>Nb interactions chatbot</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for product in products %}
+          <tr>
+            <td class="fw-semibold text-dark">{{ product.name }}</td>
+            <td><code>{{ product.ref }}</code></td>
+            <td>{{ product.category|default:"—" }}</td>
+            <td>{{ product.clicks|intcomma }}</td>
+            <td>{{ product.chatbot_interactions|intcomma }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-center text-muted py-3">Aucun produit enregistré.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Version mobile -->
+    <div class="d-md-none">
+      {% for product in products %}
+      <div class="border rounded-3 p-3 mb-2 shadow-sm bg-white">
+        <h6 class="fw-semibold mb-2 text-dark">{{ product.name }}</h6>
+        <p class="mb-1"><strong>Référence :</strong> <code>{{ product.ref }}</code></p>
+        <p class="mb-1"><strong>Catégorie :</strong> {{ product.category|default:"—" }}</p>
+        <p class="mb-1"><strong>Clics :</strong> {{ product.clicks|intcomma }}</p>
+        <p class="mb-0"><strong>Interactions chatbot :</strong> {{ product.chatbot_interactions|intcomma }}</p>
+      </div>
+      {% empty %}
+      <p class="text-muted text-center">Aucun produit enregistré.</p>
+      {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if products.has_other_pages %}
+    <nav aria-label="Pagination produits" class="mt-3">
+      <ul class="pagination justify-content-center mb-0">
+        {% if products.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ products.previous_page_number }}" aria-label="Précédent">&laquo;</a></li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+        {% endif %}
+        {% for num in products.paginator.page_range %}
+          {% if num == products.number %}
+            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+          {% elif num > products.number|add:'-3' and num < products.number|add:'3' %}
+            <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+          {% endif %}
+        {% endfor %}
+        {% if products.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ products.next_page_number }}" aria-label="Suivant">&raquo;</a></li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+  #productBubbleChart {
+    width: 100% !important;
+    height: 100% !important;
+  }
+  #topProductsTable tbody tr {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  #topProductsTable tbody tr:hover {
+    background-color: rgba(37, 99, 235, 0.08);
+  }
+</style>
+
+<script>
+window.addEventListener("load", function () {
+  const canvas = document.getElementById("productBubbleChart");
+  if (!canvas) return;
+
+  const ctx = canvas.getContext("2d");
+
+  fetch("{% url 'products_chart_data' %}")
+    .then(response => response.json())
+    .then(data => {
+      const bubbleData = (data.products || []).map(p => ({
+        x: p.clicks,
+        y: p.chatbot,
+        r: Math.sqrt(p.clicks) + 5,
+        label: p.name
+      }));
+
+      const chart = new Chart(ctx, {
+        type: "bubble",
+        data: {
+          datasets: [{
+            label: "Produits",
+            data: bubbleData,
+            backgroundColor: "rgba(59,130,246,0.4)",
+            borderColor: "#2563EB",
+            borderWidth: 1.5,
+            hoverBackgroundColor: "rgba(37,99,235,0.8)",
+            hoverBorderColor: "#1D4ED8"
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: {
+            x: { beginAtZero: true, title: { display: true, text: "Clics" } },
+            y: { beginAtZero: true, title: { display: true, text: "Recommandations chatbot" } }
+          },
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: ctx => `${ctx.raw.label} — ${ctx.raw.x} clics / ${ctx.raw.y} recos` } }
+          }
+        }
+      });
+
+      // Interaction : survol du tableau
+      document.querySelectorAll("#topProductsTable tbody tr").forEach(row => {
+        row.addEventListener("mouseenter", () => {
+          const product = row.dataset.product;
+          const bubble = chart.data.datasets[0].data.find(p => p.label === product);
+          if (bubble) bubble.r *= 1.8;
+          chart.update();
+        });
+        row.addEventListener("mouseleave", () => {
+          const product = row.dataset.product;
+          const bubble = chart.data.datasets[0].data.find(p => p.label === product);
+          if (bubble) bubble.r = Math.sqrt(bubble.x) + 5;
+          chart.update();
+        });
+      });
+    });
+
+  // === EXPORT CSV ===
+  const exportBtn = document.getElementById("exportProductsBtn");
+  const exportAlert = document.getElementById("exportAlert");
+
+  exportBtn.addEventListener("click", function () {
+    exportBtn.disabled = true;
+    exportBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Export en cours...';
+
+    fetch("{% url 'export_data' %}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-CSRFToken": getCookie("csrftoken"),
+      },
+      body: new URLSearchParams({ data_type: "products" })
+    })
+    .then(response => response.json())
+    .then(data => {
+      exportBtn.disabled = false;
+      exportBtn.innerHTML = '<i class="bi bi-download me-1"></i> Exporter les données';
+
+      if (data.success) {
+        exportAlert.className = "alert alert-success alert-dismissible fade show";
+        exportAlert.innerHTML = `
+          <i class="bi bi-check-circle-fill me-2"></i>
+          Export réussi ! <a href="${data.file}" target="_blank" class="fw-semibold text-decoration-none">
+          <i class="bi bi-file-earmark-arrow-down"></i> Télécharger le fichier</a>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+      } else {
+        exportAlert.className = "alert alert-danger alert-dismissible fade show";
+        exportAlert.innerHTML = `
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          Erreur : ${data.error || "échec de l'export"}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+      }
+      exportAlert.classList.remove("d-none");
+    })
+    .catch(() => {
+      exportBtn.disabled = false;
+      exportBtn.innerHTML = '<i class="bi bi-download me-1"></i> Exporter les données';
+      exportAlert.className = "alert alert-danger";
+      exportAlert.innerHTML = "<i class='bi bi-bug-fill me-2'></i> Erreur lors de l'export.";
+      exportAlert.classList.remove("d-none");
+    });
+  });
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+      const cookies = document.cookie.split(";");
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + "=")) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+});
+</script>
+{% endblock %}

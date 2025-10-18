@@ -1,0 +1,262 @@
+{% extends 'dashboard/base.html' %}
+{% load humanize %}
+{% block content %}
+<div class="container-fluid py-4">
+
+  <!-- En-tête -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0">
+      <i class="bi bi-robot me-2 text-primary"></i> Interactions utilisateur / IA
+    </h4>
+    <button id="exportChatbotBtn" class="btn btn-primary shadow-sm">
+      <i class="bi bi-download me-1"></i> Exporter les interactions
+    </button>
+  </div>
+
+  <!-- Zone de feedback export -->
+  <div id="exportAlert" class="alert d-none" role="alert"></div>
+
+  <!-- KPIs -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-4 col-sm-6">
+      <div class="card text-center p-3">
+        <h6 class="text-muted mb-1">Total interactions</h6>
+        <h2 class="fw-bold text-primary">{{ total_interactions|intcomma }}</h2>
+      </div>
+    </div>
+
+    <div class="col-md-4 col-sm-6">
+      <div class="card text-center p-3">
+        <h6 class="text-muted mb-1">Taux de sessions avec chatbot</h6>
+        <h2 class="fw-bold text-primary">{{ chatbot_session_rate }}%</h2>
+      </div>
+    </div>
+
+    <div class="col-md-4 col-sm-6">
+      <div class="card text-center p-3">
+        <h6 class="text-muted mb-1">Taux de satisfaction</h6>
+        <h2 class="fw-bold text-primary">{{ avg_satisfaction }}%</h2>
+      </div>
+    </div>
+  </div>
+
+  <!-- Graphique -->
+  <div class="card p-3 chart-card mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h6 class="fw-bold text-primary mb-0">
+        <i class="bi bi-activity me-1"></i> Interactions par jour
+      </h6>
+    </div>
+    <div style="height: 400px; position: relative;">
+      <canvas id="interactionsPerDayChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Historique -->
+  <div class="card p-3">
+    <h6 class="fw-bold text-primary mb-3">Historique des interactions</h6>
+
+    <!-- Desktop -->
+    <div class="table-responsive d-none d-md-block">
+      <table class="table align-middle table-hover">
+        <thead class="table-light">
+          <tr>
+            <th>Heure</th>
+            <th>Question</th>
+            <th>Réponse</th>
+            <th>Produit recommandé</th>
+            <th>Satisfaction</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for chat in interactions %}
+          <tr>
+            <td>{{ chat.created_at|date:"d/m/Y H:i" }}</td>
+            <td>{{ chat.question|truncatechars:50 }}</td>
+            <td>{{ chat.response|truncatechars:50|default:"—" }}</td>
+            <td>{{ chat.product_name|default:"—" }}</td>
+            <td>
+              {% if chat.satisfaction is True %}
+                <span class="badge bg-success">Oui</span>
+              {% elif chat.satisfaction is False %}
+                <span class="badge bg-danger">Non</span>
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="5" class="text-center text-muted py-3">Aucune interaction enregistrée.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile -->
+    <div class="d-md-none">
+      {% for chat in interactions %}
+      <div class="border rounded-3 p-3 mb-2 shadow-sm bg-white">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="fw-semibold text-primary">{{ chat.created_at|date:"d/m/Y H:i" }}</span>
+          {% if chat.satisfaction is True %}
+            <span class="badge bg-success d-inline-flex align-items-center gap-1">
+              <i class="bi bi-hand-thumbs-up-fill"></i>
+            </span>
+          {% elif chat.satisfaction is False %}
+            <span class="badge bg-danger d-inline-flex align-items-center gap-1">
+              <i class="bi bi-hand-thumbs-down-fill"></i>
+            </span>
+          {% else %}
+            <span class="badge bg-secondary d-inline-flex align-items-center gap-1">
+              <i class="bi bi-dash-lg"></i>
+            </span>
+          {% endif %}
+        </div>
+        <p class="mb-1"><strong>Question :</strong> {{ chat.question|truncatechars:80 }}</p>
+        <p class="mb-1"><strong>Réponse :</strong> {{ chat.response|truncatechars:80|default:"—" }}</p>
+        <p class="mb-0"><strong>Produit :</strong> {{ chat.product_name|default:"—" }}</p>
+      </div>
+      {% empty %}
+      <p class="text-muted text-center">Aucune interaction enregistrée.</p>
+      {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if interactions.has_other_pages %}
+    <nav aria-label="Pagination interactions" class="mt-3">
+      <ul class="pagination justify-content-center mb-0">
+        {% if interactions.has_previous %}
+          <li class="page-item"><a class="page-link" href="?page={{ interactions.previous_page_number }}">&laquo;</a></li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+        {% endif %}
+        {% for num in interactions.paginator.page_range %}
+          {% if num == interactions.number %}
+            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+          {% elif num > interactions.number|add:'-3' and num < interactions.number|add:'3' %}
+            <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+          {% endif %}
+        {% endfor %}
+        {% if interactions.has_next %}
+          <li class="page-item"><a class="page-link" href="?page={{ interactions.next_page_number }}">&raquo;</a></li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+  .chart-card {
+    height: 400px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+    border-radius: 12px;
+  }
+  .chart-card canvas {
+    flex-grow: 1;
+    height: 100% !important;
+  }
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  // === Graphique ===
+  fetch("{% url 'chatbot_chart_data' %}")
+    .then(response => response.json())
+    .then(data => {
+      const ctx = document.getElementById("interactionsPerDayChart").getContext("2d");
+      new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: data.labels,
+          datasets: [{
+            label: "Interactions par jour",
+            data: data.interactions_per_day,
+            borderColor: "#3B82F6",
+            backgroundColor: "rgba(59,130,246,0.15)",
+            tension: 0.4,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, grid: { color: "rgba(0,0,0,0.05)" } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+    });
+
+  // === EXPORT CSV ===
+  const exportBtn = document.getElementById("exportChatbotBtn");
+  const exportAlert = document.getElementById("exportAlert");
+
+  exportBtn.addEventListener("click", function () {
+    exportBtn.disabled = true;
+    exportBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Export en cours...';
+
+    fetch("{% url 'export_data' %}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-CSRFToken": getCookie("csrftoken"),
+      },
+      body: new URLSearchParams({ data_type: "chatbot" })
+    })
+    .then(response => response.json())
+    .then(data => {
+      exportBtn.disabled = false;
+      exportBtn.innerHTML = '<i class="bi bi-download me-1"></i> Exporter les interactions';
+
+      if (data.success) {
+        exportAlert.className = "alert alert-success alert-dismissible fade show";
+        exportAlert.innerHTML = `
+          <i class="bi bi-check-circle-fill me-2"></i>
+          Export réussi ! <a href="${data.file}" target="_blank" class="fw-semibold text-decoration-none">
+          <i class="bi bi-file-earmark-arrow-down"></i> Télécharger le fichier</a>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+      } else {
+        exportAlert.className = "alert alert-danger alert-dismissible fade show";
+        exportAlert.innerHTML = `
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          Erreur : ${data.error || "échec de l'export"}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+      }
+      exportAlert.classList.remove("d-none");
+    })
+    .catch(() => {
+      exportBtn.disabled = false;
+      exportBtn.innerHTML = '<i class="bi bi-download me-1"></i> Exporter les interactions';
+      exportAlert.className = "alert alert-danger";
+      exportAlert.innerHTML = "<i class='bi bi-bug-fill me-2'></i> Erreur lors de l'export.";
+      exportAlert.classList.remove("d-none");
+    });
+  });
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+      const cookies = document.cookie.split(";");
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + "=")) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,183 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+{% load humanize %}
+{% block content %}
+<div class="container-fluid py-4">
+
+  <!-- Bannière de bienvenue -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="welcome-banner d-flex align-items-center justify-content-between flex-wrap">
+        <div class="mb-3 mb-md-0">
+          <h4 class="fw-bold mb-1">
+            Bienvenue sur le tableau de bord <span class="text-primary">LIASEC</span>
+          </h4>
+          <p class="text-light opacity-75 mb-0">
+            Suivez en temps réel les interactions sur vos bornes connectées.
+          </p>
+        </div>
+        <button class="btn btn-light fw-semibold shadow-sm">
+          <i class="bi bi-download me-1"></i> Exporter les données
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Cartes KPI -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3 col-sm-6">
+      <div class="card text-center p-3 shadow-sm border-0">
+        <h6 class="text-muted mb-1">Sessions</h6>
+        <h2 class="fw-bold text-primary">{{ sessions_count|intcomma }}</h2>
+      </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6">
+      <div class="card text-center p-3 shadow-sm border-0">
+        <h6 class="text-muted mb-1">Clics</h6>
+        <h2 class="fw-bold text-primary">{{ clicks_count|intcomma }}</h2>
+      </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6">
+      <div class="card text-center p-3 shadow-sm border-0">
+        <h6 class="text-muted mb-1">Produits consultés</h6>
+        <h2 class="fw-bold text-primary">{{ products_count|intcomma }}</h2>
+      </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6">
+      <div class="card text-center p-3 shadow-sm border-0">
+        <h6 class="text-muted mb-1">Chatbot</h6>
+        <h2 class="fw-bold text-primary">{{ chatbot_count|intcomma }}</h2>
+      </div>
+    </div>
+  </div>
+
+  <!-- Graphiques -->
+  <div class="row g-4">
+    <!-- Sessions -->
+    <div class="col-md-6">
+      <div class="card p-3 shadow-sm border-0">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="fw-bold text-primary mb-0">
+            <i class="bi bi-graph-up me-1"></i> Sessions par jour
+          </h6>
+        </div>
+        <div style="height: 300px; position: relative;">
+          <canvas id="chartSessions"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Clics -->
+    <div class="col-md-6">
+      <div class="card p-3 shadow-sm border-0">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="fw-bold text-primary mb-0">
+            <i class="bi bi-mouse3-fill me-1"></i> Clics par jour
+          </h6>
+        </div>
+        <div style="height: 300px; position: relative;">
+          <canvas id="chartClicks"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ============================
+     STYLES
+============================ -->
+<style>
+  /* Empêche les graphs de s'étirer verticalement */
+  canvas {
+    width: 100% !important;
+    height: 100% !important;
+  }
+
+  /* Sur petit écran : graphes plus compacts */
+  @media (max-width: 992px) {
+    div[style*="height: 300px"] {
+      height: 240px !important;
+    }
+  }
+</style>
+
+<!-- ============================
+     CHART.JS
+============================ -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const ctxSessions = document.getElementById("chartSessions");
+  const ctxClicks = document.getElementById("chartClicks");
+
+  if (!ctxSessions || !ctxClicks) return;
+
+  window.myCharts = window.myCharts || {};
+
+  fetch("{% url 'chart_data' %}")
+    .then(response => response.json())
+    .then(data => {
+      // --- Sessions ---
+      if (window.myCharts.sessions) {
+        window.myCharts.sessions.destroy();
+      }
+
+      window.myCharts.sessions = new Chart(ctxSessions.getContext("2d"), {
+        type: "line",
+        data: {
+          labels: data.labels,
+          datasets: [{
+            label: "Sessions",
+            data: data.sessions,
+            fill: true,
+            borderColor: "#3B82F6",
+            backgroundColor: "rgba(59,130,246,0.15)",
+            tension: 0.4,
+            pointRadius: 4,
+            pointBackgroundColor: "#1E3A8A"
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } }
+        }
+      });
+
+      // --- Clics ---
+      if (window.myCharts.clicks) {
+        window.myCharts.clicks.destroy();
+      }
+
+      window.myCharts.clicks = new Chart(ctxClicks.getContext("2d"), {
+        type: "bar",
+        data: {
+          labels: data.labels,
+          datasets: [{
+            label: "Clics",
+            data: data.clicks,
+            backgroundColor: "#1E3A8A",
+            hoverBackgroundColor: "#3B82F6",
+            borderRadius: 8
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { grid: { display: false } },
+            y: { beginAtZero: true }
+          }
+        }
+      });
+    })
+    .catch(error => console.error("Erreur chargement données graphiques :", error));
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,198 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+{% block content %}
+
+<div class="container-fluid py-4">
+
+  <!-- En-tête -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0">
+      <i class="bi bi-cloud-arrow-down-fill text-primary me-2"></i> Exports / Rapports
+    </h4>
+  </div>
+
+  <!-- Carte principale -->
+  <div class="card p-4 shadow-sm border-0 mb-4">
+    <h5 class="fw-semibold text-primary mb-3">
+      <i class="bi bi-funnel-fill me-2"></i> Sélection des données à exporter
+    </h5>
+
+    <form id="exportForm" method="POST" action="{% url 'export_data' %}">
+      {% csrf_token %}
+
+      <!-- Type de données -->
+      <div class="mb-3">
+        <label class="form-label fw-semibold">Type de données</label>
+        <select class="form-select form-select-lg" name="data_type" required>
+          <option value="" selected disabled>Choisissez un type...</option>
+          <option value="sessions">Sessions</option>
+          <option value="clicks">Clics</option>
+          <option value="products">Produits consultés</option>
+          <option value="chatbot">Interactions chatbot</option>
+        </select>
+      </div>
+
+      <!-- Filtres -->
+      <div class="row g-3">
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Date de début</label>
+          <input type="date" class="form-control" name="start_date">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Date de fin</label>
+          <input type="date" class="form-control" name="end_date">
+        </div>
+        <div class="col-md-4">
+          <label class="form-label fw-semibold">Nom du produit (optionnel)</label>
+          <input type="text" class="form-control" name="product_name" placeholder="Ex : Chaussures de running">
+        </div>
+      </div>
+
+      <!-- Boutons -->
+      <div class="mt-4 d-flex gap-3">
+        <button type="submit" name="format" value="csv" class="btn btn-primary d-flex align-items-center">
+          <i class="bi bi-file-earmark-spreadsheet me-2"></i> Exporter en CSV
+        </button>
+
+        <button type="button" class="btn btn-outline-secondary d-flex align-items-center" disabled>
+          <i class="bi bi-filetype-pdf me-2"></i> Exporter en PDF (bientôt)
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- 🔹 Historique des exports -->
+  <div class="card p-4 shadow-sm border-0">
+    <h5 class="fw-semibold text-primary mb-3">
+      <i class="bi bi-clock-history me-2"></i> Historique des exports récents
+    </h5>
+
+    {% if exports %}
+      <div class="table-responsive">
+        <table class="table align-middle">
+          <thead class="table-light">
+            <tr>
+              <th scope="col">Type</th>
+              <th scope="col">Date</th>
+              <th scope="col">Utilisateur</th>
+              <th scope="col">Fichier</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for exp in exports %}
+              <tr>
+                <td>{{ exp.export_type }}</td>
+                <td>{{ exp.exported_at|date:"d/m/Y H:i" }}</td>
+                <td>{{ exp.user|default:"-" }}</td>
+                <td>
+                  <a href="{{ exp.file_path }}" class="text-decoration-none">
+                    <i class="bi bi-download text-primary me-1"></i> Télécharger
+                  </a>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <p class="text-muted mb-0">Aucun export enregistré pour le moment.</p>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- ============================
+     STYLES
+============================ -->
+<style>
+  .form-select:focus, .form-control:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
+  }
+
+  .btn-primary {
+    background-color: #3b82f6;
+    border-color: #3b82f6;
+  }
+
+  .btn-primary:hover {
+    background-color: #2563eb;
+  }
+</style>
+
+<!-- ============================
+     JS LOGIQUE
+============================ -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const form = document.getElementById("exportForm");
+
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    const formData = new FormData(form);
+    const exportType = formData.get("data_type");
+
+    if (!exportType) {
+      showToast("Veuillez choisir un type de données avant d’exporter.", "danger", "bi-exclamation-triangle-fill");
+      return;
+    }
+
+    fetch(form.action, {
+      method: "POST",
+      headers: { "X-CSRFToken": getCookie("csrftoken") },
+      body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        showToast("Export réussi ! Le fichier CSV a été généré.", "success", "bi-check-circle-fill");
+      } else {
+        showToast("Erreur : " + (data.error || "échec de l’export."), "danger", "bi-x-circle-fill");
+      }
+    })
+    .catch(err => {
+      console.error(err);
+      showToast("Une erreur est survenue pendant l’export.", "danger", "bi-exclamation-triangle-fill");
+    });
+  });
+
+  // Toast Bootstrap dynamique
+  function showToast(message, type, icon) {
+    const toastContainer = document.createElement("div");
+    toastContainer.className = "position-fixed top-0 end-0 p-3";
+    toastContainer.style.zIndex = "2000";
+
+    const toast = document.createElement("div");
+    toast.className = `alert alert-${type} alert-dismissible fade show d-flex align-items-center`;
+    toast.innerHTML = `
+      <i class="bi ${icon} me-2 fs-5"></i>
+      <div>${message}</div>
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+
+    toastContainer.appendChild(toast);
+    document.body.appendChild(toastContainer);
+
+    setTimeout(() => toast.remove(), 4000);
+  }
+
+  // CSRF helper
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+      const cookies = document.cookie.split(";");
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + "=")) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+});
+</script>
+
+{% endblock %}

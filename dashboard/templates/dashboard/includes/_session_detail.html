@@ -1,0 +1,103 @@
+<div class="text-start">
+
+  <!-- Informations de base -->
+  <h6 class="fw-bold text-primary mb-2">Informations de base</h6>
+  <ul class="list-unstyled mb-3">
+    <li><strong>ID :</strong> {{ session.id }}</li>
+    <li><strong>Utilisateur :</strong> {{ session.user_id|default:"Visiteur" }}</li>
+    <li><strong>Début :</strong> {{ session.start_time|date:"d/m/Y H:i" }}</li>
+    <li><strong>Fin :</strong> {{ session.end_time|date:"d/m/Y H:i"|default:"—" }}</li>
+    <li><strong>Durée :</strong> {{ session.duration|default:"—" }}</li>
+    <li><strong>Localisation :</strong> {{ session.location|default:"—" }}</li>
+    <li><strong>Appareil :</strong> {{ session.device|default:"—" }}</li>
+  </ul>
+
+  <!-- Clics regroupés par produit -->
+  <h6 class="fw-bold text-primary mb-2">Clics</h6>
+  {% if clicks %}
+    {% regroup clicks by product_id as clicks_by_product %}
+    <div class="accordion mb-3" id="accordionClicks">
+      {% for group in clicks_by_product %}
+        <div class="accordion-item">
+          <h2 class="accordion-header" id="heading{{ forloop.counter }}">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+              data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="false"
+              aria-controls="collapse{{ forloop.counter }}">
+              {% with first_click=group.list.0 %}
+                {{ first_click.product_name|default:"Page inconnue" }}
+                <span class="badge bg-primary ms-2">{{ group.list|length }} clic{{ group.list|length|pluralize }}</span>
+              {% endwith %}
+            </button>
+          </h2>
+          <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse"
+            aria-labelledby="heading{{ forloop.counter }}" data-bs-parent="#accordionClicks">
+            <div class="accordion-body p-0">
+              <ul class="list-group list-group-flush">
+                {% for c in group.list %}
+                  <li class="list-group-item">
+                    <small class="text-muted d-flex align-items-center gap-1">
+  <i class="bi bi-clock-history text-secondary"></i>
+  {{ c.timestamp|date:"H:i" }} — <span class="text-dark">{{ c.page }}</span>
+</small>
+
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          </div>
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p class="text-muted">Aucun clic enregistré.</p>
+  {% endif %}
+
+  <!-- Interactions Chatbot -->
+  <h6 class="fw-bold text-primary mb-2">Interactions Chatbot</h6>
+  {% if chats %}
+    <ul class="list-group mb-3">
+      {% for chat in chats %}
+        <li class="list-group-item">
+          <strong>Q :</strong> {{ chat.question|truncatechars:80 }}<br>
+          <strong>R :</strong> {{ chat.response|default:"(en attente...)"|truncatechars:100 }}
+          {% if chat.satisfaction is not None %}
+            <br>
+            <strong>Satisfaction :</strong>
+            {% if chat.satisfaction %}
+              <span class="badge bg-success">Oui</span>
+            {% else %}
+              <span class="badge bg-danger">Non</span>
+            {% endif %}
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-muted">Aucune interaction enregistrée.</p>
+  {% endif %}
+
+  <!-- Produits consultés -->
+  <h6 class="fw-bold text-primary mb-2">Produits consultés</h6>
+  {% if products %}
+    <ul class="list-group">
+      {% for p in products %}
+        <li class="list-group-item">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <strong>{{ p.product_name }}</strong><br>
+              <small class="text-muted">
+                ID : {{ p.product_id }}<br>
+                Source : {{ p.source|default:"—" }}<br>
+                Zone : {{ p.zone|default:"—" }}<br>
+                Vu à : {{ p.viewed_at|date:"d/m/Y H:i" }}
+              </small>
+            </div>
+          </div>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p class="text-muted">Aucun produit consulté.</p>
+  {% endif %}
+
+</div>

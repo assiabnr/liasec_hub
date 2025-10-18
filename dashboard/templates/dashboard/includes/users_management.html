@@ -1,0 +1,243 @@
+{% extends "dashboard/base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container py-4">
+  <h2 class="mb-4">
+    <span class="material-icons align-middle text-primary me-2">manage_accounts</span>
+    Gestion des comptes utilisateurs
+  </h2>
+
+  <!-- Messages -->
+  {% if messages %}
+  <div class="mb-3">
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Section de création -->
+  <div class="card mb-4 shadow-sm border-0">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center mb-4">
+        <h5 class="card-title mb-0 fw-bold text-secondary">
+          <i class="bi bi-person-plus-fill me-2 text-primary"></i> Créer un nouvel utilisateur
+        </h5>
+        <button type="submit" form="createUserForm" class="btn btn-primary">
+          <span class="material-icons align-middle me-1" style="font-size: 18px;">add_circle</span>
+          Créer le compte
+        </button>
+      </div>
+
+      <form id="createUserForm" class="row g-4">
+        <div class="col-md-4">
+          <label for="firstName" class="form-label fw-semibold">Prénom</label>
+          <input type="text" class="form-control form-control-lg" id="firstName" name="first_name" required>
+        </div>
+        <div class="col-md-4">
+          <label for="lastName" class="form-label fw-semibold">Nom</label>
+          <input type="text" class="form-control form-control-lg" id="lastName" name="last_name" required>
+        </div>
+        <div class="col-md-4">
+          <label for="email" class="form-label fw-semibold">Adresse e-mail</label>
+          <input type="email" class="form-control form-control-lg" id="email" name="email" required>
+        </div>
+        <div class="col-md-4">
+          <label for="role" class="form-label fw-semibold">Rôle</label>
+          <select id="role" name="role" class="form-select form-select-lg" required>
+            <option value="MANAGER">Manager</option>
+            <option value="ADMIN">Administrateur</option>
+          </select>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Tableau des utilisateurs -->
+  <div class="card shadow-sm border-0">
+    <div class="card-body">
+      <h5 class="card-title mb-3 fw-bold text-secondary">
+        <i class="bi bi-people-fill me-2 text-primary"></i> Liste des utilisateurs
+      </h5>
+      <div class="table-responsive">
+        <table class="table align-middle table-hover" id="usersTable">
+          <thead class="table-light">
+            <tr>
+              <th>#</th>
+              <th>Nom</th>
+              <th>Prénom</th>
+              <th>Email</th>
+              <th>Rôle</th>
+              <th>Statut</th>
+              <th class="text-end">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="usersTableBody">
+            <tr>
+              <td colspan="7" class="text-center text-muted py-3">Chargement des utilisateurs...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modale d’édition utilisateur -->
+<div class="modal fade" id="editUserModal" tabindex="-1" aria-labelledby="editUserModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-3 border-bottom border-primary bg-white">
+  <h5 class="modal-title text-primary" id="editUserModalLabel">
+    <i class="bi bi-pencil-square me-2 text-primary"></i> Modifier l'utilisateur
+  </h5>
+  <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+</div>
+
+      <div class="modal-body">
+        <form id="editUserForm" class="row g-3">
+          <input type="hidden" id="editUserId">
+          <div class="col-md-6">
+            <label for="editFirstName" class="form-label">Prénom</label>
+            <input type="text" class="form-control" id="editFirstName" required>
+          </div>
+          <div class="col-md-6">
+            <label for="editLastName" class="form-label">Nom</label>
+            <input type="text" class="form-control" id="editLastName" required>
+          </div>
+          <div class="col-md-12">
+            <label for="editRole" class="form-label">Rôle</label>
+            <select id="editRole" class="form-select" required>
+              <option value="ADMIN">Administrateur</option>
+              <option value="MANAGER">Manager</option>
+            </select>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary" id="saveEditBtn">Enregistrer les modifications</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Script -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  const tableBody = document.getElementById("usersTableBody");
+  const form = document.getElementById("createUserForm");
+
+  async function loadUsers() {
+    const response = await fetch("{% url 'users_list_create' %}");
+    const data = await response.json();
+    tableBody.innerHTML = "";
+    data.results.forEach((user, index) => {
+      const row = `
+        <tr data-id="${user.id}" class="user-row" style="cursor:pointer;">
+          <td>${index + 1}</td>
+          <td>${user.last_name || '-'}</td>
+          <td>${user.first_name || '-'}</td>
+          <td>${user.email}</td>
+          <td><span class="badge bg-${roleColor(user.role)}">${user.role}</span></td>
+          <td>${user.is_active ? '<span class="text-success">Actif</span>' : '<span class="text-danger">Inactif</span>'}</td>
+          <td class="text-end">
+            <button class="btn btn-sm btn-outline-secondary me-2" onclick="event.stopPropagation(); resetPassword(${user.id});">
+              <span class="material-icons" style="font-size: 18px;">lock_reset</span>
+            </button>
+            <button class="btn btn-sm btn-outline-danger" onclick="event.stopPropagation(); deleteUser(${user.id});">
+              <span class="material-icons" style="font-size: 18px;">delete</span>
+            </button>
+          </td>
+        </tr>`;
+      tableBody.insertAdjacentHTML("beforeend", row);
+    });
+
+    // Clic sur une ligne → ouvre la modale d’édition
+    document.querySelectorAll(".user-row").forEach(row => {
+      row.addEventListener("click", () => openEditModal(row.dataset.id));
+    });
+  }
+
+  function roleColor(role) {
+    return role === "ADMIN" ? "danger" : role === "MANAGER" ? "warning" : "secondary";
+  }
+
+  // Création d’utilisateur
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const body = Object.fromEntries(new FormData(form).entries());
+    const res = await fetch("{% url 'users_list_create' %}", {
+      method: "POST",
+      headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      alert("Utilisateur créé avec succès !");
+      form.reset();
+      loadUsers();
+    } else {
+      const err = await res.json();
+      alert("Erreur : " + (err.error || "Impossible de créer l’utilisateur."));
+    }
+  });
+
+  // Modale d’édition
+  async function openEditModal(userId) {
+    const res = await fetch(`/accounts/api/users/${userId}/`);
+    const user = await res.json();
+    document.getElementById("editUserId").value = user.id;
+    document.getElementById("editFirstName").value = user.first_name || "";
+    document.getElementById("editLastName").value = user.last_name || "";
+    document.getElementById("editRole").value = user.role;
+    new bootstrap.Modal(document.getElementById("editUserModal")).show();
+  }
+
+  // Sauvegarde édition
+  document.getElementById("saveEditBtn").addEventListener("click", async () => {
+    const id = document.getElementById("editUserId").value;
+    const body = {
+      first_name: document.getElementById("editFirstName").value,
+      last_name: document.getElementById("editLastName").value,
+      role: document.getElementById("editRole").value,
+    };
+    const res = await fetch(`/accounts/api/users/${id}/`, {
+      method: "PATCH",
+      headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+      body: JSON.stringify(body),
+    });
+    if (res.ok) {
+      alert("Informations mises à jour !");
+      bootstrap.Modal.getInstance(document.getElementById("editUserModal")).hide();
+      loadUsers();
+    } else {
+      alert("Erreur lors de la mise à jour.");
+    }
+  });
+
+  // Reset / Delete
+  window.resetPassword = async (id) => {
+    if (!confirm("Réinitialiser le mot de passe ?")) return;
+    const res = await fetch(`/accounts/api/users/${id}/`, {
+      method: "PATCH",
+      headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+      body: JSON.stringify({reset_password: true}),
+    });
+    alert(res.ok ? "Mot de passe temporaire envoyé." : "Erreur lors de la réinitialisation.");
+  };
+
+  window.deleteUser = async (id) => {
+    if (!confirm("Supprimer ce compte définitivement ?")) return;
+    const res = await fetch(`/accounts/api/users/${id}/`, {
+      method: "DELETE",
+      headers: {"X-CSRFToken": "{{ csrf_token }}"},
+    });
+    alert(res.ok ? "Utilisateur supprimé !" : "Erreur lors de la suppression.");
+    if (res.ok) loadUsers();
+  };
+
+  loadUsers();
+});
+</script>
+{% endblock %}

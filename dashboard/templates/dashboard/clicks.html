@@ -1,0 +1,261 @@
+{% extends 'dashboard/base.html' %}
+{% load humanize %}
+{% block content %}
+<div class="container-fluid py-4">
+
+  <!-- En-tête -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0">
+      <i class="bi bi-mouse-fill me-2 text-primary"></i> Interactions physiques
+    </h4>
+    <button id="exportClicksBtn" class="btn btn-primary shadow-sm">
+      <i class="bi bi-download me-1"></i> Exporter les clics
+    </button>
+  </div>
+
+  <!-- Zone de feedback export -->
+  <div id="exportAlert" class="alert d-none" role="alert"></div>
+
+  <!-- Graphiques -->
+  <div class="row g-4 mb-4">
+    <!-- Clics par jour -->
+    <div class="col-md-6">
+      <div class="card p-3 chart-card">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="fw-bold text-primary mb-0">Clics par jour</h6>
+        </div>
+        <canvas id="clicksPerDayChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Produits les plus cliqués -->
+    <div class="col-md-6">
+      <div class="card p-3 chart-card">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="fw-bold text-primary mb-0">Produits les plus cliqués</h6>
+        </div>
+        <canvas id="clicksByLabelChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Historique des clics -->
+  <div class="card p-3">
+    <h6 class="fw-bold text-primary mb-3">Historique des clics</h6>
+
+    <!-- Table desktop -->
+    <div class="table-responsive d-none d-md-block">
+      <table class="table align-middle table-hover">
+        <thead class="table-light">
+          <tr>
+            <th>Date / Heure</th>
+            <th>Label du clic</th>
+            <th>Produit associé</th>
+            <th>Page</th>
+            <th>Session ID</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for click in clicks %}
+          <tr>
+            <td>{{ click.timestamp|date:"d/m/Y H:i" }}</td>
+            <td>{{ click.label|default:"—" }}</td>
+            <td>{{ click.product_name|default:"—" }}</td>
+            <td><code>{{ click.page }}</code></td>
+            <td>#{{ click.session.id }}</td>
+          </tr>
+          {% empty %}
+          <tr>
+            <td colspan="5" class="text-center text-muted py-3">Aucun clic enregistré.</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Version mobile -->
+    <div class="d-md-none">
+      {% for click in clicks %}
+      <div class="border rounded-3 p-3 mb-2 shadow-sm bg-white">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <span class="fw-semibold text-primary">{{ click.timestamp|date:"d/m/Y H:i" }}</span>
+          <small class="text-muted">#{{ click.session.id }}</small>
+        </div>
+        <p class="mb-1"><strong>Label :</strong> {{ click.label|default:"—" }}</p>
+        <p class="mb-1"><strong>Produit :</strong> {{ click.product_name|default:"—" }}</p>
+        <p class="mb-0"><strong>Page :</strong> <code>{{ click.page }}</code></p>
+      </div>
+      {% empty %}
+      <p class="text-muted text-center">Aucun clic enregistré.</p>
+      {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if clicks.has_other_pages %}
+    <nav aria-label="Pagination clics">
+      <ul class="pagination justify-content-center mt-3 mb-0">
+        {% if clicks.has_previous %}
+        <li class="page-item"><a class="page-link" href="?page={{ clicks.previous_page_number }}">&laquo;</a></li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+        {% endif %}
+        {% for num in clicks.paginator.page_range %}
+          {% if clicks.number == num %}
+            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+          {% elif num > clicks.number|add:'-3' and num < clicks.number|add:'3' %}
+            <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+          {% endif %}
+        {% endfor %}
+        {% if clicks.has_next %}
+        <li class="page-item"><a class="page-link" href="?page={{ clicks.next_page_number }}">&raquo;</a></li>
+        {% else %}
+        <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+  .chart-card {
+    height: 360px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .chart-card canvas {
+    flex-grow: 1;
+    height: 100% !important;
+  }
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  // === CHARTS ===
+  fetch("{% url 'clicks_chart_data' %}")
+    .then(response => response.json())
+    .then(data => {
+      const ctx1 = document.getElementById("clicksPerDayChart").getContext("2d");
+      new Chart(ctx1, {
+        type: "bar",
+        data: {
+          labels: data.labels,
+          datasets: [{
+            label: "Clics par jour",
+            data: data.clicks_per_day,
+            backgroundColor: "#3B82F6",
+            hoverBackgroundColor: "#2563EB",
+            borderRadius: 6,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: { beginAtZero: true, grid: { color: "rgba(0,0,0,0.05)" } },
+            x: { grid: { display: false } }
+          }
+        }
+      });
+
+      const clicksData = data.labels_types.map((label, index) => ({
+        label: label,
+        value: data.clicks_by_label[index]
+      })).sort((a, b) => b.value - a.value);
+
+      const ctx2 = document.getElementById("clicksByLabelChart").getContext("2d");
+      new Chart(ctx2, {
+        type: "bar",
+        data: {
+          labels: clicksData.map(c => c.label),
+          datasets: [{
+            label: "Nombre de clics",
+            data: clicksData.map(c => c.value),
+            backgroundColor: "#3B82F6",
+            borderRadius: 6,
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: ctx => `${ctx.parsed.x} clics` } }
+          },
+          scales: {
+            x: { beginAtZero: true, grid: { color: "rgba(0,0,0,0.05)" }, ticks: { precision: 0 } },
+            y: { grid: { display: false } }
+          }
+        }
+      });
+    });
+
+  // === EXPORT CSV ===
+  const exportBtn = document.getElementById("exportClicksBtn");
+  const exportAlert = document.getElementById("exportAlert");
+
+  exportBtn.addEventListener("click", function () {
+    exportBtn.disabled = true;
+    exportBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Export en cours...';
+
+    fetch("{% url 'export_data' %}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-CSRFToken": getCookie("csrftoken"),
+      },
+      body: new URLSearchParams({ data_type: "clicks" })
+    })
+    .then(response => response.json())
+    .then(data => {
+      exportBtn.disabled = false;
+      exportBtn.innerHTML = '<i class="bi bi-download me-1"></i> Exporter les clics';
+
+      if (data.success) {
+        exportAlert.className = "alert alert-success alert-dismissible fade show";
+        exportAlert.innerHTML = `
+          <i class="bi bi-check-circle-fill me-2"></i>
+          Export réussi ! <a href="${data.file}" target="_blank" class="fw-semibold text-decoration-none">
+          <i class="bi bi-file-earmark-arrow-down"></i> Télécharger le fichier</a>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+      } else {
+        exportAlert.className = "alert alert-danger alert-dismissible fade show";
+        exportAlert.innerHTML = `
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          Erreur : ${data.error || "échec de l'export"}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+      }
+      exportAlert.classList.remove("d-none");
+    })
+    .catch(err => {
+      exportBtn.disabled = false;
+      exportBtn.innerHTML = '<i class="bi bi-download me-1"></i> Exporter les clics';
+      exportAlert.className = "alert alert-danger";
+      exportAlert.innerHTML = "<i class='bi bi-bug-fill me-2'></i> Erreur lors de l'export.";
+      exportAlert.classList.remove("d-none");
+    });
+  });
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+      const cookies = document.cookie.split(";");
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + "=")) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+});
+</script>
+{% endblock %}

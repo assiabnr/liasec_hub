@@ -1,0 +1,19 @@
+# Environnements virtuels
+venv/
+.env/
+*.pyc
+__pycache__/
+
+# Django
+db.sqlite3
+/staticfiles/
+media/
+*.log
+
+# PyCharm
+.idea/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db

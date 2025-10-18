@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Bienvenue sur LIASEC</title>
+  <style>
+    /* --------- Styles de base --------- */
+    body {
+      font-family: 'Inter', Arial, sans-serif;
+      background-color: #f3f4f6;
+      color: #1f2937;
+      margin: 0;
+      padding: 0;
+    }
+
+    .email-container {
+      background-color: #ffffff;
+      max-width: 600px;
+      margin: 40px auto;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+      overflow: hidden;
+      border: 1px solid #e5e7eb;
+    }
+
+    .header {
+      background-color: #2563eb;
+      color: #ffffff;
+      text-align: center;
+      padding: 24px;
+    }
+
+    .header h1 {
+      margin: 0;
+      font-size: 1.6rem;
+      font-weight: 600;
+    }
+
+    .content {
+      padding: 32px;
+      line-height: 1.6;
+    }
+
+    .content p {
+      margin-bottom: 16px;
+    }
+
+    .login-info {
+      background-color: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 20px 0;
+    }
+
+    .login-info code {
+      background-color: #f3f4f6;
+      border-radius: 4px;
+      padding: 2px 6px;
+      font-family: monospace;
+      color: #111827;
+      font-size: 0.95rem;
+    }
+
+    .button {
+      display: inline-block;
+      background-color: #2563eb;
+      color: #ffffff !important;
+      text-decoration: none;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-weight: 600;
+      margin-top: 20px;
+    }
+
+    .button:hover {
+      background-color: #1d4ed8;
+    }
+
+    .footer {
+      background-color: #f9fafb;
+      text-align: center;
+      padding: 16px;
+      font-size: 0.85rem;
+      color: #6b7280;
+      border-top: 1px solid #e5e7eb;
+    }
+  </style>
+</head>
+<body>
+  <div class="email-container">
+    <!-- En-tête -->
+    <div class="header">
+      <h1>Bienvenue sur LIASEC</h1>
+    </div>
+
+    <!-- Contenu principal -->
+    <div class="content">
+      <p>Bonjour {{ user.first_name|default:"" }},</p>
+
+      <p>Un compte vient d’être créé pour vous sur la plateforme <strong>{{ site_name }}</strong>.</p>
+      <p>Voici vos informations de connexion :</p>
+
+      <div class="login-info">
+        <p><strong>Email :</strong> <code>{{ user.email }}</code></p>
+        <p><strong>Mot de passe temporaire :</strong> <code>{{ temp_password }}</code></p>
+      </div>
+
+      <p>Vous devrez définir un nouveau mot de passe lors de votre première connexion.</p>
+
+      <p style="text-align: center;">
+        <a href="{{ login_url }}" class="button">Se connecter à LIASEC</a>
+      </p>
+
+      <p>Si vous n’êtes pas à l’origine de cette création, ignorez simplement cet email.</p>
+
+      <p>Cordialement,<br>L’équipe {{ site_name }}</p>
+    </div>
+
+    <!-- Pied de page -->
+    <div class="footer">
+      © {{ site_name }} — Ne pas répondre à cet email automatique.
+    </div>
+  </div>
+</body>
+</html>

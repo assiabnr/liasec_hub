@@ -1,0 +1,35 @@
+<nav class="navbar-main d-flex justify-content-between align-items-center px-3 py-2 bg-white shadow-sm">
+  <div class="d-flex align-items-center">
+    <h6 class="fw-semibold mb-0 text-primary">
+      <i class="bi bi-speedometer2 me-2"></i> Liasec Dashboard
+    </h6>
+  </div>
+
+  <!-- Menu utilisateur -->
+  <ul class="navbar-nav d-flex align-items-center mb-0 position-relative">
+    <li class="nav-item dropdown">
+      <a href="#" class="nav-link p-0 text-body dropdown-toggle d-flex align-items-center"
+         id="userMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="material-icons fs-3 text-secondary">account_circle</i>
+      </a>
+      <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" aria-labelledby="userMenu">
+        <li class="dropdown-header small text-muted px-3">
+          Connecté en tant que<br>
+          <strong>{{ request.user.first_name }} {{ request.user.last_name }}</strong><br>
+          <small>{{ request.user.email }}</small>
+        </li>
+        <li><hr class="dropdown-divider"></li>
+        <li>
+          <a class="dropdown-item d-flex align-items-center" href="{% url 'settings' %}">
+            <i class="material-icons me-2 text-primary">settings</i> Paramètres
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item d-flex align-items-center text-danger" href="{% url 'logout' %}">
+            <i class="material-icons me-2">logout</i> Se déconnecter
+          </a>
+        </li>
+      </ul>
+    </li>
+  </ul>
+</nav>

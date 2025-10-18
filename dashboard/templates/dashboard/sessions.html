@@ -1,0 +1,252 @@
+{% extends 'dashboard/base.html' %}
+{% load humanize %}
+{% block content %}
+<div class="container-fluid py-4">
+
+  <!-- En-tête -->
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h4 class="fw-bold mb-0">
+      <i class="bi bi-people-fill me-2 text-primary"></i> Activité utilisateur
+    </h4>
+    <button id="exportSessionsBtn" class="btn btn-primary shadow-sm d-flex align-items-center">
+      <i class="bi bi-download me-2"></i> Exporter les sessions
+    </button>
+  </div>
+
+  <!-- Zone de feedback export -->
+  <div id="exportAlert" class="alert d-none" role="alert"></div>
+
+  <!-- Statistiques globales -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3 col-sm-6">
+      <div class="card text-center p-3 shadow-sm border-0">
+        <h6 class="text-muted mb-1">Total de sessions</h6>
+        <h2 class="fw-bold text-primary mb-0">{{ total_sessions|intcomma }}</h2>
+      </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6">
+      <div class="card text-center p-3 shadow-sm border-0">
+        <h6 class="text-muted mb-1">Durée totale</h6>
+        <h2 class="fw-bold text-primary mb-0">{{ total_duration }}</h2>
+      </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6">
+      <div class="card text-center p-3 shadow-sm border-0">
+        <h6 class="text-muted mb-1">Durée moyenne</h6>
+        <h2 class="fw-bold text-primary mb-0">{{ avg_duration }}</h2>
+      </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6">
+      <div class="card text-center p-3 shadow-sm border-0">
+        <h6 class="text-muted mb-1">Interactions chatbot</h6>
+        <h2 class="fw-bold text-primary mb-0">{{ total_chatbot_interactions|intcomma }}</h2>
+      </div>
+    </div>
+  </div>
+
+  <!-- Graphique sessions -->
+  <div class="card p-3 mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h6 class="fw-bold text-primary mb-0">Sessions par jour</h6>
+    </div>
+    <canvas id="sessionsChart" height="120"></canvas>
+  </div>
+
+  <!-- Tableau des sessions -->
+  <div class="card p-3">
+    <h6 class="fw-bold text-primary mb-3">Liste des sessions</h6>
+
+    <div class="table-responsive d-none d-md-block">
+      <table class="table align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>ID</th>
+            <th>Utilisateur</th>
+            <th>Début</th>
+            <th>Fin</th>
+            <th>Durée</th>
+            <th>Clics</th>
+            <th>Chatbot</th>
+            <th>Détail</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for session in sessions %}
+          <tr>
+            <td>#{{ session.id }}</td>
+            <td>{{ session.user_id|default:"Visiteur" }}</td>
+            <td>{{ session.start_time|date:"d/m/Y H:i" }}</td>
+            <td>{{ session.end_time|date:"d/m/Y H:i"|default:"—" }}</td>
+            <td>
+              {% if session.duration %}
+                {{ session.duration }}
+              {% else %}
+                <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+            <td>{{ session.product_views.count }}</td>
+            <td>{{ session.chatbot_interactions.count }}</td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary" data-session-id="{{ session.id }}" onclick="openSessionDetail(this)">
+                <i class="bi bi-eye"></i>
+              </button>
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="8" class="text-center text-muted py-3">Aucune session trouvée.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if sessions.has_other_pages %}
+    <nav aria-label="Pagination sessions">
+      <ul class="pagination justify-content-center mt-3 mb-0">
+        {% if sessions.has_previous %}
+          <li class="page-item"><a class="page-link" href="?page={{ sessions.previous_page_number }}">&laquo;</a></li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
+        {% endif %}
+        {% for num in sessions.paginator.page_range %}
+          {% if sessions.number == num %}
+            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+          {% elif num > sessions.number|add:'-3' and num < sessions.number|add:'3' %}
+            <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+          {% endif %}
+        {% endfor %}
+        {% if sessions.has_next %}
+          <li class="page-item"><a class="page-link" href="?page={{ sessions.next_page_number }}">&raquo;</a></li>
+        {% else %}
+          <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Modal détail session -->
+<div class="modal fade" id="sessionDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Détail de la session</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="sessionDetailContent" class="text-center text-muted">Chargement...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  // --- Graphique ---
+  fetch("{% url 'chart_data' %}")
+    .then(response => response.json())
+    .then(data => {
+      const ctx = document.getElementById("sessionsChart").getContext("2d");
+      new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: data.labels,
+          datasets: [{
+            label: "Sessions",
+            data: data.sessions,
+            borderColor: "#3B82F6",
+            backgroundColor: "rgba(59,130,246,0.1)",
+            tension: 0.3,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true }, x: { grid: { display: false } } }
+        }
+      });
+    });
+
+  // --- Export CSV ---
+  const exportBtn = document.getElementById("exportSessionsBtn");
+  const exportAlert = document.getElementById("exportAlert");
+
+  exportBtn.addEventListener("click", function () {
+    exportBtn.disabled = true;
+    exportBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Export en cours...';
+
+    fetch("{% url 'export_data' %}", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "X-CSRFToken": getCookie("csrftoken"),
+      },
+      body: new URLSearchParams({ data_type: "sessions" })
+    })
+    .then(response => response.json())
+    .then(data => {
+      exportBtn.disabled = false;
+      exportBtn.innerHTML = '<i class="bi bi-download me-2"></i> Exporter les sessions';
+
+      if (data.success) {
+        exportAlert.className = "alert alert-success alert-dismissible fade show";
+        exportAlert.innerHTML = `
+          <i class="bi bi-check-circle-fill me-2"></i>
+          Export réussi ! <a href="${data.file}" target="_blank" class="fw-semibold text-decoration-none">
+          <i class="bi bi-file-earmark-arrow-down"></i> Télécharger le fichier</a>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+      } else {
+        exportAlert.className = "alert alert-danger alert-dismissible fade show";
+        exportAlert.innerHTML = `
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          Erreur : ${data.error || "échec de l'export"}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+      }
+      exportAlert.classList.remove("d-none");
+    })
+    .catch(err => {
+      exportBtn.disabled = false;
+      exportBtn.innerHTML = '<i class="bi bi-download me-2"></i> Exporter les sessions';
+      exportAlert.className = "alert alert-danger";
+      exportAlert.innerHTML = "<i class='bi bi-bug-fill me-2'></i> Erreur lors de l'export.";
+      exportAlert.classList.remove("d-none");
+    });
+  });
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+      const cookies = document.cookie.split(";");
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + "=")) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+});
+
+function openSessionDetail(button) {
+  const sessionId = button.getAttribute("data-session-id");
+  const modal = new bootstrap.Modal(document.getElementById("sessionDetailModal"));
+  const content = document.getElementById("sessionDetailContent");
+  content.innerHTML = "Chargement...";
+
+  fetch(`/dashboard/session/${sessionId}/detail/`)
+    .then(response => response.text())
+    .then(html => content.innerHTML = html)
+    .catch(() => content.innerHTML = "<p class='text-danger'>Erreur de chargement des détails.</p>");
+
+  modal.show();
+}
+</script>
+{% endblock %}
