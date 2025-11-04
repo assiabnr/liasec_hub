@@ -5,7 +5,7 @@ from datetime import timedelta, datetime
 
 from django.core.paginator import Paginator
 from django.db.models import Count, Avg, Sum, DurationField, Value, Q, FloatField
-from django.db.models.functions import TruncDate, Coalesce, Lower
+from django.db.models.functions import TruncDate, Coalesce, Lower, ExtractWeekDay
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
@@ -45,19 +45,46 @@ def dashboard_home(request):
 # DONNÉES GRAPHIQUE PRINCIPAL
 # ==========================
 def chart_data(request):
-    today = timezone.now()
-    start_of_week = today - timedelta(days=today.weekday())
     labels = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"]
 
-    sessions_data, clicks_data = [], []
+    # Sessions : moyenne par jour de semaine
+    sessions_qs = (
+        Session.objects
+        .annotate(day=ExtractWeekDay("start_time"))
+        .values("day")
+        .annotate(avg_sessions=Count("id") * 1.0 / Count("start_time__week", distinct=True))
+        .order_by("day")
+    )
 
-    for i in range(7):
-        day = start_of_week + timedelta(days=i)
-        sessions_data.append(Session.objects.filter(start_time__date=day.date()).count())
-        clicks_data.append(Click.objects.filter(timestamp__date=day.date()).count())
+    # Clics : moyenne par jour de semaine
+    clicks_qs = (
+        Click.objects
+        .annotate(day=ExtractWeekDay("timestamp"))
+        .values("day")
+        .annotate(avg_clicks=Count("id") * 1.0 / Count("timestamp__week", distinct=True))
+        .order_by("day")
+    )
 
-    return JsonResponse({"labels": labels, "sessions": sessions_data, "clicks": clicks_data})
+    # Mapping Django weekday (1=Dimanche → 7=Samedi)
+    mapping = {2: 0, 3: 1, 4: 2, 5: 3, 6: 4, 7: 5, 1: 6}
+    sessions_data = [0] * 7
+    clicks_data = [0] * 7
 
+    for s in sessions_qs:
+        index = mapping.get(s["day"], None)
+        if index is not None:
+            sessions_data[index] = round(s["avg_sessions"], 2)
+
+    for c in clicks_qs:
+        index = mapping.get(c["day"], None)
+        if index is not None:
+            clicks_data[index] = round(c["avg_clicks"], 2)
+
+    return JsonResponse({
+        "labels": labels,
+        "sessions": sessions_data,
+        "clicks": clicks_data
+    })
 
 # ==========================
 # SESSIONS
