@@ -6,6 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils import timezone
 from django.conf import settings
 from mistralai import Mistral
+
 from dashboard.models import Session, ChatbotInteraction
 
 
@@ -72,11 +73,9 @@ def accept_tos(request):
 # =========================================================
 @csrf_exempt
 def chat_api(request):
-    """API principale du chatbot — enregistre les interactions enrichies avec logique de feedback."""
     if request.method != "POST":
         return JsonResponse({"error": "Méthode non autorisée"}, status=405)
 
-    # Lecture du message utilisateur
     try:
         data = json.loads(request.body)
     except json.JSONDecodeError:
@@ -86,7 +85,6 @@ def chat_api(request):
     if not question:
         return JsonResponse({"error": "Message vide"}, status=400)
 
-    # Gestion session utilisateur
     device = request.headers.get("User-Agent", "Inconnu")
     session_id = request.session.get("session_id")
     if session_id:
@@ -102,7 +100,6 @@ def chat_api(request):
         request.session["session_id"] = session.id
         request.session["user_id"] = user_id
 
-    # === Détection simple d’intention ===
     lower_q = question.lower()
     if any(k in lower_q for k in ["prix", "coût", "combien"]):
         intent = "prix"
@@ -115,7 +112,6 @@ def chat_api(request):
     else:
         intent = "Autre"
 
-    # === Appel Mistral ===
     start_time = timezone.now()
     if not client:
         answer = f"[TEST] Vous avez dit : {question}"
@@ -129,27 +125,25 @@ def chat_api(request):
                     {"role": "user", "content": question},
                 ],
             )
-            answer = response.choices[0].message["content"].strip()
+            answer = response.choices[0].message.content.strip()
             success = bool(answer and "erreur" not in answer.lower())
         except Exception as e:
             answer = f"(Erreur Mistral : {str(e)})"
             success = False
+
     end_time = timezone.now()
     response_time = round((end_time - start_time).total_seconds(), 2)
 
-    # === Logique d'affichage du feedback intelligent ===
     ask_feedback = False
     if intent in ["prix", "disponibilite", "taille"] or not success:
         ask_feedback = True
     elif intent == "conseil_produit":
-        # On vérifie si c’est la 3ᵉ interaction ou plus dans ce contexte (dialogue complet)
         total_context = ChatbotInteraction.objects.filter(
             session=session, intent="conseil_produit"
         ).count()
         if total_context >= 3:
             ask_feedback = True
 
-    # === Enregistrement enrichi ===
     interaction = ChatbotInteraction.objects.create(
         session=session,
         question=question,
@@ -255,3 +249,6 @@ def close_inactive_sessions():
         s.end_time = timezone.now()
         s.duration = s.end_time - s.start_time
         s.save()
+
+
+
