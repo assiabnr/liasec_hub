@@ -1,0 +1,785 @@
+@import url("https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap");
+
+:root {
+  --bg: #f8f9ff;
+  --text: #0f172a;
+  --primary: #445be8;
+  --accent: #f86f0b;
+  --white: #fff;
+  --shadow: 0 10px 30px rgba(62, 70, 138, 0.12);
+}
+
+* {
+  box-sizing: border-box;
+}
+html, body {
+  height: 100%;
+  margin: 0;
+}
+body {
+  font-family: "Poppins", sans-serif;
+  color: var(--text);
+  background: url("../images/bg.svg") center/cover no-repeat fixed;
+}
+
+/* === Chat layout === */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100vh;
+}
+
+/* === Messages === */
+.messages {
+  flex: 1;
+  padding: 30px;
+  overflow-y: auto;
+}
+
+.message {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 15px;
+}
+
+.message .avatar {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.message .avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.message .bubble {
+  background: #f2f2f2;
+  border: 2px solid #d8d8d8;
+  border-radius: 20px;
+  padding: 14px 20px;
+  max-width: 80%;
+  line-height: 1.6;
+  font-weight: 500;
+  color: #252525;
+  box-shadow: var(--shadow);
+}
+
+/* === Zone de saisie === */
+.composer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0) 0,
+    rgba(255, 255, 255, 0.9) 14%,
+    rgba(255, 255, 255, 1) 70%
+  );
+  padding: 18px; /* moins de marge latérale */
+}
+
+
+.composer-form {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.composer-inner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: transparent;
+  width: 100%;
+  margin: 0;
+}
+
+
+/* === Champ de saisie === */
+.composer-input-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border: 4px solid #402dfc;
+  border-radius: 100px;
+  padding: 12px 20px;
+  box-shadow: 0 0 60px rgba(64, 45, 252, 0.2);
+  width: 100%;
+}
+
+
+.composer-input-wrap:hover {
+  box-shadow: 0 0 80px rgba(64, 45, 252, 0.35);
+}
+
+.input-icon img {
+  width: 22px;
+  height: 22px;
+  opacity: 0.8;
+}
+
+#chat-form-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 1rem;
+  font-weight: 500;
+  padding: 10px;
+  color: var(--text);
+}
+
+
+/* === Feedback === */
+.feedback {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #f7f7fb;
+  border: 1px solid #e6e8ff;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.feedback.hidden {
+  display: none;
+}
+
+.feedback-btn {
+  border: none;
+  background: #fff;
+  border-radius: 10px;
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  box-shadow: var(--shadow);
+  cursor: pointer;
+}
+
+.feedback-btn img {
+  width: 24px;
+  height: 24px;
+}
+
+/* === Animation “...” (bulle typing) === */
+.bouncing-dots {
+  display: inline-block;
+}
+.bouncing-dots span {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  margin: 0 2px;
+  background: #999;
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+.bouncing-dots span:nth-child(1) {
+  animation-delay: -0.32s;
+}
+.bouncing-dots span:nth-child(2) {
+  animation-delay: -0.16s;
+}
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
+}
+
+/* === Bouton volume flottant === */
+.volume-btn {
+  position: fixed;
+  top: 20px;
+  left: 20px;
+  z-index: 200;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+.volume-btn img {
+  width: 26px;
+  height: 26px;
+}
+
+
+/* === Messages utilisateur à droite === */
+.message.user {
+  justify-content: flex-end; /* aligne le message à droite */
+}
+
+.message.user .bubble {
+  background: linear-gradient(90deg, #445be8 0%, #4f90f0 100%);
+  color: #fff;
+  border: none;
+  box-shadow: 0 4px 14px rgba(64, 45, 252, 0.3);
+  border-top-right-radius: 4px;
+  border-top-left-radius: 20px;
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+  text-align: right;
+}
+
+/* Supprime l’avatar utilisateur (on affiche seulement celui du bot) */
+.message.user .avatar {
+  display: none;
+}
+
+/* === Messages bot à gauche (inchangé) === */
+.message.bot {
+  justify-content: flex-start;
+}
+
+.message.bot .bubble {
+  background: #f2f2f2;
+  border: 2px solid #d8d8d8;
+  color: #252525;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 20px;
+  border-bottom-left-radius: 20px;
+  border-bottom-right-radius: 20px;
+}
+
+/* === Animation d’apparition (optionnelle) === */
+.message.user .bubble,
+.message.bot .bubble {
+  animation: fadeIn 0.25s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* === Boutons d’action (micro / reset / envoyer) === */
+.composer-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Style commun des boutons */
+.btn.icon {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: none;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn.icon img {
+  width: 22px;
+  height: 22px;
+}
+
+.btn.icon:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* === Bouton micro === */
+.chat-mic {
+  background: #ffffff;
+  border: 1.5px solid #dcdcdc;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+}
+.chat-mic img {
+  filter: brightness(0) saturate(100%) invert(30%) sepia(6%) saturate(0%) hue-rotate(170deg) brightness(95%) contrast(90%);
+}
+.chat-mic:hover {
+  background: #f7f7f7;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+}
+
+/* === Bouton reset === */
+.chat-reset {
+  background: linear-gradient(135deg, #ffb700 0%, #f86f0b 100%);
+  border: 2px solid #e67c0a;
+  box-shadow: 0 4px 10px rgba(248, 111, 11, 0.4);
+  transition: all 0.25s ease;
+}
+.chat-reset img {
+  filter: brightness(0) invert(1);
+}
+.chat-reset:hover {
+  background: linear-gradient(135deg, #ffc836 0%, #fc8020 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(248, 111, 11, 0.5);
+}
+
+/* === Bouton envoyer === */
+.btn.icon.primary {
+  background: linear-gradient(135deg, #3f51f8 0%, #2636e0 100%);
+  border: 2px solid #3040df;
+  box-shadow: 0 4px 10px rgba(68, 91, 232, 0.4);
+  transition: all 0.25s ease;
+}
+.btn.icon.primary img {
+  filter: brightness(0) invert(1);
+}
+.btn.icon.primary:hover {
+  background: linear-gradient(135deg, #5563ff 0%, #3143f0 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(68, 91, 232, 0.5);
+}
+
+/* === Animation micro actif === */
+.chat-mic.recording {
+  position: relative;
+  background: #f44336;
+  border-radius: 50%;
+  animation: mic-pulse 1.2s infinite ease-in-out;
+  border: none;
+  box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.4);
+}
+.chat-mic.recording img {
+  filter: brightness(0) invert(1);
+}
+
+@keyframes mic-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(244, 67, 54, 0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(244, 67, 54, 0.1); }
+}
+
+/* Label indicatif lors de l’écoute */
+.mic-listening-label {
+  position: fixed;
+  bottom: 130px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(244, 67, 54, 0.9);
+  color: #fff;
+  padding: 10px 16px;
+  border-radius: 30px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  animation: fade-in 0.3s ease forwards;
+  z-index: 2000;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translate(-50%, 20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* Animation d’apparition */
+@keyframes fadeIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* Effet de flou arrière-plan popups */
+.reset-popup {
+  backdrop-filter: blur(4px);
+}
+
+
+/* === Bouton volume / synthèse vocale (placé à droite) === */
+.chat-sound {
+  position: fixed;
+  top: 20px;
+  right: 20px; /* ✅ déplacé à droite */
+  background: linear-gradient(135deg, #3f51f8 0%, #2636e0 100%);
+  border: none;
+  border-radius: 50%;
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: all 0.25s ease;
+  z-index: 999;
+}
+
+.chat-sound img {
+  width: 26px;
+  height: 26px;
+  filter: brightness(0) invert(1);
+}
+
+/* Hover state */
+.chat-sound:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+}
+
+/* État désactivé (mute) */
+.chat-sound.muted {
+  background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+}
+
+.chat-sound.muted img {
+  filter: brightness(0) invert(1);
+}
+
+/* === Panneau son aligné avec le bouton === */
+.sound-panel {
+  position: fixed;
+  top: 90px;
+  right: 20px; /* ✅ aligné avec le bouton */
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  width: 250px;
+  padding: 16px 20px;
+  font-family: "Poppins", sans-serif;
+  z-index: 3000;
+  animation: fadeInUp 0.3s ease;
+}
+
+.sound-panel.hide {
+  animation: fadeOutDown 0.3s ease forwards;
+}
+
+.sound-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.sound-header h4 {
+  margin: 0;
+  font-size: 1rem;
+  color: #222;
+}
+
+.close-sound-panel {
+  background: transparent;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  color: #555;
+}
+
+.sound-body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+#volume-slider {
+  width: 100%;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
+.mute-toggle {
+  background: linear-gradient(135deg, #445be8 0%, #2636e0 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mute-toggle:hover {
+  background: linear-gradient(135deg, #5563f8 0%, #3747e8 100%);
+}
+
+/* === Slider désactivé (son coupé) === */
+#volume-slider.disabled,
+#volume-slider:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  filter: grayscale(100%);
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeOutDown {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(10px); }
+}
+
+
+
+
+.mute-toggle i {
+  margin-right: 6px;
+  font-size: 1.1rem;
+  vertical-align: middle;
+}
+
+
+
+/* General */
+.button {
+  border: none;
+  background-color: transparent;
+  font-size: calc(15px + 0.390625vw);
+  font-weight: 500;
+  font-family: inherit;
+  color: white;
+  padding: 15px 30px;
+  border-radius: 16px;
+  transition: 0.2s;
+  text-align: center;
+}
+.button:hover {
+  box-shadow: inset 100px 100px rgba(255, 255, 255, 0.1);
+  transition: 0.2s;
+  cursor: pointer;
+}
+.button-rounded:hover {
+  box-shadow: inset 100px 100px rgba(255, 255, 255, 0.1),
+    0 5px 5px rgb(0 0 0 / 20%);
+  transition: 0.2s;
+  cursor: pointer;
+}
+.button-rounded {
+  border-radius: 100px;
+  border: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 5px 5px rgb(0 0 0 / 20%);
+  width: 100px;
+  height: 100px;
+  transition: 0.2s;
+}
+.button-rounded img {
+  display: block;
+  width: 64px;
+  height: 64px;
+}
+
+.button-primary {
+  border: 4px solid #d05c09;
+  background: linear-gradient(
+    90deg,
+    rgba(248, 111, 11, 1) 3%,
+    rgba(236, 226, 0, 1) 100%
+  );
+}
+.button-secondary {
+  border: 4px solid #412dfc;
+  background: linear-gradient(90deg, #445be8 22%, rgba(79, 144, 240, 1) 100%);
+}
+
+
+/* === POPUP GÉNÉRALE (reset + inactivité) === */
+.reset-popup {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.3s ease;
+}
+
+.reset-content {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  padding: 35px 40px;
+  width: 90%;
+  max-width: 420px;
+  text-align: center;
+  font-family: "Poppins", sans-serif;
+  animation: fadeInUp 0.35s ease;
+}
+
+.reset-content h3 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: var(--text);
+  margin-top: 0;
+  margin-bottom: 10px;
+}
+
+.reset-content p {
+  font-size: 1rem;
+  color: #555;
+  margin-bottom: 25px;
+  line-height: 1.5;
+}
+
+.reset-content .button {
+  font-size: 0.95rem;
+  padding: 12px 24px;
+  border-radius: 10px;
+  font-weight: 600;
+  min-width: 130px;
+}
+
+/* Conteneur des boutons */
+.reset-content .popup-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+/* Survol doux et effet lumineux */
+.button-primary:hover {
+  box-shadow: 0 0 18px rgba(248, 111, 11, 0.4);
+  transform: translateY(-2px);
+}
+.button-secondary:hover {
+  box-shadow: 0 0 18px rgba(64, 45, 252, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Animations */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+
+/* === Page des conditions d'utilisation (TOS) === */
+.tos-body {
+  font-family: "Poppins", sans-serif;
+  background: url("../images/bg.svg") center/cover no-repeat fixed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  margin: 0;
+  color: #111;
+}
+
+.tos-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  width: 100%;
+  padding: 30px;
+}
+
+.tos-card {
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 20px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  padding: 40px 50px;
+  max-width: 700px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 25px;
+  animation: fadeInUp 0.5s ease;
+}
+
+.tos-description {
+  font-size: 1.15rem;
+  line-height: 1.7;
+  font-weight: 500;
+  color: #222;
+}
+
+.tos-note {
+  font-size: 1rem;
+  color: #444;
+  line-height: 1.6;
+  margin-top: -10px;
+}
+
+.tos-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.tos-buttons .button {
+  min-width: 150px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.tos-logo {
+  width: 140px;
+  height: auto;
+  margin-top: 10px;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.15));
+}
+
+/* === Animation d'apparition === */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(15px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* === Responsive mobile === */
+@media (max-width: 600px) {
+  .tos-card {
+    padding: 30px 25px;
+  }
+  .tos-description {
+    font-size: 1rem;
+  }
+  .tos-note {
+    font-size: 0.95rem;
+  }
+  .tos-buttons {
+    flex-direction: column;
+    gap: 12px;
+  }
+  .tos-logo {
+    width: 100px;
+  }
+}
+
+a.button {
+  text-decoration: none;
+}
+
+a.button:hover {
+  text-decoration: none;
+  filter: brightness(1.05);
+}
+
+
+.mic-listening-label i {
+  font-size: 1.1rem;
+  vertical-align: middle;
+}

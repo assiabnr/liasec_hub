@@ -1,0 +1,186 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Assistant LIASEC</title>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="{% static 'chatbot/css/chat.css' %}">
+    <link rel="stylesheet" href="{% static 'chatbot/css/keyboard.css' %}">
+    <link rel="icon" href="{% static 'chatbot/images/logo.png' %}" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css"
+    />
+
+    <meta name="description" content="Assistant virtuel LIASEC — Chat interactif, reconnaissance vocale et synthèse vocale.">
+  </head>
+
+  <body class="chatbody">
+    <!-- Bouton volume (toggle voix ON/OFF) -->
+    <button type="button" class="btn icon chat-sound" id="soundToggle" title="Activer/Désactiver la voix">
+      <img src="{% static 'chatbot/images/icons/volume.svg' %}" alt="Activer/Désactiver la voix" />
+    </button>
+
+    <main class="chat-container">
+      <!-- Zone des messages -->
+      <section id="messages" class="messages"></section>
+
+      <!-- Zone de saisie -->
+      <footer class="composer">
+        <form id="chatForm" class="composer-form" autocomplete="off">
+          <div class="composer-inner">
+            <!-- Champ de saisie -->
+            <div class="composer-input-wrap">
+              <span class="input-icon">
+                <img src="{% static 'chatbot/images/icons/keyboard.svg' %}" alt="Clavier" />
+              </span>
+              <input
+                id="chat-form-input"
+                type="text"
+                placeholder="Écrire un message…"
+                aria-label="Message"
+              />
+            </div>
+
+            <!-- Icônes d’action -->
+            <div class="composer-actions">
+              <!-- Micro (push-to-talk) -->
+              <button type="button" class="btn icon chat-mic" title="Appuyer pour parler">
+                <img src="{% static 'chatbot/images/icons/mic.svg' %}" alt="Micro" />
+              </button>
+
+              <!-- Réinitialiser la conversation -->
+              <button type="button" class="btn icon chat-reset" title="Réinitialiser la conversation">
+                <img src="{% static 'chatbot/images/icons/reset.svg' %}" alt="Reset" />
+              </button>
+
+              <!-- Envoyer -->
+              <button type="button" class="btn icon primary chat-send" title="Envoyer le message">
+                <img src="{% static 'chatbot/images/icons/send.png' %}" alt="Envoyer" />
+              </button>
+            </div>
+          </div>
+        </form>
+
+        <!-- Bloc feedback utilisateur -->
+        <div id="feedback-container" class="feedback hidden">
+          <span>Notez cette réponse :</span>
+          <div class="stars">
+            <button class="star" data-score="1" title="1 étoile">★</button>
+            <button class="star" data-score="2" title="2 étoiles">★</button>
+            <button class="star" data-score="3" title="3 étoiles">★</button>
+            <button class="star" data-score="4" title="4 étoiles">★</button>
+            <button class="star" data-score="5" title="5 étoiles">★</button>
+          </div>
+          <div id="feedback-thanks" class="feedback-thanks hidden">Merci pour votre avis ❤️</div>
+        </div>
+
+        <!-- Styles du feedback -->
+        <style>
+          .feedback {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            margin-top: 12px;
+            opacity: 1;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+          }
+
+          .feedback.hidden {
+            opacity: 0;
+            transform: translateY(10px);
+            pointer-events: none;
+          }
+
+          .feedback span {
+            font-size: 0.95rem;
+            color: #555;
+            font-weight: 500;
+          }
+
+          .stars {
+            display: flex;
+            gap: 6px;
+          }
+
+          .star {
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            color: #ccc;
+            cursor: pointer;
+            transition: color 0.2s, transform 0.2s;
+          }
+
+          .star:hover,
+          .star.active {
+            color: #FFD700;
+            transform: scale(1.1);
+          }
+
+          .feedback-thanks {
+            font-size: 0.95rem;
+            color: #2a7a2a;
+            font-weight: 500;
+            opacity: 0;
+            transform: translateY(5px);
+            transition: opacity 0.4s ease, transform 0.4s ease;
+          }
+
+          .feedback-thanks.show {
+            opacity: 1;
+            transform: translateY(0);
+          }
+
+          @media (max-width: 600px) {
+            .star {
+              font-size: 1.5rem;
+            }
+          }
+        </style>
+      </footer>
+
+      <!-- Clavier virtuel -->
+      <div id="virtualKeyboard" class="keyboard"></div>
+    </main>
+
+    <!-- URLs Django injectées -->
+    <script>
+      const CHAT_API_URL = "{% url 'chatbot:chat_api' %}";
+      const FEEDBACK_API_URL = "{% url 'chatbot:feedback_api' %}";
+      const RESET_API_URL = "{% url 'chatbot:reset_chat' %}";
+    </script>
+
+    <!-- Scripts -->
+    <script src="{% static 'chatbot/js/chat.js' %}"></script>
+    <script src="{% static 'chatbot/js/keyboard.js' %}"></script>
+
+    <script>
+      // ✨ Ajout de l’animation de remerciement après la note
+      document.addEventListener("DOMContentLoaded", () => {
+        const feedbackContainer = document.getElementById("feedback-container");
+        const thanks = document.getElementById("feedback-thanks");
+
+        feedbackContainer.addEventListener("click", async (e) => {
+          const star = e.target.closest(".star");
+          if (!star) return;
+
+          // Affiche un petit remerciement visuel
+          thanks.classList.remove("hidden");
+          thanks.classList.add("show");
+
+          // Disparaît en douceur
+          setTimeout(() => {
+            thanks.classList.remove("show");
+            setTimeout(() => thanks.classList.add("hidden"), 400);
+          }, 1500);
+        });
+      });
+    </script>
+  </body>
+</html>

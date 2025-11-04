@@ -4,7 +4,7 @@
   <h6 class="fw-bold text-primary mb-2">Informations de base</h6>
   <ul class="list-unstyled mb-3">
     <li><strong>ID :</strong> {{ session.id }}</li>
-    <li><strong>Utilisateur :</strong> {{ session.user_id|default:"Visiteur" }}</li>
+    <li><strong>Utilisateur :</strong> {{ session.user_id|default:"Visiteur anonyme" }}</li>
     <li><strong>Début :</strong> {{ session.start_time|date:"d/m/Y H:i" }}</li>
     <li><strong>Fin :</strong> {{ session.end_time|date:"d/m/Y H:i"|default:"—" }}</li>
     <li><strong>Durée :</strong> {{ session.duration|default:"—" }}</li>
@@ -12,10 +12,30 @@
     <li><strong>Appareil :</strong> {{ session.device|default:"—" }}</li>
   </ul>
 
+  <!-- Résumé satisfaction -->
+  {% if total_feedbacks %}
+    <div class="mb-4">
+      <h6 class="fw-bold text-primary mb-1">Satisfaction utilisateur</h6>
+      <p class="mb-1">
+        <strong>Taux de satisfaction :</strong>
+        <span class="text-success fw-semibold">{{ satisfaction_rate }}%</span>
+      </p>
+      <small class="text-muted">
+        {{ satisfied }} avis positifs / {{ unsatisfied }} avis négatifs ({{ total_feedbacks }} au total)
+      </small>
+      <div class="progress mt-2" style="height: 8px;">
+        <div class="progress-bar bg-success" role="progressbar"
+          style="width: {{ satisfaction_rate }}%;" aria-valuenow="{{ satisfaction_rate }}"
+          aria-valuemin="0" aria-valuemax="100">
+        </div>
+      </div>
+    </div>
+  {% endif %}
+
   <!-- Clics regroupés par produit -->
   <h6 class="fw-bold text-primary mb-2">Clics</h6>
   {% if clicks %}
-    {% regroup clicks by product_id as clicks_by_product %}
+    {% regroup clicks by product_name as clicks_by_product %}
     <div class="accordion mb-3" id="accordionClicks">
       {% for group in clicks_by_product %}
         <div class="accordion-item">
@@ -34,12 +54,10 @@
             <div class="accordion-body p-0">
               <ul class="list-group list-group-flush">
                 {% for c in group.list %}
-                  <li class="list-group-item">
-                    <small class="text-muted d-flex align-items-center gap-1">
-  <i class="bi bi-clock-history text-secondary"></i>
-  {{ c.timestamp|date:"H:i" }} — <span class="text-dark">{{ c.page }}</span>
-</small>
-
+                  <li class="list-group-item small">
+                    <i class="bi bi-clock-history text-secondary me-1"></i>
+                    {{ c.timestamp|date:"H:i" }} —
+                    <span class="text-dark">{{ c.page|default:"Page non précisée" }}</span>
                   </li>
                 {% endfor %}
               </ul>
@@ -58,16 +76,30 @@
     <ul class="list-group mb-3">
       {% for chat in chats %}
         <li class="list-group-item">
-          <strong>Q :</strong> {{ chat.question|truncatechars:80 }}<br>
-          <strong>R :</strong> {{ chat.response|default:"(en attente...)"|truncatechars:100 }}
+          <p class="mb-1"><strong>Q :</strong> {{ chat.question|truncatechars:80 }}</p>
+          <p class="mb-1"><strong>R :</strong> {{ chat.response|default:"(En attente...)"|truncatechars:100 }}</p>
+
+          {% if chat.intent %}
+            <small class="text-muted d-block">
+              <i class="bi bi-diagram-3 me-1"></i> Intent : {{ chat.intent }}
+            </small>
+          {% endif %}
+
+          {% if chat.response_time %}
+            <small class="text-muted d-block">
+              <i class="bi bi-stopwatch me-1"></i> Temps de réponse : {{ chat.response_time }} s
+            </small>
+          {% endif %}
+
           {% if chat.satisfaction is not None %}
-            <br>
-            <strong>Satisfaction :</strong>
-            {% if chat.satisfaction %}
-              <span class="badge bg-success">Oui</span>
-            {% else %}
-              <span class="badge bg-danger">Non</span>
-            {% endif %}
+            <small class="d-block mt-1">
+              <strong>Satisfaction :</strong>
+              {% if chat.satisfaction %}
+                <span class="text-success fw-semibold"><i class="bi bi-hand-thumbs-up-fill me-1"></i> Oui</span>
+              {% else %}
+                <span class="text-danger fw-semibold"><i class="bi bi-hand-thumbs-down-fill me-1"></i> Non</span>
+              {% endif %}
+            </small>
           {% endif %}
         </li>
       {% endfor %}
@@ -84,14 +116,17 @@
         <li class="list-group-item">
           <div class="d-flex justify-content-between align-items-center">
             <div>
-              <strong>{{ p.product_name }}</strong><br>
+              <strong>{{ p.product.name|default:"Produit inconnu" }}</strong><br>
               <small class="text-muted">
-                ID : {{ p.product_id }}<br>
+                ID : {{ p.product.product_id|default:"—" }}<br>
                 Source : {{ p.source|default:"—" }}<br>
                 Zone : {{ p.zone|default:"—" }}<br>
                 Vu à : {{ p.viewed_at|date:"d/m/Y H:i" }}
               </small>
             </div>
+            {% if p.product.image_url %}
+              <img src="{{ p.product.image_url }}" alt="{{ p.product.name }}" class="rounded" width="50">
+            {% endif %}
           </div>
         </li>
       {% endfor %}

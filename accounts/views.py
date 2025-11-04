@@ -28,6 +28,7 @@ from accounts.models import Role
 # =====================================================
 
 def _json_payload(request):
+    """Parse le corps JSON d’une requête HTTP."""
     try:
         return json.loads(request.body or "{}")
     except json.JSONDecodeError:
@@ -52,9 +53,13 @@ def is_admin_or_manager(user):
 
 def login_view(request):
     """
-    Authentification par email/mot de passe.
-    Redirige vers changement de mot de passe si must_change_password=True.
+    Authentification utilisateur.
+    Redirige vers dashboard après connexion réussie.
+    Si must_change_password=True → page de changement forcé.
     """
+    if request.user.is_authenticated:
+        return redirect("dashboard_home")
+
     if request.method == "POST":
         email = (request.POST.get("email") or "").strip().lower()
         password = request.POST.get("password") or ""
@@ -65,11 +70,10 @@ def login_view(request):
             if getattr(user, "must_change_password", False):
                 messages.info(request, "Veuillez définir un nouveau mot de passe avant de continuer.")
                 return redirect("force_change_password")
-            return redirect('dashboard_home')
-
+            messages.success(request, f"Bienvenue {user.first_name or user.email} 👋")
+            return redirect("dashboard_home")
 
         messages.error(request, "Email ou mot de passe incorrect.")
-
     return render(request, "accounts/login.html")
 
 
@@ -88,7 +92,7 @@ def force_change_password(request):
     """
     user = request.user
     if not getattr(user, "must_change_password", False):
-        return redirect("dashboard")
+        return redirect("dashboard_home")
 
     if request.method == "POST":
         p1 = request.POST.get("password1") or ""
@@ -104,7 +108,7 @@ def force_change_password(request):
                 user.set_password(p1)
                 user.must_change_password = False
                 user.save(update_fields=["password", "must_change_password"])
-                messages.success(request, "Mot de passe mis à jour.")
+                messages.success(request, "Mot de passe mis à jour avec succès ✅")
                 login(request, user)
                 return redirect("dashboard_home")
 
@@ -114,6 +118,7 @@ def force_change_password(request):
 def forgot_password(request):
     """
     Envoi d’un lien de réinitialisation par email.
+    (ne révèle pas si l’adresse existe ou non)
     """
     if request.method == "POST":
         email = (request.POST.get("email") or "").strip().lower()
@@ -122,7 +127,6 @@ def forgot_password(request):
         try:
             user = User.objects.get(email__iexact=email, is_active=True)
         except User.DoesNotExist:
-            # on ne révèle pas si l’adresse existe ou non
             messages.success(request, "Si cet email est enregistré, un lien a été envoyé.")
             return redirect("login")
 
@@ -144,7 +148,7 @@ def forgot_password(request):
         msg.content_subtype = "html"
         msg.send(fail_silently=False)
 
-        messages.success(request, "Si cet email est enregistré, un lien a été envoyé.")
+        messages.success(request, "Si cet email est enregistré, un lien de réinitialisation a été envoyé.")
         return redirect("login")
 
     return render(request, "accounts/forgot_password.html")
@@ -202,17 +206,21 @@ def _user_dict(u):
 @require_http_methods(["GET", "POST"])
 @csrf_protect
 @role_required(Role.ADMIN)
+@login_required
 def users_list_create(request):
     """
     GET  -> liste des utilisateurs
-    POST -> crée un nouvel utilisateur avec un mot de passe temporaire
+    POST -> crée un nouvel utilisateur avec mot de passe temporaire
+    (envoi automatique d’un email de bienvenue)
     """
     User = get_user_model()
 
+    # === GET ===
     if request.method == "GET":
         users = User.objects.order_by("last_name", "first_name")
         return JsonResponse({"results": [_user_dict(u) for u in users]})
 
+    # === POST ===
     data = request.POST or _json_payload(request)
     email = (data.get("email") or "").strip().lower()
     first_name = (data.get("first_name") or "").strip()
@@ -220,8 +228,9 @@ def users_list_create(request):
     role = data.get("role") or Role.MANAGER
 
     if not email:
-        return JsonResponse({"error": "email requis"}, status=400)
+        return JsonResponse({"error": "L’adresse email est obligatoire."}, status=400)
 
+    User = get_user_model()
     if User.objects.filter(email__iexact=email).exists():
         return JsonResponse({"error": "Un utilisateur avec cet email existe déjà."}, status=400)
 
@@ -257,16 +266,17 @@ def users_list_create(request):
 @require_http_methods(["GET", "PATCH", "DELETE"])
 @csrf_protect
 @role_required(Role.ADMIN)
+@login_required
 def user_detail(request, user_id):
     """
-    GET -> détail utilisateur
-    PATCH -> mise à jour des infos utilisateur / reset mot de passe
+    GET    -> détail utilisateur
+    PATCH  -> mise à jour infos / reset mot de passe
     DELETE -> suppression utilisateur
     """
     User = get_user_model()
     user = get_object_or_404(User, pk=user_id)
 
-    # === GET : pour remplir la modale ===
+    # === GET ===
     if request.method == "GET":
         return JsonResponse(_user_dict(user))
 
@@ -288,13 +298,28 @@ def user_detail(request, user_id):
     if "role" in data:
         user.role = data["role"]
         changed = True
+
+    # Reset mot de passe
     if data.get("reset_password"):
         temp_password = get_random_string(12)
         user.set_password(temp_password)
         user.must_change_password = True
         changed = True
-        # (envoi du mail déjà présent dans ton code)
+
+        # Envoi d’email
+        login_url = request.build_absolute_uri(reverse("login"))
+        ctx = {"user": user, "login_url": login_url, "temp_password": temp_password, "site_name": "LIASEC"}
+        html_body = render_to_string("emails/reset_password_admin.html", ctx)
+        msg = EmailMessage(
+            subject="Réinitialisation de votre mot de passe LIASEC",
+            body=html_body,
+            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
+            to=[user.email],
+        )
+        msg.content_subtype = "html"
+        msg.send(fail_silently=True)
 
     if changed:
         user.save()
+
     return JsonResponse(_user_dict(user))

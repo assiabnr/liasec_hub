@@ -1,144 +1,209 @@
 {% extends 'dashboard/base.html' %}
 {% load humanize %}
 {% block content %}
-<div class="container-fluid py-4">
 
+<div class="container-fluid py-4">
   <!-- En-tête -->
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="fw-bold mb-0">
-      <i class="bi bi-robot me-2 text-primary"></i> Interactions utilisateur / IA
+      <i class="bi bi-robot text-primary me-2"></i> Tableau de bord Chatbot
     </h4>
     <button id="exportChatbotBtn" class="btn btn-primary shadow-sm">
-      <i class="bi bi-download me-1"></i> Exporter les interactions
+      <i class="bi bi-download me-1"></i> Exporter les données
     </button>
   </div>
 
   <!-- Zone de feedback export -->
   <div id="exportAlert" class="alert d-none" role="alert"></div>
 
-  <!-- KPIs -->
+  <!-- KPIs globaux -->
   <div class="row g-3 mb-4">
-    <div class="col-md-4 col-sm-6">
-      <div class="card text-center p-3">
-        <h6 class="text-muted mb-1">Total interactions</h6>
+    <div class="col-md-3 col-sm-6">
+      <div class="card text-center p-3 shadow-sm">
+        <h6 class="text-muted mb-1">Total d’interactions</h6>
         <h2 class="fw-bold text-primary">{{ total_interactions|intcomma }}</h2>
       </div>
     </div>
 
-    <div class="col-md-4 col-sm-6">
-      <div class="card text-center p-3">
-        <h6 class="text-muted mb-1">Taux de sessions avec chatbot</h6>
+    <div class="col-md-3 col-sm-6">
+      <div class="card text-center p-3 shadow-sm">
+        <h6 class="text-muted mb-1">Taux de réussite</h6>
+        <h2 class="fw-bold text-success">{{ success_rate }}%</h2>
+      </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6">
+      <div class="card text-center p-3 shadow-sm">
+        <h6 class="text-muted mb-1">Taux de fallback</h6>
+        <h2 class="fw-bold text-danger">{{ fallback_rate }}%</h2>
+      </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6">
+      <div class="card text-center p-3 shadow-sm">
+        <h6 class="text-muted mb-1">Temps moyen de réponse</h6>
+        <h2 class="fw-bold text-primary">{{ avg_response_time }}s</h2>
+      </div>
+    </div>
+  </div>
+
+  <!-- Seconde ligne de KPIs -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3 col-sm-6">
+      <div class="card text-center p-3 shadow-sm">
+        <h6 class="text-muted mb-1">Sessions avec chatbot</h6>
         <h2 class="fw-bold text-primary">{{ chatbot_session_rate }}%</h2>
       </div>
     </div>
 
-    <div class="col-md-4 col-sm-6">
-      <div class="card text-center p-3">
+    <div class="col-md-3 col-sm-6">
+      <div class="card text-center p-3 shadow-sm">
         <h6 class="text-muted mb-1">Taux de satisfaction</h6>
-        <h2 class="fw-bold text-primary">{{ avg_satisfaction }}%</h2>
+        <h2 class="fw-bold text-warning">{{ satisfaction_rate }}%</h2>
+        <small class="text-muted">
+          {{ satisfied }} satisfaits / {{ unsatisfied }} insatisfaits
+        </small>
+      </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6">
+      <div class="card text-center p-3 shadow-sm">
+        <h6 class="text-muted mb-1">Total de recommandations</h6>
+        <h2 class="fw-bold text-primary">{{ total_recommendations }}</h2>
+      </div>
+    </div>
+
+    <div class="col-md-3 col-sm-6">
+      <div class="card text-center p-3 shadow-sm">
+        <h6 class="text-muted mb-1">Taux de clics sur recos</h6>
+        <h2 class="fw-bold text-success">{{ click_rate }}%</h2>
       </div>
     </div>
   </div>
 
-  <!-- Graphique -->
-  <div class="card p-3 chart-card mb-4">
-    <div class="d-flex justify-content-between align-items-center mb-2">
-      <h6 class="fw-bold text-primary mb-0">
-        <i class="bi bi-activity me-1"></i> Interactions par jour
-      </h6>
+  <!-- Graphiques -->
+  <div class="row g-4 mb-4">
+    <div class="col-lg-7">
+      <div class="card p-3 chart-card">
+        <h6 class="fw-bold text-primary mb-2">
+          <i class="bi bi-graph-up me-1"></i> Interactions & Temps de réponse
+        </h6>
+        <canvas id="chatbotPerformanceChart"></canvas>
+      </div>
     </div>
-    <div style="height: 400px; position: relative;">
-      <canvas id="interactionsPerDayChart"></canvas>
+
+    <div class="col-lg-5">
+      <div class="card p-3 h-100">
+        <h6 class="fw-bold text-primary mb-3">
+          <i class="bi bi-lightbulb me-1"></i> Top 5 produits recommandés
+        </h6>
+        <ul class="list-group list-group-flush" id="topProductsList">
+          {% for p in top_products %}
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            {{ p.product__name }}
+            <span class="badge bg-primary rounded-pill">{{ p.total }}</span>
+          </li>
+          {% empty %}
+          <li class="list-group-item text-muted text-center">Aucune donnée</li>
+          {% endfor %}
+        </ul>
+      </div>
     </div>
   </div>
 
-  <!-- Historique -->
-  <div class="card p-3">
-    <h6 class="fw-bold text-primary mb-3">Historique des interactions</h6>
-
-    <!-- Desktop -->
-    <div class="table-responsive d-none d-md-block">
+  <!-- Intentions -->
+  <div class="card p-3 mb-4">
+    <h6 class="fw-bold text-primary mb-3">
+      <i class="bi bi-diagram-3 me-1"></i> Analyse des intentions détectées
+    </h6>
+    <div class="table-responsive">
       <table class="table align-middle table-hover">
         <thead class="table-light">
           <tr>
-            <th>Heure</th>
-            <th>Question</th>
-            <th>Réponse</th>
-            <th>Produit recommandé</th>
-            <th>Satisfaction</th>
+            <th>Intention</th>
+            <th>Volume</th>
+            <th>Taux de réussite</th>
+            <th>Taux de satisfaction</th>
           </tr>
         </thead>
         <tbody>
-          {% for chat in interactions %}
+          {% for intent in top_intents %}
           <tr>
-            <td>{{ chat.created_at|date:"d/m/Y H:i" }}</td>
-            <td>{{ chat.question|truncatechars:50 }}</td>
-            <td>{{ chat.response|truncatechars:50|default:"—" }}</td>
-            <td>{{ chat.product_name|default:"—" }}</td>
+<td class="fw-semibold">{{ intent.intent_lower|default:"(non défini)" }}</td>
+            <td>{{ intent.total }}</td>
+            <td>{{ intent.success_rate|floatformat:1 }}%</td>
+            <td>{{ intent.satisfaction_rate|floatformat:1 }}%</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="text-center text-muted">Aucune donnée</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Historique des recommandations -->
+  <div class="card p-3">
+    <h6 class="fw-bold text-primary mb-3">
+      <i class="bi bi-box-seam me-1"></i> Historique des recommandations chatbot
+    </h6>
+    <div class="table-responsive">
+      <table class="table align-middle table-hover">
+        <thead class="table-light">
+          <tr>
+            <th>Date</th>
+            <th>Produit recommandé</th>
+            <th>Question utilisateur</th>
+            <th>Intent</th>
+            <th>Session</th>
+            <th>Clic</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for reco in recommendations %}
+          <tr>
+            <td>{{ reco.recommended_at|date:"d/m/Y H:i" }}</td>
+            <td class="fw-semibold">{{ reco.product.name }}</td>
+            <td>{{ reco.interaction.question|truncatechars:60 }}</td>
+            <td>{{ reco.interaction.intent|default:"—" }}</td>
+            <td>#{{ reco.session.id }}</td>
             <td>
-              {% if chat.satisfaction is True %}
+              {% if reco.clicked %}
                 <span class="badge bg-success">Oui</span>
-              {% elif chat.satisfaction is False %}
-                <span class="badge bg-danger">Non</span>
               {% else %}
-                <span class="text-muted">—</span>
+                <span class="badge bg-secondary">Non</span>
               {% endif %}
             </td>
           </tr>
           {% empty %}
-          <tr><td colspan="5" class="text-center text-muted py-3">Aucune interaction enregistrée.</td></tr>
+          <tr>
+            <td colspan="6" class="text-center text-muted py-3">
+              Aucune recommandation enregistrée.
+            </td>
+          </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
 
-    <!-- Mobile -->
-    <div class="d-md-none">
-      {% for chat in interactions %}
-      <div class="border rounded-3 p-3 mb-2 shadow-sm bg-white">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <span class="fw-semibold text-primary">{{ chat.created_at|date:"d/m/Y H:i" }}</span>
-          {% if chat.satisfaction is True %}
-            <span class="badge bg-success d-inline-flex align-items-center gap-1">
-              <i class="bi bi-hand-thumbs-up-fill"></i>
-            </span>
-          {% elif chat.satisfaction is False %}
-            <span class="badge bg-danger d-inline-flex align-items-center gap-1">
-              <i class="bi bi-hand-thumbs-down-fill"></i>
-            </span>
-          {% else %}
-            <span class="badge bg-secondary d-inline-flex align-items-center gap-1">
-              <i class="bi bi-dash-lg"></i>
-            </span>
-          {% endif %}
-        </div>
-        <p class="mb-1"><strong>Question :</strong> {{ chat.question|truncatechars:80 }}</p>
-        <p class="mb-1"><strong>Réponse :</strong> {{ chat.response|truncatechars:80|default:"—" }}</p>
-        <p class="mb-0"><strong>Produit :</strong> {{ chat.product_name|default:"—" }}</p>
-      </div>
-      {% empty %}
-      <p class="text-muted text-center">Aucune interaction enregistrée.</p>
-      {% endfor %}
-    </div>
-
     <!-- Pagination -->
-    {% if interactions.has_other_pages %}
-    <nav aria-label="Pagination interactions" class="mt-3">
+    {% if recommendations.has_other_pages %}
+    <nav aria-label="Pagination recos" class="mt-3">
       <ul class="pagination justify-content-center mb-0">
-        {% if interactions.has_previous %}
-          <li class="page-item"><a class="page-link" href="?page={{ interactions.previous_page_number }}">&laquo;</a></li>
+        {% if recommendations.has_previous %}
+          <li class="page-item"><a class="page-link" href="?page={{ recommendations.previous_page_number }}">&laquo;</a></li>
         {% else %}
           <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
         {% endif %}
-        {% for num in interactions.paginator.page_range %}
-          {% if num == interactions.number %}
+        {% for num in recommendations.paginator.page_range %}
+          {% if num == recommendations.number %}
             <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-          {% elif num > interactions.number|add:'-3' and num < interactions.number|add:'3' %}
+          {% elif num > recommendations.number|add:'-3' and num < recommendations.number|add:'3' %}
             <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
           {% endif %}
         {% endfor %}
-        {% if interactions.has_next %}
-          <li class="page-item"><a class="page-link" href="?page={{ interactions.next_page_number }}">&raquo;</a></li>
+        {% if recommendations.has_next %}
+          <li class="page-item"><a class="page-link" href="?page={{ recommendations.next_page_number }}">&raquo;</a></li>
         {% else %}
           <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
         {% endif %}
@@ -151,112 +216,98 @@
 <!-- Chart.js -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-<style>
-  .chart-card {
-    height: 400px;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-    border-radius: 12px;
-  }
-  .chart-card canvas {
-    flex-grow: 1;
-    height: 100% !important;
-  }
-</style>
-
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-  // === Graphique ===
-  fetch("{% url 'chatbot_chart_data' %}")
-    .then(response => response.json())
-    .then(data => {
-      const ctx = document.getElementById("interactionsPerDayChart").getContext("2d");
-      new Chart(ctx, {
-        type: "line",
-        data: {
-          labels: data.labels,
-          datasets: [{
-            label: "Interactions par jour",
-            data: data.interactions_per_day,
+document.addEventListener("DOMContentLoaded", async function () {
+  const ctx = document.getElementById("chatbotPerformanceChart").getContext("2d");
+
+  try {
+    const response = await fetch("{% url 'chatbot_chart_data' %}");
+    const data = await response.json();
+
+    new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: data.labels,
+        datasets: [
+          {
+            label: "Interactions",
+            data: data.interactions,
             borderColor: "#3B82F6",
-            backgroundColor: "rgba(59,130,246,0.15)",
-            tension: 0.4,
+            backgroundColor: "rgba(59,130,246,0.1)",
+            yAxisID: "y1",
+            tension: 0.3,
             fill: true
-          }]
+          },
+          {
+            label: "Temps de réponse (s)",
+            data: data.avg_response_times,
+            borderColor: "#F59E0B",
+            backgroundColor: "rgba(245,158,11,0.15)",
+            yAxisID: "y2",
+            tension: 0.3,
+            fill: true
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: {
+          legend: { position: "top" },
+          tooltip: {
+            backgroundColor: "#1E293B",
+            titleColor: "#fff",
+            bodyColor: "#f8fafc",
+            cornerRadius: 6,
+            padding: 10
+          }
         },
-        options: {
-          responsive: true,
-          plugins: { legend: { display: false } },
-          scales: {
-            y: { beginAtZero: true, grid: { color: "rgba(0,0,0,0.05)" } },
-            x: { grid: { display: false } }
+        scales: {
+          y1: {
+            type: "linear",
+            position: "left",
+            title: { display: true, text: "Interactions" },
+            grid: { color: "rgba(0,0,0,0.05)" }
+          },
+          y2: {
+            type: "linear",
+            position: "right",
+            title: { display: true, text: "Temps (s)" },
+            grid: { drawOnChartArea: false }
           }
         }
+      }
+    });
+
+    const topList = document.getElementById("topProductsList");
+    topList.innerHTML = "";
+    if (data.top_products.labels.length > 0) {
+      data.top_products.labels.forEach((name, i) => {
+        const value = data.top_products.values[i];
+        topList.innerHTML += `
+          <li class="list-group-item d-flex justify-content-between align-items-center">
+            ${name}
+            <span class="badge bg-primary rounded-pill">${value}</span>
+          </li>`;
       });
-    });
-
-  // === EXPORT CSV ===
-  const exportBtn = document.getElementById("exportChatbotBtn");
-  const exportAlert = document.getElementById("exportAlert");
-
-  exportBtn.addEventListener("click", function () {
-    exportBtn.disabled = true;
-    exportBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Export en cours...';
-
-    fetch("{% url 'export_data' %}", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "X-CSRFToken": getCookie("csrftoken"),
-      },
-      body: new URLSearchParams({ data_type: "chatbot" })
-    })
-    .then(response => response.json())
-    .then(data => {
-      exportBtn.disabled = false;
-      exportBtn.innerHTML = '<i class="bi bi-download me-1"></i> Exporter les interactions';
-
-      if (data.success) {
-        exportAlert.className = "alert alert-success alert-dismissible fade show";
-        exportAlert.innerHTML = `
-          <i class="bi bi-check-circle-fill me-2"></i>
-          Export réussi ! <a href="${data.file}" target="_blank" class="fw-semibold text-decoration-none">
-          <i class="bi bi-file-earmark-arrow-down"></i> Télécharger le fichier</a>
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
-      } else {
-        exportAlert.className = "alert alert-danger alert-dismissible fade show";
-        exportAlert.innerHTML = `
-          <i class="bi bi-exclamation-triangle-fill me-2"></i>
-          Erreur : ${data.error || "échec de l'export"}
-          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
-      }
-      exportAlert.classList.remove("d-none");
-    })
-    .catch(() => {
-      exportBtn.disabled = false;
-      exportBtn.innerHTML = '<i class="bi bi-download me-1"></i> Exporter les interactions';
-      exportAlert.className = "alert alert-danger";
-      exportAlert.innerHTML = "<i class='bi bi-bug-fill me-2'></i> Erreur lors de l'export.";
-      exportAlert.classList.remove("d-none");
-    });
-  });
-
-  function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== "") {
-      const cookies = document.cookie.split(";");
-      for (let i = 0; i < cookies.length; i++) {
-        const cookie = cookies[i].trim();
-        if (cookie.substring(0, name.length + 1) === (name + "=")) {
-          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-          break;
-        }
-      }
+    } else {
+      topList.innerHTML = `<li class="list-group-item text-center text-muted">Aucune donnée</li>`;
     }
-    return cookieValue;
+
+  } catch (err) {
+    console.error("Erreur de chargement du graphique :", err);
   }
 });
 </script>
+
+<style>
+.chart-card {
+  height: 380px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  border-radius: 12px;
+  background-color: #fff;
+}
+</style>
+
 {% endblock %}

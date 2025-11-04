@@ -1,0 +1,37 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Assistant LIASEC</title>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="{% static 'chatbot/css/style.css' %}" />
+  </head>
+
+  <body>
+    <main>
+<a href="{% url 'chatbot:accept_tos' %}" class="start">
+        <div class="start-wrapper">
+          <h1 class="start-title">
+            Touchez l’écran pour lancer une conversation <br />
+            avec notre conseiller virtuel
+          </h1>
+
+          <img
+            class="start-tap-image"
+            src="{% static 'chatbot/images/tap.png' %}"
+            alt="Touchez l’écran"
+          />
+        </div>
+
+        <img
+          src="{% static 'chatbot/images/logo.png' %}"
+          alt="LIASEC"
+          class="bottom-logo"
+        />
+      </a>
+    </main>
+  </body>
+</html>

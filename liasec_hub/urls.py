@@ -20,9 +20,20 @@ from django.views.generic import RedirectView
 from django.conf import settings
 from django.conf.urls.static import static
 urlpatterns = [
-    path('', RedirectView.as_view(pattern_name='login', permanent=False)),  # 🔁 redirige vers la page de connexion
-    path('dashboard/', include('dashboard.urls')),
-    path('accounts/', include('accounts.urls')),
+    path(
+        "",
+        lambda request: (
+            RedirectView.as_view(pattern_name="dashboard_home", permanent=False)(request)
+            if request.user.is_authenticated
+            else RedirectView.as_view(pattern_name="login", permanent=False)(request)
+        ),
+        name="home_redirect"
+    ),
+
+    # Applications
+    path("dashboard/", include("dashboard.urls")),
+    path("accounts/", include("accounts.urls")),
+    path("chatbot/", include("chatbot.urls")),
 ]
 
 if settings.DEBUG:

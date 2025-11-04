@@ -41,7 +41,7 @@ ROOT_URLCONF = 'liasec_hub.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],  # tu peux ajouter BASE_DIR / 'templates' si tu as un dossier global
+        'DIRS': [],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -82,7 +82,8 @@ USE_TZ = True
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / "dashboard" / "static",
-    BASE_DIR / "accounts" / "static",  # <-- ajoute ça pour ton CSS login !
+    BASE_DIR / "accounts" / "static",
+    BASE_DIR / "chatbot" / "static",
 ]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
@@ -108,6 +109,5 @@ EMAIL_HOST_PASSWORD = "kzflpkscwefwoqyv"  # mot de passe d’application Gmail
 DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
-# --- OPTIONNEL : BACKEND DE CONSOLE EN MODE DEBUG ---
-if DEBUG:
-    print("⚙️ Mode DEBUG : les emails seront réellement envoyés via Gmail")
+
+MISTRAL_API_KEY = "sk-xxxxxxxxxxxxxxxxxxxxxxxx"

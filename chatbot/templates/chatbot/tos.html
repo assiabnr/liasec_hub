@@ -1,0 +1,51 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Conditions d’utilisation — LIASEC</title>
+
+    <link rel="stylesheet" href="{% static 'chatbot/css/chat.css' %}" />
+
+    <!-- Retour automatique à l’accueil après 20s d’inactivité -->
+    <script>
+      setTimeout(function () {
+        window.location.href = "{% url 'chatbot:chatbot_index' %}";
+      }, 20000);
+    </script>
+  </head>
+
+  <body class="tos-body">
+    <main class="tos-container">
+      <section class="tos-card">
+           <img
+          src="{% static 'chatbot/images/logo.png' %}"
+          alt="Logo LIASEC"
+          class="tos-logo"
+        />
+        <p class="tos-description">
+          Conçu pour vous assister dans votre parcours d’achat, notre conseiller virtuel alimenté
+          par une intelligence artificielle se concentre sur la
+          <strong>recommandation de produits adaptés à vos besoins</strong>.
+        </p>
+
+        <p class="tos-note">
+          En démarrant cette conversation, vous acceptez que vos échanges soient collectés et
+          analysés à des fins d’amélioration de notre service.
+        </p>
+
+        <div class="tos-buttons">
+          <a href="{% url 'chatbot:chatbot_index' %}" class="button button-primary">Je refuse</a>
+
+          <form method="post" action="{% url 'chatbot:accept_tos' %}">
+            {% csrf_token %}
+            <button type="submit" class="button button-secondary">J’accepte</button>
+          </form>
+        </div>
+
+
+      </section>
+    </main>
+  </body>
+</html>

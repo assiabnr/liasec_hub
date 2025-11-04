@@ -1,124 +1,141 @@
+from dashboard.models import Session, Product, ProductView, Click, ChatbotInteraction, ChatbotRecommendation, Settings
 from django.utils import timezone
 from datetime import timedelta
 import random
-from dashboard.models import Session, Click, ProductView, ChatbotInteraction
 
-# Nettoyage complet des anciennes données
-ChatbotInteraction.objects.all().delete()
+# Nettoyage de la base pour repartir propre
+Session.objects.all().delete()
+Product.objects.all().delete()
 ProductView.objects.all().delete()
 Click.objects.all().delete()
-Session.objects.all().delete()
+ChatbotInteraction.objects.all().delete()
+ChatbotRecommendation.objects.all().delete()
+Settings.objects.all().delete()
 
-# --- Données de référence ---
-magasins = [
-    "Decathlon Paris La Villette",
-    "Decathlon Lyon Part-Dieu",
-    "Decathlon Marseille Prado",
-    "Decathlon Lille Centre",
-    "Decathlon Bordeaux Lac",
-    "Decathlon Toulouse Blagnac",
+# ======================
+# ⚙️ Paramètres globaux
+# ======================
+Settings.objects.create(
+    name="Borne tactile v2.1",
+    location="Decathlon Lille Centre",
+    code="BNL-021",
+    track_sessions=True,
+    track_clicks=True,
+    track_chatbot=True
+)
+
+# ======================
+# 🛒 Produits
+# ======================
+products = [
+    Product.objects.create(
+        product_id=f"P{i:03}",
+        name=name,
+        description=f"Description du produit {name.lower()} pour les tests.",
+        category=category,
+        price=price,
+        available=random.choice([True, True, False]),
+        image_url=f"https://picsum.photos/seed/{i}/200/200",
+        brand=random.choice(["Kipsta", "Domyos", "Quechua", "Artengo"]),
+    )
+    for i, (name, category, price) in enumerate([
+        ("T-shirt respirant homme", "FIT HOMME", 12.99),
+        ("Chaussures de running femme", "CHAUSSANT", 49.99),
+        ("Veste imperméable randonnée", "RANDONNÉE", 79.99),
+        ("Raquette de tennis adulte", "SPORTS DE RAQUETTE", 29.99),
+        ("Ballon de football taille 5", "COLLECTIF", 15.99),
+        ("Short de fitness", "FIT HOMME", 9.99),
+        ("Tapis de yoga", "BIEN-ÊTRE", 24.99),
+        ("Casque de vélo", "CYCLISME", 39.99),
+    ])
 ]
 
-devices = [
-    "Borne tactile v2.1",
-    "Borne tactile v3.0",
-    "Kiosque Android",
-    "Ecran interactif 32 pouces",
-]
+print(f"✅ {len(products)} produits créés.")
 
-zones = [
-    "FIT HOMME",
-    "FIT FEMME",
-    "RANDONNEE",
-    "CAMPING",
-    "RUNNING",
-    "CYCLISME",
-]
+# ======================
+# 👤 Sessions utilisateurs
+# ======================
+sessions = []
+for i in range(10):
+    start = timezone.now() - timedelta(hours=random.randint(1, 48))
+    end = start + timedelta(minutes=random.randint(3, 45))
+    s = Session.objects.create(
+        user_id=f"user_{i}",
+        start_time=start,
+        end_time=end,
+        duration=end - start,
+        device=random.choice(["iPad Pro", "Surface Go", "PC borne tactile"]),
+        location="Decathlon Lille Centre",
+    )
+    sessions.append(s)
+print(f"✅ {len(sessions)} sessions créées.")
 
-produits = [
-    {"id": "P001", "name": "Chaussures de randonnee MH100 Homme", "categorie": "Randonnee", "zone": "RANDONNEE"},
-    {"id": "P002", "name": "Velo tout terrain Rockrider ST530", "categorie": "Cyclisme", "zone": "CYCLISME"},
-    {"id": "P003", "name": "Tente de camping MH500 3 personnes", "categorie": "Camping", "zone": "CAMPING"},
-    {"id": "P004", "name": "Sac a dos Forclaz 40L Trek", "categorie": "Randonnee", "zone": "RANDONNEE"},
-    {"id": "P005", "name": "Montre GPS Garmin Instinct 2", "categorie": "Running", "zone": "RUNNING"},
-    {"id": "P006", "name": "Gilet de trail Evadict Homme", "categorie": "Trail", "zone": "FIT HOMME"},
-    {"id": "P007", "name": "Tapis de yoga confort 8mm", "categorie": "Fitness", "zone": "FIT FEMME"},
-    {"id": "P008", "name": "Doudoune Trekking MT100 Femme", "categorie": "Randonnee", "zone": "RANDONNEE"},
-    {"id": "P009", "name": "Batons de marche Trail 500", "categorie": "Randonnee", "zone": "RANDONNEE"},
-    {"id": "P010", "name": "Lanterne rechargeable BL200", "categorie": "Camping", "zone": "CAMPING"},
-]
+# ======================
+# 🖱️ Clics
+# ======================
+for session in sessions:
+    for _ in range(random.randint(2, 6)):
+        Click.objects.create(
+            session=session,
+            product_name=random.choice(products).name,
+            page=random.choice(["accueil", "carte", "fiche produit", "chatbot"]),
+            timestamp=timezone.now() - timedelta(minutes=random.randint(1, 120))
+        )
+print("✅ Clics enregistrés.")
 
-questions = [
-    "Pouvez-vous me conseiller une tente pour 3 personnes ?",
-    "Quel velo est adapte pour les chemins de foret ?",
-    "Je cherche un sac a dos leger pour la randonnee.",
-    "Quelle montre GPS conseillez-vous pour courir ?",
-    "Je veux une lampe pratique pour le camping.",
-    "Quel produit pour un trek de 3 jours ?",
-]
+# ======================
+# 👀 Vues produit
+# ======================
+for session in sessions:
+    for _ in range(random.randint(1, 4)):
+        ProductView.objects.create(
+            session=session,
+            product=random.choice(products),
+            viewed_at=timezone.now() - timedelta(minutes=random.randint(5, 180)),
+            source=random.choice(["carte", "recherche", "chatbot"]),
+            zone=random.choice(["FIT HOMME", "CHAUSSANT", "RANDONNÉE", "CYCLISME"])
+        )
+print("✅ Vues produits enregistrées.")
 
-responses = [
-    "Je vous recommande la tente MH500, ideale pour 3 personnes.",
-    "Le velo Rockrider ST530 est parfait pour les chemins forestiers.",
-    "Le sac Forclaz 40L est leger et confortable pour les longues marches.",
-    "La montre Garmin Instinct 2 est parfaite pour suivre vos performances.",
-    "La lanterne BL200 est puissante et facile a recharger.",
-    "Pour un trek, la doudoune MT100 et le sac Forclaz sont parfaits.",
-]
-
-# --- Génération des données réalistes sur une semaine ---
-for i in range(7):  # 7 jours
-    date = timezone.now() - timedelta(days=i)
-    nb_sessions = random.randint(8, 15)
-    for j in range(nb_sessions):
-        duree = timedelta(seconds=random.randint(120, 480))
-        start = date - timedelta(minutes=random.randint(10, 120))
-        end = start + duree
-
-        # Création de session utilisateur
-        session = Session.objects.create(
-            user_id=f"client_{random.randint(1000, 9999)}",
-            start_time=start,
-            end_time=end,
-            duration=duree,
-            device=random.choice(devices),
-            location=random.choice(magasins),
+# ======================
+# 🤖 Interactions chatbot
+# ======================
+for session in sessions:
+    for _ in range(random.randint(1, 3)):
+        question = random.choice([
+            "Je cherche un t-shirt pour courir",
+            "Quelle veste pour la pluie ?",
+            "Un ballon de foot taille 5 ?",
+            "Quel tapis de yoga me recommandes-tu ?",
+            "Chaussures de running pour femme ?",
+        ])
+        response = random.choice([
+            "Je te recommande le t-shirt respirant Kipsta.",
+            "Essaie la veste imperméable Quechua.",
+            "Le ballon Kipsta taille 5 est idéal.",
+            "Regarde le tapis de yoga Domyos.",
+            "Ces chaussures de running sont parfaites pour femme.",
+        ])
+        interaction = ChatbotInteraction.objects.create(
+            session=session,
+            question=question,
+            response=response,
+            satisfaction=random.choice([True, False, None]),
+            model_used="Mistral-small"
         )
 
-        # Création de clics (provenant de la carte du magasin)
-        for k in range(random.randint(4, 10)):
-            prod = random.choice(produits)
-            Click.objects.create(
-                session=session,
-                product_name=prod["name"],
-                page=f"/produit/{prod['id']}/",
-                timestamp=start + timedelta(seconds=random.randint(5, 120)),
-            )
+        # Liens vers recommandations réelles
+        recommended_product = random.choice(products)
+        ChatbotRecommendation.objects.create(
+            session=session,
+            interaction=interaction,
+            product=recommended_product,
+            recommended_at=timezone.now()
+        )
+print("✅ Interactions chatbot + recommandations créées.")
 
-        # Enregistrement des vues produit (source = carte)
-        for k in range(random.randint(1, 3)):
-            prod = random.choice(produits)
-            ProductView.objects.create(
-                session=session,
-                product_name=prod["name"],
-                product_id=prod["id"],
-                viewed_at=start + timedelta(seconds=random.randint(10, 180)),
-                source="carte",
-                zone=prod["zone"],
-            )
-
-        # Interactions chatbot (60% des sessions)
-        if random.random() < 0.6:
-            n_interactions = random.randint(1, 2)
-            for _ in range(n_interactions):
-                q_idx = random.randint(0, len(questions) - 1)
-                ChatbotInteraction.objects.create(
-                    session=session,
-                    question=questions[q_idx],
-                    response=responses[q_idx],
-                    created_at=start + timedelta(seconds=random.randint(15, 200)),
-                    model_used="Mistral",
-                    satisfaction=random.choice([True, False, None]),
-                )
-
-print("Donnees de test coherentes et realistes inserees avec succes !")
+print("\n🎉 Jeu de données de test entièrement généré !")
+print(f"Produits : {Product.objects.count()}")
+print(f"Sessions : {Session.objects.count()}")
+print(f"Interactions chatbot : {ChatbotInteraction.objects.count()}")
+print(f"Recommandations : {ChatbotRecommendation.objects.count()}")
