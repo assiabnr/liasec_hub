@@ -8,4 +8,5 @@ urlpatterns = [
     path("api/search/", views.search_products_api, name="search_api"),
     path("api/track-view/", views.track_product_view_api, name="track_view_api"),
     path("api/track-localization/", views.track_product_localization_api, name="track_localization_api"),
+    path("api/track-zone-click/", views.track_zone_click_api, name="track_zone_click_api"),
 ]

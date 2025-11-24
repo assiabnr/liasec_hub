@@ -153,14 +153,13 @@ def sessions_view(request):
 
 def session_detail_view(request, session_id):
     """
-    Détail d’une session : clics, interactions chatbot, produits consultés.
+    Détail d'une session : interactions chatbot, recommandations et produits consultés.
     """
     session = get_object_or_404(Session, id=session_id)
-    clicks = session.clicks.all().order_by("timestamp")
     chats = session.chatbot_interactions.all().order_by("created_at")
     products = session.product_views.select_related("product").order_by("viewed_at")
 
-    # Calcul d’un petit résumé de satisfaction pour cette session
+    # Calcul d'un petit résumé de satisfaction pour cette session
     feedbacks = chats.filter(satisfaction__isnull=False)
     satisfied = feedbacks.filter(satisfaction=True).count()
     unsatisfied = feedbacks.filter(satisfaction=False).count()
@@ -169,7 +168,6 @@ def session_detail_view(request, session_id):
 
     context = {
         "session": session,
-        "clicks": clicks,
         "chats": chats,
         "products": products,
         "satisfaction_rate": satisfaction_rate,
@@ -185,18 +183,70 @@ def session_detail_view(request, session_id):
 # CLICS
 # ==========================
 def clicks_view(request):
-    clicks = Click.objects.select_related("session").order_by("-timestamp")
-    paginator = Paginator(clicks, 20)
-    return render(request, "dashboard/clicks.html", {"clicks": paginator.get_page(request.GET.get("page"))})
+    """
+    Vue complète des consultations produits avec statistiques par source.
+    Utilise ProductView pour tracker tous les clics (chatbot, carte, recherche).
+    """
+    # Récupérer toutes les consultations de produits
+    product_views = ProductView.objects.select_related("session", "product").order_by("-viewed_at")
+
+    # Filtrage par source si demandé
+    source_filter = request.GET.get("source")
+    if source_filter and source_filter in ["chatbot", "carte", "recherche"]:
+        product_views = product_views.filter(source=source_filter)
+
+    # Statistiques globales
+    total_clicks = ProductView.objects.count()
+    clicks_chatbot = ProductView.objects.filter(source="chatbot").count()
+    clicks_carte = ProductView.objects.filter(source="carte").count()
+    clicks_recherche = ProductView.objects.filter(source="recherche").count()
+
+    # Calcul des pourcentages
+    pct_chatbot = round((clicks_chatbot / total_clicks * 100), 1) if total_clicks > 0 else 0
+    pct_carte = round((clicks_carte / total_clicks * 100), 1) if total_clicks > 0 else 0
+    pct_recherche = round((clicks_recherche / total_clicks * 100), 1) if total_clicks > 0 else 0
+
+    # Taux de conversion des recommandations chatbot
+    from dashboard.models import ChatbotRecommendation
+    total_recommendations = ChatbotRecommendation.objects.count()
+    clicked_recommendations = ChatbotRecommendation.objects.filter(clicked=True).count()
+    conversion_rate = round((clicked_recommendations / total_recommendations * 100), 1) if total_recommendations > 0 else 0
+
+    # Pagination
+    paginator = Paginator(product_views, 20)
+
+    context = {
+        "clicks": paginator.get_page(request.GET.get("page")),
+        "total_clicks": total_clicks,
+        "clicks_chatbot": clicks_chatbot,
+        "clicks_carte": clicks_carte,
+        "clicks_recherche": clicks_recherche,
+        "pct_chatbot": pct_chatbot,
+        "pct_carte": pct_carte,
+        "pct_recherche": pct_recherche,
+        "source_filter": source_filter,
+        "total_recommendations": total_recommendations,
+        "clicked_recommendations": clicked_recommendations,
+        "conversion_rate": conversion_rate,
+    }
+
+    return render(request, "dashboard/clicks.html", context)
 
 
 def clicks_chart_data(request):
+    """
+    Données pour les graphiques de la page Clics.
+    - Clics par jour (7 derniers jours)
+    - Produits les plus consultés (top 5)
+    - Répartition par source (chatbot, carte, recherche)
+    """
     today = timezone.now()
     start_date = today - timedelta(days=6)
 
+    # 1. Consultations par jour
     clicks_per_day = (
-        Click.objects.filter(timestamp__date__gte=start_date.date())
-        .annotate(day=TruncDate("timestamp"))
+        ProductView.objects.filter(viewed_at__date__gte=start_date.date())
+        .annotate(day=TruncDate("viewed_at"))
         .values("day")
         .annotate(total=Count("id"))
         .order_by("day")
@@ -205,15 +255,26 @@ def clicks_chart_data(request):
     labels = [c["day"].strftime("%d/%m") for c in clicks_per_day]
     values = [c["total"] for c in clicks_per_day]
 
-    top_pages = (
-        Click.objects.values("page").annotate(total=Count("id")).order_by("-total")[:5]
+    # 2. Top 5 produits les plus consultés
+    top_products = (
+        ProductView.objects.values("product__name")
+        .annotate(total=Count("id"))
+        .order_by("-total")[:5]
     )
+
+    # 3. Répartition par source
+    clicks_by_source = {
+        "chatbot": ProductView.objects.filter(source="chatbot").count(),
+        "carte": ProductView.objects.filter(source="carte").count(),
+        "recherche": ProductView.objects.filter(source="recherche").count(),
+    }
 
     return JsonResponse({
         "labels": labels,
         "clicks_per_day": values,
-        "labels_types": [p["page"] for p in top_pages],
-        "clicks_by_label": [p["total"] for p in top_pages],
+        "labels_types": [p["product__name"] for p in top_products],
+        "clicks_by_label": [p["total"] for p in top_products],
+        "clicks_by_source": clicks_by_source,
     })
 
 
@@ -222,12 +283,16 @@ def clicks_chart_data(request):
 # ==========================
 def produits_view(request):
     """
-    Tableau de bord Produits
-    Analyse visibilité, performance et disponibilité des produits.
+    Tableau de bord Produits - Version complète
+    Analyse visibilité, performance, disponibilité et tendances des produits.
     """
+    # ========== FILTRES ET RECHERCHE ==========
+    search_query = request.GET.get('search', '').strip()
+    category_filter = request.GET.get('category', '')
+    availability_filter = request.GET.get('availability', '')
+    sort_by = request.GET.get('sort', '-total_views')  # Par défaut: plus consultés
 
     # ========== INDICATEURS GLOBAUX ==========
-
     total_products = Product.objects.count()
     available_products = Product.objects.filter(available=True).count()
     unavailable_products = Product.objects.filter(available=False).count()
@@ -235,6 +300,14 @@ def produits_view(request):
     total_views = ProductView.objects.count()
     total_recos = ChatbotRecommendation.objects.count()
     total_clicks = ProductView.objects.exclude(source__isnull=True).count()
+
+    # Vues uniques (par produit)
+    unique_viewed_products = ProductView.objects.values('product').distinct().count()
+
+    # Pourcentages
+    pct_available = round((available_products / total_products * 100), 1) if total_products > 0 else 0
+    pct_unavailable = round((unavailable_products / total_products * 100), 1) if total_products > 0 else 0
+    pct_viewed = round((unique_viewed_products / total_products * 100), 1) if total_products > 0 else 0
 
     # Taux moyen de clics sur produit
     avg_click_rate = round((total_clicks / total_views * 100), 2) if total_views else 0
@@ -253,7 +326,9 @@ def produits_view(request):
 
     # Top 10 produits les plus consultés
     top_viewed = (
-        ProductView.objects.values("product__name", "product__id")
+        ProductView.objects
+        .filter(product__isnull=False)
+        .values("product__name", "product__id")
         .annotate(clicks=Count("id"))
         .order_by("-clicks")[:10]
     )
@@ -357,6 +432,7 @@ def produits_view(request):
         .annotate(
             total_views=Count("views"),
             total_recos=Count("chatbot_recommendations"),
+            clicked_recos=Count("chatbot_recommendations", filter=Q(chatbot_recommendations__clicked=True)),
             click_rate=Coalesce(
                 (100.0 * Count("chatbot_recommendations", filter=Q(chatbot_recommendations__clicked=True)) /
                  Count("chatbot_recommendations")),
@@ -364,8 +440,35 @@ def produits_view(request):
                 output_field=FloatField()
             ),
         )
-        .order_by("-total_views")
     )
+
+    # Appliquer les filtres
+    if search_query:
+        all_products = all_products.filter(
+            Q(name__icontains=search_query) |
+            Q(brand__icontains=search_query) |
+            Q(product_id__icontains=search_query) |
+            Q(category__icontains=search_query)
+        )
+
+    if category_filter:
+        all_products = all_products.filter(category=category_filter)
+
+    if availability_filter == 'available':
+        all_products = all_products.filter(available=True)
+    elif availability_filter == 'unavailable':
+        all_products = all_products.filter(available=False)
+
+    # Appliquer le tri
+    valid_sorts = ['name', '-name', 'price', '-price', 'total_views', '-total_views',
+                   'total_recos', '-total_recos', 'click_rate', '-click_rate']
+    if sort_by in valid_sorts:
+        all_products = all_products.order_by(sort_by)
+    else:
+        all_products = all_products.order_by('-total_views')
+
+    # Récupérer toutes les catégories disponibles
+    all_categories = Product.objects.values_list('category', flat=True).distinct().exclude(category__isnull=True).exclude(category='').order_by('category')
 
     paginator = Paginator(all_products, 20)
     products_page = paginator.get_page(request.GET.get("page"))
@@ -377,8 +480,12 @@ def produits_view(request):
         "total_products": total_products,
         "available_products": available_products,
         "unavailable_products": unavailable_products,
+        "pct_available": pct_available,
+        "pct_unavailable": pct_unavailable,
+        "pct_viewed": pct_viewed,
         "total_views": total_views,
         "total_recos": total_recos,
+        "unique_viewed_products": unique_viewed_products,
         "avg_click_rate": avg_click_rate,
         "avg_viewed_price": avg_viewed_price,
         "conversion_rate": conversion_rate,
@@ -405,35 +512,152 @@ def produits_view(request):
 
         # Liste produits
         "products": products_page,
+
+        # Filtres
+        "search_query": search_query,
+        "category_filter": category_filter,
+        "availability_filter": availability_filter,
+        "sort_by": sort_by,
+        "all_categories": all_categories,
     }
 
     return render(request, "dashboard/produits.html", context)
 
 
 
+def product_detail_view(request, product_id):
+    """
+    Vue détaillée d'un produit spécifique avec toutes ses métriques.
+    """
+    product = get_object_or_404(Product, id=product_id)
+
+    # Statistiques générales
+    total_views = product.views.count()
+    total_recos = product.chatbot_recommendations.count()
+    clicked_recos = product.chatbot_recommendations.filter(clicked=True).count()
+    conversion_rate = round((clicked_recos / total_recos * 100), 1) if total_recos > 0 else 0
+
+    # Vues par source
+    views_by_source = (
+        product.views.values('source')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+
+    # Évolution des vues (7 derniers jours)
+    today = timezone.now()
+    last_7_days = [today - timedelta(days=i) for i in range(6, -1, -1)]
+    view_dates = []
+    view_counts = []
+    for day in last_7_days:
+        view_dates.append(day.strftime("%d/%m"))
+        view_counts.append(product.views.filter(viewed_at__date=day.date()).count())
+
+    # Sessions ayant consulté ce produit
+    recent_views = product.views.select_related('session').order_by('-viewed_at')[:20]
+
+    # Recommandations liées
+    recent_recos = product.chatbot_recommendations.select_related('session', 'interaction').order_by('-recommended_at')[:20]
+
+    # Produits similaires (même catégorie, consultés)
+    similar_products = (
+        Product.objects
+        .filter(category=product.category)
+        .exclude(id=product.id)
+        .annotate(views_count=Count('views'))
+        .filter(views_count__gt=0)
+        .order_by('-views_count')[:10]
+    )
+
+    context = {
+        'product': product,
+        'total_views': total_views,
+        'total_recos': total_recos,
+        'clicked_recos': clicked_recos,
+        'conversion_rate': conversion_rate,
+        'views_by_source': views_by_source,
+        'view_dates': view_dates,
+        'view_counts': view_counts,
+        'recent_views': recent_views,
+        'recent_recos': recent_recos,
+        'similar_products': similar_products,
+    }
+
+    return render(request, "dashboard/product_detail.html", context)
+
+
 def products_chart_data(request):
     """
-    Données JSON pour les graphiques produits (clics & recos)
+    Données JSON complètes pour les graphiques produits
     """
+    # Top 10 produits les plus consultés
     top_views = (
-        ProductView.objects.values("product__name")
+        ProductView.objects.values("product__name", "product__id")
         .annotate(clicks=Count("id"))
         .order_by("-clicks")[:10]
     )
 
+    # Top 10 recommandations
     top_recos = (
-        ChatbotRecommendation.objects.values("product__name")
+        ChatbotRecommendation.objects.values("product__name", "product__id")
         .annotate(recos=Count("id"))
         .order_by("-recos")[:10]
     )
 
+    # Vues par catégorie
+    views_by_category = (
+        ProductView.objects.values("product__category")
+        .exclude(product__category__isnull=True)
+        .annotate(count=Count("id"))
+        .order_by("-count")[:8]
+    )
+
+    # Distribution des prix des produits consultés
+    price_ranges = [
+        {"range": "0-50€", "min": 0, "max": 50},
+        {"range": "50-100€", "min": 50, "max": 100},
+        {"range": "100-200€", "min": 100, "max": 200},
+        {"range": "200-500€", "min": 200, "max": 500},
+        {"range": "500€+", "min": 500, "max": 999999},
+    ]
+    price_distribution = []
+    for pr in price_ranges:
+        count = ProductView.objects.filter(
+            product__price__gte=pr["min"],
+            product__price__lt=pr["max"]
+        ).count()
+        price_distribution.append(count)
+
+    # Évolution vues produits (7 derniers jours)
+    today = timezone.now()
+    views_7days_labels = []
+    views_7days_data = []
+    for i in range(6, -1, -1):
+        day = today - timedelta(days=i)
+        views_7days_labels.append(day.strftime("%d/%m"))
+        count = ProductView.objects.filter(viewed_at__date=day.date()).count()
+        views_7days_data.append(count)
+
     return JsonResponse({
+        # Bubble chart data
         "labels": [v["product__name"] for v in top_views],
         "clicks": [v["clicks"] for v in top_views],
         "recos": [
             next((r["recos"] for r in top_recos if r["product__name"] == v["product__name"]), 0)
             for v in top_views
         ],
+
+        # Catégories
+        "categories_labels": [c["product__category"] for c in views_by_category],
+        "categories_data": [c["count"] for c in views_by_category],
+
+        # Prix
+        "price_labels": [pr["range"] for pr in price_ranges],
+        "price_data": price_distribution,
+
+        # Évolution
+        "views_7days_labels": views_7days_labels,
+        "views_7days_data": views_7days_data,
     })
 
 

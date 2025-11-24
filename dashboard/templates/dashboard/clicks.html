@@ -6,42 +6,143 @@
   <!-- En-tête -->
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="fw-bold mb-0">
-      <i class="bi bi-mouse-fill me-2 text-primary"></i> Interactions physiques
+      <i class="bi bi-mouse-fill me-2 text-primary"></i> Consultations produits
     </h4>
     <button id="exportClicksBtn" class="btn btn-primary shadow-sm">
-      <i class="bi bi-download me-1"></i> Exporter les clics
+      <i class="bi bi-download me-1"></i> Exporter les données
     </button>
   </div>
 
   <!-- Zone de feedback export -->
   <div id="exportAlert" class="alert d-none" role="alert"></div>
 
+  <!-- Statistiques globales -->
+  <div class="row g-3 mb-4">
+    <!-- Total -->
+    <div class="col-md-3">
+      <div class="card p-3 text-center">
+        <h6 class="text-muted mb-1">Total consultations</h6>
+        <h3 class="fw-bold mb-0 text-primary">{{ total_clicks|default:0 }}</h3>
+      </div>
+    </div>
+
+    <!-- Chatbot -->
+    <div class="col-md-3">
+      <div class="card p-3 text-center">
+        <h6 class="text-muted mb-1">
+          <i class="bi bi-chat-dots-fill text-info"></i> Chatbot
+        </h6>
+        <h3 class="fw-bold mb-0 text-info">{{ clicks_chatbot|default:0 }}</h3>
+        <small class="text-muted">{{ pct_chatbot }}%</small>
+      </div>
+    </div>
+
+    <!-- Carte -->
+    <div class="col-md-3">
+      <div class="card p-3 text-center">
+        <h6 class="text-muted mb-1">
+          <i class="bi bi-map-fill text-warning"></i> Carte
+        </h6>
+        <h3 class="fw-bold mb-0 text-warning">{{ clicks_carte|default:0 }}</h3>
+        <small class="text-muted">{{ pct_carte }}%</small>
+      </div>
+    </div>
+
+    <!-- Recherche -->
+    <div class="col-md-3">
+      <div class="card p-3 text-center">
+        <h6 class="text-muted mb-1">
+          <i class="bi bi-search text-primary"></i> Recherche
+        </h6>
+        <h3 class="fw-bold mb-0 text-primary">{{ clicks_recherche|default:0 }}</h3>
+        <small class="text-muted">{{ pct_recherche }}%</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- Taux de conversion chatbot -->
+  {% if total_recommendations > 0 %}
+  <div class="card p-3 mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+      <div>
+        <h6 class="fw-bold text-primary mb-1">Taux de conversion des recommandations chatbot</h6>
+        <p class="text-muted mb-0">
+          {{ clicked_recommendations }} recommandations cliquées sur {{ total_recommendations }} recommandations
+        </p>
+      </div>
+      <div class="text-end">
+        <h2 class="fw-bold mb-0 {% if conversion_rate >= 50 %}text-success{% elif conversion_rate >= 25 %}text-warning{% else %}text-danger{% endif %}">
+          {{ conversion_rate }}%
+        </h2>
+      </div>
+    </div>
+    <div class="progress mt-2" style="height: 10px;">
+      <div class="progress-bar {% if conversion_rate >= 50 %}bg-success{% elif conversion_rate >= 25 %}bg-warning{% else %}bg-danger{% endif %}"
+           role="progressbar"
+           style="width: {{ conversion_rate }}%;"
+           aria-valuenow="{{ conversion_rate }}"
+           aria-valuemin="0"
+           aria-valuemax="100">
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Filtres -->
+  <div class="card p-3 mb-4">
+    <h6 class="fw-bold text-primary mb-3">Filtrer par source</h6>
+    <div class="btn-group" role="group">
+      <a href="?source=" class="btn {% if not source_filter %}btn-primary{% else %}btn-outline-primary{% endif %}">
+        Toutes
+      </a>
+      <a href="?source=chatbot" class="btn {% if source_filter == 'chatbot' %}btn-info{% else %}btn-outline-info{% endif %}">
+        <i class="bi bi-chat-dots-fill me-1"></i> Chatbot
+      </a>
+      <a href="?source=carte" class="btn {% if source_filter == 'carte' %}btn-warning{% else %}btn-outline-warning{% endif %}">
+        <i class="bi bi-map-fill me-1"></i> Carte
+      </a>
+      <a href="?source=recherche" class="btn {% if source_filter == 'recherche' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+        <i class="bi bi-search me-1"></i> Recherche
+      </a>
+    </div>
+  </div>
+
   <!-- Graphiques -->
   <div class="row g-4 mb-4">
-    <!-- Clics par jour -->
+    <!-- Consultations par jour -->
     <div class="col-md-6">
       <div class="card p-3 chart-card">
         <div class="d-flex justify-content-between align-items-center mb-2">
-          <h6 class="fw-bold text-primary mb-0">Clics par jour</h6>
+          <h6 class="fw-bold text-primary mb-0">Consultations par jour</h6>
         </div>
         <canvas id="clicksPerDayChart"></canvas>
       </div>
     </div>
 
-    <!-- Produits les plus cliqués -->
+    <!-- Produits les plus consultés -->
     <div class="col-md-6">
       <div class="card p-3 chart-card">
         <div class="d-flex justify-content-between align-items-center mb-2">
-          <h6 class="fw-bold text-primary mb-0">Produits les plus cliqués</h6>
+          <h6 class="fw-bold text-primary mb-0">Top 5 produits consultés</h6>
         </div>
         <canvas id="clicksByLabelChart"></canvas>
       </div>
     </div>
+
+    <!-- Répartition par source -->
+    <div class="col-md-12">
+      <div class="card p-3 chart-card">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="fw-bold text-primary mb-0">Répartition par source</h6>
+        </div>
+        <canvas id="clicksBySourceChart" style="max-height: 300px;"></canvas>
+      </div>
+    </div>
   </div>
 
-  <!-- Historique des clics -->
+  <!-- Historique des consultations -->
   <div class="card p-3">
-    <h6 class="fw-bold text-primary mb-3">Historique des clics</h6>
+    <h6 class="fw-bold text-primary mb-3">Historique des consultations</h6>
 
     <!-- Table desktop -->
     <div class="table-responsive d-none d-md-block">
@@ -49,24 +150,42 @@
         <thead class="table-light">
           <tr>
             <th>Date / Heure</th>
-            <th>Label du clic</th>
-            <th>Produit associé</th>
-            <th>Page</th>
+            <th>Produit</th>
+            <th>Marque</th>
+            <th>Source</th>
+            <th>Zone</th>
             <th>Session ID</th>
           </tr>
         </thead>
         <tbody>
           {% for click in clicks %}
           <tr>
-            <td>{{ click.timestamp|date:"d/m/Y H:i" }}</td>
-            <td>{{ click.label|default:"—" }}</td>
-            <td>{{ click.product_name|default:"—" }}</td>
-            <td><code>{{ click.page }}</code></td>
-            <td>#{{ click.session.id }}</td>
+            <td>{{ click.viewed_at|date:"d/m/Y H:i" }}</td>
+            <td><strong>{{ click.product.name|default:"—" }}</strong></td>
+            <td>{{ click.product.brand|default:"—" }}</td>
+            <td>
+              {% if click.source == "chatbot" %}
+                <span class="badge bg-info">
+                  <i class="bi bi-chat-dots-fill me-1"></i>Chatbot
+                </span>
+              {% elif click.source == "carte" %}
+                <span class="badge bg-warning text-dark">
+                  <i class="bi bi-map-fill me-1"></i>Carte
+                </span>
+              {% elif click.source == "recherche" %}
+                <span class="badge bg-primary">
+                  <i class="bi bi-search me-1"></i>Recherche
+                </span>
+              {% else %}
+                <span class="badge bg-secondary">{{ click.source|default:"—" }}</span>
+              {% endif %}
+            </td>
+            <td><small>{{ click.zone|default:"—" }}</small></td>
+            <td><a href="{% url 'session_detail' click.session.id %}" class="text-decoration-none">#{{ click.session.id }}</a></td>
           </tr>
           {% empty %}
           <tr>
-            <td colspan="5" class="text-center text-muted py-3">Aucun clic enregistré.</td>
+            <td colspan="6" class="text-center text-muted py-3">Aucune consultation enregistrée.</td>
           </tr>
           {% endfor %}
         </tbody>
@@ -78,24 +197,42 @@
       {% for click in clicks %}
       <div class="border rounded-3 p-3 mb-2 shadow-sm bg-white">
         <div class="d-flex justify-content-between align-items-center mb-2">
-          <span class="fw-semibold text-primary">{{ click.timestamp|date:"d/m/Y H:i" }}</span>
+          <span class="fw-semibold text-primary">{{ click.viewed_at|date:"d/m/Y H:i" }}</span>
           <small class="text-muted">#{{ click.session.id }}</small>
         </div>
-        <p class="mb-1"><strong>Label :</strong> {{ click.label|default:"—" }}</p>
-        <p class="mb-1"><strong>Produit :</strong> {{ click.product_name|default:"—" }}</p>
-        <p class="mb-0"><strong>Page :</strong> <code>{{ click.page }}</code></p>
+        <p class="mb-1"><strong>Produit :</strong> {{ click.product.name|default:"—" }}</p>
+        <p class="mb-1"><strong>Marque :</strong> {{ click.product.brand|default:"—" }}</p>
+        <p class="mb-1">
+          <strong>Source :</strong>
+          {% if click.source == "chatbot" %}
+            <span class="badge bg-info">
+              <i class="bi bi-chat-dots-fill me-1"></i>Chatbot
+            </span>
+          {% elif click.source == "carte" %}
+            <span class="badge bg-warning text-dark">
+              <i class="bi bi-map-fill me-1"></i>Carte
+            </span>
+          {% elif click.source == "recherche" %}
+            <span class="badge bg-primary">
+              <i class="bi bi-search me-1"></i>Recherche
+            </span>
+          {% else %}
+            <span class="badge bg-secondary">{{ click.source|default:"—" }}</span>
+          {% endif %}
+        </p>
+        <p class="mb-0"><strong>Zone :</strong> {{ click.zone|default:"—" }}</p>
       </div>
       {% empty %}
-      <p class="text-muted text-center">Aucun clic enregistré.</p>
+      <p class="text-muted text-center">Aucune consultation enregistrée.</p>
       {% endfor %}
     </div>
 
     <!-- Pagination -->
     {% if clicks.has_other_pages %}
-    <nav aria-label="Pagination clics">
+    <nav aria-label="Pagination consultations">
       <ul class="pagination justify-content-center mt-3 mb-0">
         {% if clicks.has_previous %}
-        <li class="page-item"><a class="page-link" href="?page={{ clicks.previous_page_number }}">&laquo;</a></li>
+        <li class="page-item"><a class="page-link" href="?page={{ clicks.previous_page_number }}{% if source_filter %}&source={{ source_filter }}{% endif %}">&laquo;</a></li>
         {% else %}
         <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
         {% endif %}
@@ -103,11 +240,11 @@
           {% if clicks.number == num %}
             <li class="page-item active"><span class="page-link">{{ num }}</span></li>
           {% elif num > clicks.number|add:'-3' and num < clicks.number|add:'3' %}
-            <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+            <li class="page-item"><a class="page-link" href="?page={{ num }}{% if source_filter %}&source={{ source_filter }}{% endif %}">{{ num }}</a></li>
           {% endif %}
         {% endfor %}
         {% if clicks.has_next %}
-        <li class="page-item"><a class="page-link" href="?page={{ clicks.next_page_number }}">&raquo;</a></li>
+        <li class="page-item"><a class="page-link" href="?page={{ clicks.next_page_number }}{% if source_filter %}&source={{ source_filter }}{% endif %}">&raquo;</a></li>
         {% else %}
         <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
         {% endif %}
@@ -139,13 +276,14 @@ document.addEventListener("DOMContentLoaded", function () {
   fetch("{% url 'clicks_chart_data' %}")
     .then(response => response.json())
     .then(data => {
+      // 1. Consultations par jour
       const ctx1 = document.getElementById("clicksPerDayChart").getContext("2d");
       new Chart(ctx1, {
         type: "bar",
         data: {
           labels: data.labels,
           datasets: [{
-            label: "Clics par jour",
+            label: "Consultations par jour",
             data: data.clicks_per_day,
             backgroundColor: "#3B82F6",
             hoverBackgroundColor: "#2563EB",
@@ -157,12 +295,13 @@ document.addEventListener("DOMContentLoaded", function () {
           maintainAspectRatio: false,
           plugins: { legend: { display: false } },
           scales: {
-            y: { beginAtZero: true, grid: { color: "rgba(0,0,0,0.05)" } },
+            y: { beginAtZero: true, grid: { color: "rgba(0,0,0,0.05)" }, ticks: { precision: 0 } },
             x: { grid: { display: false } }
           }
         }
       });
 
+      // 2. Top 5 produits
       const clicksData = data.labels_types.map((label, index) => ({
         label: label,
         value: data.clicks_by_label[index]
@@ -174,7 +313,7 @@ document.addEventListener("DOMContentLoaded", function () {
         data: {
           labels: clicksData.map(c => c.label),
           datasets: [{
-            label: "Nombre de clics",
+            label: "Consultations",
             data: clicksData.map(c => c.value),
             backgroundColor: "#3B82F6",
             borderRadius: 6,
@@ -186,11 +325,48 @@ document.addEventListener("DOMContentLoaded", function () {
           maintainAspectRatio: false,
           plugins: {
             legend: { display: false },
-            tooltip: { callbacks: { label: ctx => `${ctx.parsed.x} clics` } }
+            tooltip: { callbacks: { label: ctx => `${ctx.parsed.x} consultations` } }
           },
           scales: {
             x: { beginAtZero: true, grid: { color: "rgba(0,0,0,0.05)" }, ticks: { precision: 0 } },
             y: { grid: { display: false } }
+          }
+        }
+      });
+
+      // 3. Répartition par source (Donut)
+      const ctx3 = document.getElementById("clicksBySourceChart").getContext("2d");
+      new Chart(ctx3, {
+        type: "doughnut",
+        data: {
+          labels: ["Chatbot", "Carte", "Recherche"],
+          datasets: [{
+            data: [
+              data.clicks_by_source.chatbot,
+              data.clicks_by_source.carte,
+              data.clicks_by_source.recherche
+            ],
+            backgroundColor: ["#3B82F6", "#F59E0B", "#10B981"],
+            hoverOffset: 4
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { padding: 20, font: { size: 14 } }
+            },
+            tooltip: {
+              callbacks: {
+                label: function(ctx) {
+                  const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = ((ctx.parsed / total) * 100).toFixed(1);
+                  return `${ctx.label}: ${ctx.parsed} (${percentage}%)`;
+                }
+              }
+            }
           }
         }
       });
@@ -215,7 +391,7 @@ document.addEventListener("DOMContentLoaded", function () {
     .then(response => response.json())
     .then(data => {
       exportBtn.disabled = false;
-      exportBtn.innerHTML = '<i class="bi bi-download me-1"></i> Exporter les clics';
+      exportBtn.innerHTML = '<i class="bi bi-download me-1"></i> Exporter les données';
 
       if (data.success) {
         exportAlert.className = "alert alert-success alert-dismissible fade show";
@@ -235,7 +411,7 @@ document.addEventListener("DOMContentLoaded", function () {
     })
     .catch(err => {
       exportBtn.disabled = false;
-      exportBtn.innerHTML = '<i class="bi bi-download me-1"></i> Exporter les clics';
+      exportBtn.innerHTML = '<i class="bi bi-download me-1"></i> Exporter les données';
       exportAlert.className = "alert alert-danger";
       exportAlert.innerHTML = "<i class='bi bi-bug-fill me-2'></i> Erreur lors de l'export.";
       exportAlert.classList.remove("d-none");

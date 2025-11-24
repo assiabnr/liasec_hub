@@ -7,7 +7,7 @@
   <!-- En-tête -->
   <div class="d-flex justify-content-between align-items-center mb-4">
     <h4 class="fw-bold mb-0">
-      <i class="bi bi-box-seam-fill me-2 text-primary"></i> Tableau de bord Produits
+      <i class="bi bi-box-seam-fill me-2 text-primary"></i> Analyse des Produits
     </h4>
     <button id="exportProductsBtn" class="btn btn-primary shadow-sm">
       <i class="bi bi-download me-1"></i> Exporter les données
@@ -17,122 +17,245 @@
   <!-- Zone de feedback export -->
   <div id="exportAlert" class="alert d-none" role="alert"></div>
 
-  <!-- Section KPI -->
+  <!-- KPIs principaux -->
   <div class="row g-3 mb-4">
-    <div class="col-md-3 col-sm-6">
+    <div class="col-lg-2 col-md-4 col-sm-6">
       <div class="card text-center p-3 shadow-sm">
-        <h6 class="text-muted mb-1">Produits actifs</h6>
-        <h2 class="fw-bold text-primary">{{ total_products|intcomma }}</h2>
+        <h6 class="text-muted mb-1 small">Total Produits</h6>
+        <h2 class="fw-bold text-primary mb-0">{{ total_products|intcomma }}</h2>
       </div>
     </div>
-    <div class="col-md-3 col-sm-6">
+    <div class="col-lg-2 col-md-4 col-sm-6">
       <div class="card text-center p-3 shadow-sm">
-        <h6 class="text-muted mb-1">Disponibles</h6>
-        <h2 class="fw-bold text-success">{{ available_products|intcomma }}</h2>
+        <h6 class="text-muted mb-1 small">Disponibles</h6>
+        <h2 class="fw-bold text-success mb-0">{{ available_products|intcomma }}</h2>
+        <small class="text-muted">{{ pct_available }}%</small>
       </div>
     </div>
-    <div class="col-md-3 col-sm-6">
+    <div class="col-lg-2 col-md-4 col-sm-6">
       <div class="card text-center p-3 shadow-sm">
-        <h6 class="text-muted mb-1">Indisponibles</h6>
-        <h2 class="fw-bold text-danger">{{ unavailable_products|intcomma }}</h2>
+        <h6 class="text-muted mb-1 small">Indisponibles</h6>
+        <h2 class="fw-bold text-danger mb-0">{{ unavailable_products|intcomma }}</h2>
+        <small class="text-muted">{{ pct_unavailable }}%</small>
       </div>
     </div>
-    <div class="col-md-3 col-sm-6">
+    <div class="col-lg-2 col-md-4 col-sm-6">
       <div class="card text-center p-3 shadow-sm">
-        <h6 class="text-muted mb-1">Prix moyen consulté</h6>
-        <h2 class="fw-bold text-warning">{{ avg_viewed_price|floatformat:2 }} €</h2>
+        <h6 class="text-muted mb-1 small">Produits consultés</h6>
+        <h2 class="fw-bold text-info mb-0">{{ unique_viewed_products|intcomma }}</h2>
+        <small class="text-muted">{{ pct_viewed }}%</small>
+      </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-sm-6">
+      <div class="card text-center p-3 shadow-sm">
+        <h6 class="text-muted mb-1 small">Total Vues</h6>
+        <h2 class="fw-bold text-primary mb-0">{{ total_views|intcomma }}</h2>
+      </div>
+    </div>
+    <div class="col-lg-2 col-md-4 col-sm-6">
+      <div class="card text-center p-3 shadow-sm">
+        <h6 class="text-muted mb-1 small">Prix Moyen Consulté</h6>
+        <h2 class="fw-bold text-warning mb-0">{{ avg_viewed_price|floatformat:0 }}€</h2>
       </div>
     </div>
   </div>
 
-  <!-- Ligne KPI secondaire -->
+  <!-- KPIs secondaires -->
   <div class="row g-3 mb-4">
-    <div class="col-md-3 col-sm-6">
-      <div class="card text-center p-3 shadow-sm">
-        <h6 class="text-muted mb-1">Total de vues produits</h6>
-        <h2 class="fw-bold text-primary">{{ total_views|intcomma }}</h2>
+    <div class="col-md-4">
+      <div class="card p-3 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="text-muted mb-1">Recommandations IA</h6>
+            <h3 class="fw-bold text-info mb-0">{{ total_recos|intcomma }}</h3>
+          </div>
+          <i class="bi bi-robot text-info" style="font-size: 2rem;"></i>
+        </div>
       </div>
     </div>
-    <div class="col-md-3 col-sm-6">
-      <div class="card text-center p-3 shadow-sm">
-        <h6 class="text-muted mb-1">Recommandations chatbot</h6>
-        <h2 class="fw-bold text-info">{{ total_recos|intcomma }}</h2>
+    <div class="col-md-4">
+      <div class="card p-3 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="text-muted mb-1">Taux de Clic Moyen</h6>
+            <h3 class="fw-bold text-success mb-0">{{ avg_click_rate }}%</h3>
+          </div>
+          <i class="bi bi-cursor-fill text-success" style="font-size: 2rem;"></i>
+        </div>
       </div>
     </div>
-    <div class="col-md-3 col-sm-6">
-      <div class="card text-center p-3 shadow-sm">
-        <h6 class="text-muted mb-1">Taux moyen de clic</h6>
-        <h2 class="fw-bold text-success">{{ avg_click_rate }}%</h2>
-      </div>
-    </div>
-    <div class="col-md-3 col-sm-6">
-      <div class="card text-center p-3 shadow-sm">
-        <h6 class="text-muted mb-1">Conversion IA → clic</h6>
-        <h2 class="fw-bold text-primary">{{ conversion_rate }}%</h2>
+    <div class="col-md-4">
+      <div class="card p-3 shadow-sm">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="text-muted mb-1">Conversion IA → Clic</h6>
+            <h3 class="fw-bold text-primary mb-0">{{ conversion_rate }}%</h3>
+          </div>
+          <i class="bi bi-graph-up-arrow text-primary" style="font-size: 2rem;"></i>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- Graphiques -->
+  <!-- Graphiques d'analyse -->
   <div class="row g-4 mb-4">
-    <div class="col-lg-7">
+    <!-- Bubble chart -->
+    <div class="col-lg-8">
       <div class="card p-3 chart-card">
         <h6 class="fw-bold text-primary mb-2">
-          <i class="bi bi-graph-up me-1"></i> Corrélation clics / recommandations
+          <i class="bi bi-graph-up me-1"></i> Corrélation Clics / Recommandations IA
         </h6>
         <canvas id="productBubbleChart"></canvas>
       </div>
     </div>
 
-    <div class="col-lg-5">
+    <!-- Top 5 produits -->
+    <div class="col-lg-4">
       <div class="card p-3 h-100">
         <h6 class="fw-bold text-primary mb-3">
-          <i class="bi bi-trophy-fill me-1"></i> Top 5 produits populaires
+          <i class="bi bi-trophy-fill me-1"></i> Top 5 Produits Populaires
         </h6>
         <table class="table table-sm align-middle mb-0" id="topProductsTable">
           <thead class="table-light">
             <tr>
               <th>Produit</th>
-              <th class="text-end">Clics</th>
-              <th class="text-end">IA</th>
+              <th class="text-end">Vues</th>
             </tr>
           </thead>
           <tbody>
             {% for p in top_viewed|slice:":5" %}
-<tr data-product="{{ p.product__name }}">
-  <td class="fw-semibold text-dark">{{ p.product__name|truncatechars:22 }}</td>
-  <td class="text-end">{{ p.clicks|intcomma }}</td>
-  <td class="text-end">{{ recos_dict.p.product__name|default:0|intcomma }}</td>
-</tr>
+  {% if p.product__id %}
+  <tr style="cursor: pointer;" onclick="window.location.href='{% url 'product_detail' p.product__id %}'">
+  {% else %}
+  <tr>
+  {% endif %}
+    <td class="fw-semibold text-dark">{{ p.product__name|truncatechars:30 }}</td>
+    <td class="text-end"><span class="badge bg-primary">{{ p.clicks|intcomma }}</span></td>
+  </tr>
 {% empty %}
-<tr><td colspan="3" class="text-center text-muted py-3">Aucun produit.</td></tr>
-{% endfor %}
 
+            <tr><td colspan="2" class="text-center text-muted py-3">Aucun produit.</td></tr>
+            {% endfor %}
           </tbody>
         </table>
       </div>
     </div>
+
+    <!-- Vues par catégorie -->
+    <div class="col-lg-6">
+      <div class="card p-3 chart-card">
+        <h6 class="fw-bold text-primary mb-2">
+          <i class="bi bi-tag-fill me-1"></i> Vues par Catégorie
+        </h6>
+        <canvas id="categoryChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Distribution des prix -->
+    <div class="col-lg-6">
+      <div class="card p-3 chart-card">
+        <h6 class="fw-bold text-primary mb-2">
+          <i class="bi bi-cash-coin me-1"></i> Distribution des Prix Consultés
+        </h6>
+        <canvas id="priceChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Évolution temporelle -->
+    <div class="col-lg-12">
+      <div class="card p-3 chart-card">
+        <h6 class="fw-bold text-primary mb-2">
+          <i class="bi bi-calendar3 me-1"></i> Évolution des Consultations (7 derniers jours)
+        </h6>
+        <canvas id="evolutionChart"></canvas>
+      </div>
+    </div>
   </div>
 
-  <!-- Tableau complet -->
+  <!-- Filtres et Recherche -->
+  <div class="card p-3 mb-4">
+    <h6 class="fw-bold text-primary mb-3">
+      <i class="bi bi-funnel-fill me-1"></i> Filtrer et Rechercher
+    </h6>
+    <form method="get" action="{% url 'produits' %}">
+      <div class="row g-3">
+        <!-- Recherche -->
+        <div class="col-md-4">
+          <input type="text" name="search" class="form-control" placeholder="Rechercher un produit..." value="{{ search_query }}">
+        </div>
+
+        <!-- Catégorie -->
+        <div class="col-md-3">
+          <select name="category" class="form-select">
+            <option value="">Toutes les catégories</option>
+            {% for cat in all_categories %}
+              <option value="{{ cat }}" {% if category_filter == cat %}selected{% endif %}>{{ cat }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <!-- Disponibilité -->
+        <div class="col-md-2">
+          <select name="availability" class="form-select">
+            <option value="">Tous</option>
+            <option value="available" {% if availability_filter == 'available' %}selected{% endif %}>Disponible</option>
+            <option value="unavailable" {% if availability_filter == 'unavailable' %}selected{% endif %}>Indisponible</option>
+          </select>
+        </div>
+
+        <!-- Tri -->
+        <div class="col-md-2">
+          <select name="sort" class="form-select">
+            <option value="-total_views" {% if sort_by == '-total_views' %}selected{% endif %}>Plus consultés</option>
+            <option value="-total_recos" {% if sort_by == '-total_recos' %}selected{% endif %}>Plus recommandés</option>
+            <option value="-click_rate" {% if sort_by == '-click_rate' %}selected{% endif %}>Meilleur taux</option>
+            <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Nom A-Z</option>
+            <option value="-name" {% if sort_by == '-name' %}selected{% endif %}>Nom Z-A</option>
+            <option value="price" {% if sort_by == 'price' %}selected{% endif %}>Prix croissant</option>
+            <option value="-price" {% if sort_by == '-price' %}selected{% endif %}>Prix décroissant</option>
+          </select>
+        </div>
+
+        <!-- Boutons -->
+        <div class="col-md-1">
+          <button type="submit" class="btn btn-primary w-100">
+            <i class="bi bi-search"></i>
+          </button>
+        </div>
+      </div>
+    </form>
+
+    {% if search_query or category_filter or availability_filter %}
+    <div class="mt-2">
+      <a href="{% url 'produits' %}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-x-circle me-1"></i> Réinitialiser les filtres
+      </a>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Tableau des produits -->
   <div class="card p-3">
     <h6 class="fw-bold text-primary mb-3">
-      <i class="bi bi-bar-chart-line me-1"></i> Statistiques détaillées des produits
+      <i class="bi bi-table me-1"></i> Liste Complète des Produits
+      <span class="badge bg-primary ms-2">{{ products.paginator.count }} résultats</span>
     </h6>
 
     <div class="table-responsive">
       <table class="table align-middle table-hover">
         <thead class="table-light">
           <tr>
-            <th>Image</th>
+            <th style="width: 60px;">Image</th>
             <th>Nom</th>
             <th>Catégorie</th>
             <th>Marque</th>
-            <th>Prix (€)</th>
-            <th>Disponibilité</th>
-            <th>Vues</th>
-            <th>Recos</th>
-            <th>Taux clic</th>
+            <th class="text-end">Prix</th>
+            <th class="text-center">Dispo.</th>
+            <th class="text-end">Vues</th>
+            <th class="text-end">Recos</th>
+            <th class="text-end">Clics IA</th>
+            <th class="text-end">Taux</th>
+            <th class="text-center">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -140,28 +263,42 @@
           <tr>
             <td>
               {% if p.image_url %}
-                <img src="{{ p.image_url }}" alt="{{ p.name }}" width="55" height="55" class="rounded" style="object-fit:cover;">
+                <img src="{{ p.image_url }}" alt="{{ p.name }}" width="50" height="50" class="rounded" style="object-fit:cover;">
               {% else %}
-                <span class="text-muted">—</span>
+                <div class="bg-light rounded d-flex align-items-center justify-content-center" style="width:50px;height:50px;">
+                  <i class="bi bi-image text-muted"></i>
+                </div>
               {% endif %}
             </td>
             <td class="fw-semibold text-dark">{{ p.name }}</td>
-            <td>{{ p.category|default:"—" }}</td>
-            <td>{{ p.brand|default:"—" }}</td>
-            <td>{{ p.price|floatformat:2 }}</td>
-            <td>
+            <td><small class="text-muted">{{ p.category|default:"—" }}</small></td>
+            <td><small class="text-muted">{{ p.brand|default:"—" }}</small></td>
+            <td class="text-end"><strong>{{ p.price|floatformat:2 }}€</strong></td>
+            <td class="text-center">
               {% if p.available %}
-                <span class="badge bg-success">Disponible</span>
+                <span class="badge bg-success">✓</span>
               {% else %}
-                <span class="badge bg-danger">Indispo</span>
+                <span class="badge bg-danger">✗</span>
               {% endif %}
             </td>
-            <td>{{ p.total_views|intcomma }}</td>
-            <td>{{ p.total_recos|intcomma }}</td>
-            <td>{{ p.click_rate|floatformat:1 }}%</td>
+            <td class="text-end"><span class="badge bg-primary">{{ p.total_views|intcomma }}</span></td>
+            <td class="text-end"><span class="badge bg-info">{{ p.total_recos|intcomma }}</span></td>
+            <td class="text-end"><span class="badge bg-success">{{ p.clicked_recos|intcomma }}</span></td>
+            <td class="text-end">
+              {% if p.click_rate > 0 %}
+                <strong class="text-success">{{ p.click_rate|floatformat:1 }}%</strong>
+              {% else %}
+                <span class="text-muted">0%</span>
+              {% endif %}
+            </td>
+            <td class="text-center">
+              <a href="{% url 'product_detail' p.id %}" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-eye-fill"></i> Détail
+              </a>
+            </td>
           </tr>
           {% empty %}
-          <tr><td colspan="9" class="text-center text-muted py-3">Aucun produit enregistré.</td></tr>
+          <tr><td colspan="11" class="text-center text-muted py-4">Aucun produit trouvé.</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -172,19 +309,27 @@
     <nav aria-label="Pagination produits" class="mt-3">
       <ul class="pagination justify-content-center mb-0">
         {% if products.has_previous %}
-          <li class="page-item"><a class="page-link" href="?page={{ products.previous_page_number }}">&laquo;</a></li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ products.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if availability_filter %}&availability={{ availability_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">&laquo;</a>
+          </li>
         {% else %}
           <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
         {% endif %}
+
         {% for num in products.paginator.page_range %}
           {% if num == products.number %}
             <li class="page-item active"><span class="page-link">{{ num }}</span></li>
           {% elif num > products.number|add:'-3' and num < products.number|add:'3' %}
-            <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+            <li class="page-item">
+              <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if availability_filter %}&availability={{ availability_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">{{ num }}</a>
+            </li>
           {% endif %}
         {% endfor %}
+
         {% if products.has_next %}
-          <li class="page-item"><a class="page-link" href="?page={{ products.next_page_number }}">&raquo;</a></li>
+          <li class="page-item">
+            <a class="page-link" href="?page={{ products.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if category_filter %}&category={{ category_filter }}{% endif %}{% if availability_filter %}&availability={{ availability_filter }}{% endif %}{% if sort_by %}&sort={{ sort_by }}{% endif %}">&raquo;</a>
+          </li>
         {% else %}
           <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
         {% endif %}
@@ -198,50 +343,231 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-.chart-card { height: 400px; }
-#topProductsTable tbody tr { cursor: pointer; transition: background-color 0.2s ease; }
-#topProductsTable tbody tr:hover { background-color: rgba(37,99,235,0.08); }
+.chart-card {
+  height: 380px;
+  display: flex;
+  flex-direction: column;
+}
+.chart-card canvas {
+  flex-grow: 1;
+}
+#topProductsTable tbody tr:hover {
+  background-color: rgba(37,99,235,0.08);
+}
 </style>
 
 <script>
 document.addEventListener("DOMContentLoaded", function() {
-  const ctx = document.getElementById("productBubbleChart").getContext("2d");
-
+  // Charger les données des graphiques
   fetch("{% url 'products_chart_data' %}")
     .then(res => res.json())
     .then(data => {
+      // 1. Bubble Chart - Corrélation clics/recos
+      const ctx1 = document.getElementById("productBubbleChart").getContext("2d");
       const bubbleData = data.labels.map((name, i) => ({
         x: data.clicks[i],
         y: data.recos[i],
-        r: Math.sqrt(data.clicks[i]) + 6,
+        r: Math.sqrt(data.clicks[i]) * 2 + 8,
         label: name
       }));
 
-      const chart = new Chart(ctx, {
+      new Chart(ctx1, {
         type: "bubble",
         data: {
           datasets: [{
             label: "Produits",
             data: bubbleData,
-            backgroundColor: "rgba(59,130,246,0.4)",
+            backgroundColor: "rgba(59,130,246,0.5)",
             borderColor: "#2563EB",
-            borderWidth: 1.5
+            borderWidth: 2
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           scales: {
-            x: { title: { display: true, text: "Clics" }, beginAtZero: true },
-            y: { title: { display: true, text: "Recommandations IA" }, beginAtZero: true }
+            x: {
+              title: { display: true, text: "Nombre de Clics" },
+              beginAtZero: true,
+              grid: { color: "rgba(0,0,0,0.05)" }
+            },
+            y: {
+              title: { display: true, text: "Recommandations IA" },
+              beginAtZero: true,
+              grid: { color: "rgba(0,0,0,0.05)" }
+            }
           },
           plugins: {
             legend: { display: false },
-            tooltip: { callbacks: { label: ctx => `${ctx.raw.label}: ${ctx.raw.x} clics / ${ctx.raw.y} recos` } }
+            tooltip: {
+              callbacks: {
+                label: ctx => `${ctx.raw.label}: ${ctx.raw.x} clics / ${ctx.raw.y} recos`
+              }
+            }
+          }
+        }
+      });
+
+      // 2. Catégories - Bar Chart Horizontal
+      const ctx2 = document.getElementById("categoryChart").getContext("2d");
+      new Chart(ctx2, {
+        type: "bar",
+        data: {
+          labels: data.categories_labels,
+          datasets: [{
+            label: "Vues",
+            data: data.categories_data,
+            backgroundColor: "#3B82F6",
+            borderRadius: 6,
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            x: { beginAtZero: true, grid: { color: "rgba(0,0,0,0.05)" }, ticks: { precision: 0 } },
+            y: { grid: { display: false } }
+          }
+        }
+      });
+
+      // 3. Distribution des prix - Doughnut
+      const ctx3 = document.getElementById("priceChart").getContext("2d");
+      new Chart(ctx3, {
+        type: "doughnut",
+        data: {
+          labels: data.price_labels,
+          datasets: [{
+            data: data.price_data,
+            backgroundColor: [
+              "#10B981",
+              "#3B82F6",
+              "#F59E0B",
+              "#EF4444",
+              "#8B5CF6"
+            ],
+            borderWidth: 2,
+            borderColor: "#fff"
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'bottom', labels: { padding: 15, font: { size: 12 } } },
+            tooltip: {
+              callbacks: {
+                label: function(ctx) {
+                  const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = ((ctx.parsed / total) * 100).toFixed(1);
+                  return `${ctx.label}: ${ctx.parsed} (${percentage}%)`;
+                }
+              }
+            }
+          }
+        }
+      });
+
+      // 4. Évolution temporelle - Line Chart
+      const ctx4 = document.getElementById("evolutionChart").getContext("2d");
+      new Chart(ctx4, {
+        type: "line",
+        data: {
+          labels: data.views_7days_labels,
+          datasets: [{
+            label: "Consultations",
+            data: data.views_7days_data,
+            borderColor: "#3B82F6",
+            backgroundColor: "rgba(59,130,246,0.1)",
+            borderWidth: 3,
+            fill: true,
+            tension: 0.4,
+            pointRadius: 5,
+            pointBackgroundColor: "#3B82F6",
+            pointBorderColor: "#fff",
+            pointBorderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: { beginAtZero: true, grid: { color: "rgba(0,0,0,0.05)" }, ticks: { precision: 0 } },
+            x: { grid: { display: false } }
           }
         }
       });
     });
+
+  // Export CSV
+  const exportBtn = document.getElementById("exportProductsBtn");
+  const exportAlert = document.getElementById("exportAlert");
+
+  if (exportBtn) {
+    exportBtn.addEventListener("click", function() {
+      exportBtn.disabled = true;
+      exportBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Export en cours...';
+
+      fetch("{% url 'export_data' %}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "X-CSRFToken": getCookie("csrftoken"),
+        },
+        body: new URLSearchParams({ data_type: "products" })
+      })
+      .then(response => response.json())
+      .then(data => {
+        exportBtn.disabled = false;
+        exportBtn.innerHTML = '<i class="bi bi-download me-1"></i> Exporter les données';
+
+        if (data.success) {
+          exportAlert.className = "alert alert-success alert-dismissible fade show";
+          exportAlert.innerHTML = `
+            <i class="bi bi-check-circle-fill me-2"></i>
+            Export réussi ! <a href="${data.file}" target="_blank" class="fw-semibold text-decoration-none">
+            <i class="bi bi-file-earmark-arrow-down"></i> Télécharger le fichier</a>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+        } else {
+          exportAlert.className = "alert alert-danger alert-dismissible fade show";
+          exportAlert.innerHTML = `
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>
+            Erreur : ${data.error || "échec de l'export"}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+        }
+        exportAlert.classList.remove("d-none");
+      })
+      .catch(err => {
+        exportBtn.disabled = false;
+        exportBtn.innerHTML = '<i class="bi bi-download me-1"></i> Exporter les données';
+        exportAlert.className = "alert alert-danger";
+        exportAlert.innerHTML = "<i class='bi bi-bug-fill me-2'></i> Erreur lors de l'export.";
+        exportAlert.classList.remove("d-none");
+      });
+    });
+  }
+
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+      const cookies = document.cookie.split(";");
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === (name + "=")) {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
 });
 </script>
 

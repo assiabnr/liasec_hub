@@ -13,6 +13,7 @@ urlpatterns = [
     # === API du chatbot ===
     path("api/ask/", views.chat_api, name="chat_api"),
     path("api/feedback/", views.feedback_api, name="feedback_api"),
+    path("api/track-click/", views.track_recommendation_click, name="track_click"),
     path("api/reset/", views.reset_chat, name="reset_chat"),
 
     path(

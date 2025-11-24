@@ -265,6 +265,25 @@ function createProductCard(p) {
       const interactionId = p.conversationId || STATE.lastInteractionId;
       if (interactionId) {
         try {
+          // Enregistrer le clic sur la recommandation
+          await fetch(API_URLS.trackClick, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": getCookie("csrftoken") || "",
+            },
+            body: JSON.stringify({
+              product_id: p.id,
+              interaction_id: interactionId,
+            }),
+          });
+          console.log(
+            "Clic enregistré sur la recommandation",
+            p.id,
+            interactionId
+          );
+
+          // Marquer la satisfaction
           await fetch(API_URLS.feedback, {
             method: "POST",
             headers: {
@@ -282,7 +301,7 @@ function createProductCard(p) {
           );
         } catch (err) {
           console.error(
-            "Erreur lors de la mise à jour de la satisfaction (Localiser le produit) :",
+            "Erreur lors du tracking du clic ou de la satisfaction :",
             err
           );
         }

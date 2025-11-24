@@ -213,14 +213,6 @@ def search_products_api(request):
             }
         )
 
-    # On logge la recherche comme un clic "page"
-    Click.objects.create(
-        session=session,
-        product_name=None,
-        page="localisation_search",
-        timestamp=timezone.now(),
-    )
-
     return JsonResponse(
         {
             "results": results,
@@ -236,8 +228,8 @@ def search_products_api(request):
 def track_product_view_api(request):
     """
     Appelée quand l'utilisateur clique sur la loupe pour voir / localiser un produit.
-    - Log dans Click + ProductView
-    - Permet au frontend de déclencher ensuite la carte (getPathIdFromCategory)
+    - Log dans ProductView avec source standardisée
+    - Sources possibles : "carte", "recherche"
     """
     if request.method != "POST":
         return JsonResponse({"error": "Méthode non autorisée"}, status=405)
@@ -250,26 +242,25 @@ def track_product_view_api(request):
         data = request.POST
 
     product_id = data.get("product_id")
-    source = data.get("source") or "localisation"
+    source = data.get("source") or "carte"  # Par défaut : carte
     zone = data.get("zone") or None
 
     product = get_object_or_404(Product, id=product_id)
 
-    # 1) Click "loupe"
-    Click.objects.create(
-        session=session,
-        product_name=product.name,
-        page="localisation_loupe",
-        timestamp=timezone.now(),
-    )
+    # Standardisation des sources
+    if source not in ["carte", "recherche", "chatbot"]:
+        source = "carte"
 
-    # 2) Vue produit pour les analyses produits du dashboard
+    # Vue produit pour les analyses du dashboard
     ProductView.objects.create(
         session=session,
         product=product,
         source=source,
-        zone=zone,
+        zone=zone or product.category or product.sport,
+        viewed_at=timezone.now(),
     )
+
+    print(f"[PRODUCT_VIEW] {product.name} consulté depuis {source} (session {session.id})")
 
     return JsonResponse(
         {
@@ -292,8 +283,8 @@ def track_product_view_api(request):
 def track_product_localization_api(request):
     """
     Appelée quand l'utilisateur voit effectivement la zone sur la carte.
-    - Log la zone du magasin qui a été affichée
-    - Permet de savoir si la localisation a été réussie
+    - Met à jour la ProductView existante avec la zone précise du magasin
+    - Optionnel : permet d'enrichir les données de localisation
     """
     if request.method != "POST":
         return JsonResponse({"error": "Méthode non autorisée"}, status=405)
@@ -308,8 +299,6 @@ def track_product_localization_api(request):
     product_id = data.get("product_id")
     zone = data.get("zone") or "inconnu"  # ex: "area12", "area7"
     zone_name = data.get("zone_name") or ""  # ex: "FIT HOMME"
-    category = data.get("category") or ""
-    sport = data.get("sport") or ""
 
     product = None
     product_name = data.get("product_name") or "Produit inconnu"
@@ -321,15 +310,7 @@ def track_product_localization_api(request):
         except Product.DoesNotExist:
             pass
 
-    # Log dans Click pour tracer l'événement de localisation
-    Click.objects.create(
-        session=session,
-        product_name=product_name,
-        page=f"localisation_carte_{zone}",
-        timestamp=timezone.now(),
-    )
-
-    # Si on a un produit valide, on met à jour ou crée une ProductView avec la zone
+    # Si on a un produit valide, on met à jour la ProductView récente avec la zone précise
     if product:
         # On cherche une vue récente (< 5 minutes) pour la mettre à jour
         recent_view = ProductView.objects.filter(
@@ -338,18 +319,11 @@ def track_product_localization_api(request):
             viewed_at__gte=timezone.now() - timezone.timedelta(minutes=5)
         ).order_by('-viewed_at').first()
 
-        if recent_view:
-            # Mise à jour de la zone
+        if recent_view and not recent_view.zone:
+            # Mise à jour de la zone si elle n'était pas définie
             recent_view.zone = zone_name or zone
             recent_view.save()
-        else:
-            # Création d'une nouvelle vue
-            ProductView.objects.create(
-                session=session,
-                product=product,
-                source="localisation_carte",
-                zone=zone_name or zone,
-            )
+            print(f"[LOCALIZATION] Zone mise à jour pour {product_name}: {recent_view.zone}")
 
     return JsonResponse(
         {
@@ -357,5 +331,47 @@ def track_product_localization_api(request):
             "zone": zone,
             "zone_name": zone_name,
             "product_name": product_name,
+        }
+    )
+
+
+# --------- API tracking clic direct sur zone carte ---------
+
+def track_zone_click_api(request):
+    """
+    Appelée quand l'utilisateur clique directement sur une zone de la carte (sans produit spécifique).
+    Crée une entrée générique pour tracker l'intérêt pour une zone du magasin.
+    Source : "carte" (clic direct sur la carte SVG)
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Méthode non autorisée"}, status=405)
+
+    session = get_or_create_session(request)
+
+    try:
+        data = json.loads(request.body.decode("utf-8"))
+    except Exception:
+        data = request.POST
+
+    zone_id = data.get("zone_id")
+    zone_name = data.get("zone_name") or zone_id
+    source = data.get("source") or "carte"
+
+    print(f"[ZONE_CLICK] Clic direct sur zone: {zone_name} (source: {source}, session: {session.id})")
+
+    # On pourrait créer un ProductView sans produit spécifique,
+    # ou créer une nouvelle table ZoneClick si besoin
+    # Pour l'instant, on log simplement l'information
+
+    # Note: Si on veut tracker dans ProductView, il faudrait un produit
+    # On pourrait chercher un produit représentatif de cette zone
+    # Pour simplifier, on retourne juste le succès
+
+    return JsonResponse(
+        {
+            "success": True,
+            "zone_id": zone_id,
+            "zone_name": zone_name,
+            "message": f"Clic sur zone {zone_name} enregistré",
         }
     )

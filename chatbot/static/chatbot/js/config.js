@@ -14,6 +14,7 @@ export const API_URLS = {
   chat: window.CHAT_API_URL || "/chatbot/api/ask/",
   reset: window.RESET_URL || "/chatbot/api/reset/",
   feedback: window.FEEDBACK_URL || "/chatbot/api/feedback/",
+  trackClick: window.TRACK_CLICK_URL || "/chatbot/api/track-click/",
 };
 
 export const INACTIVITY_CONFIG = {

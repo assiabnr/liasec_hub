@@ -11,7 +11,8 @@ from dashboard.models import (
     Session,
     ChatbotInteraction,
     ChatbotRecommendation,
-    Product
+    Product,
+    ProductView
 )
 
 from .constants import CATEGORIES_SPORT
@@ -480,6 +481,70 @@ def feedback_api(request):
         })
     except ChatbotInteraction.DoesNotExist:
         return JsonResponse({"error": "Interaction non trouvée"}, status=404)
+
+
+@csrf_exempt
+def track_recommendation_click(request):
+    """
+    Enregistre qu'un utilisateur a cliqué sur une recommandation du chatbot.
+    - Met à jour le champ 'clicked' de ChatbotRecommendation
+    - Crée une entrée ProductView pour tracer la consultation du produit
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "Méthode non autorisée"}, status=405)
+
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({"error": "Format JSON invalide"}, status=400)
+
+    product_id = data.get("product_id")
+    interaction_id = data.get("interaction_id")
+
+    if not product_id or not interaction_id:
+        return JsonResponse({"error": "product_id et interaction_id sont requis"}, status=400)
+
+    try:
+        # Trouver la recommandation correspondante
+        recommendation = ChatbotRecommendation.objects.filter(
+            product_id=product_id,
+            interaction_id=interaction_id
+        ).first()
+
+        if not recommendation:
+            return JsonResponse({"error": "Recommandation non trouvée"}, status=404)
+
+        # Mettre à jour le champ clicked
+        recommendation.clicked = True
+        recommendation.save(update_fields=["clicked"])
+
+        print(f"[CLICK] Clic enregistré sur recommandation {recommendation.id} (produit: {recommendation.product.name})")
+
+        # Créer une entrée ProductView pour tracer la consultation
+        session = recommendation.session
+        product = recommendation.product
+
+        product_view = ProductView.objects.create(
+            session=session,
+            product=product,
+            viewed_at=timezone.now(),
+            source="chatbot",
+            zone=product.category or product.sport  # Utiliser la catégorie ou le sport comme zone
+        )
+
+        print(f"[PRODUCT_VIEW] Consultation enregistrée : {product.name} (session {session.id}, source: chatbot)")
+
+        return JsonResponse({
+            "success": True,
+            "message": "Clic enregistré",
+            "recommendation_id": recommendation.id,
+            "product_name": recommendation.product.name,
+            "product_view_id": product_view.id,
+        })
+
+    except Exception as e:
+        print(f"[ERREUR] track_recommendation_click : {e}")
+        return JsonResponse({"error": str(e)}, status=500)
 
 
 @csrf_exempt

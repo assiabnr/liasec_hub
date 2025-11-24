@@ -318,6 +318,129 @@ function initMapHighlight() {
 }
 
 // ==========================================
+// GESTION DES CLICS DIRECTS SUR LA CARTE
+// (Mode localisation uniquement)
+// ==========================================
+
+function initMapClicks() {
+  const { svgObject, isModalContext } = detectContext();
+
+  // Clics directs seulement en mode localisation (pas dans le chatbot)
+  if (isModalContext) {
+    console.log("[MAP] Contexte chatbot: clics directs désactivés");
+    return;
+  }
+
+  if (!svgObject) {
+    console.error("[MAP] Pas d'objet SVG pour les clics");
+    return;
+  }
+
+  // Attendre que le SVG soit chargé
+  const setupClickHandlers = () => {
+    const svgDoc = svgObject.contentDocument;
+    if (!svgDoc) {
+      console.warn("[MAP] SVG pas encore chargé pour les clics");
+      return;
+    }
+
+    console.log("[MAP] Configuration des clics directs sur les zones");
+
+    // Récupérer toutes les zones cliquables (paths avec un id)
+    const clickableZones = svgDoc.querySelectorAll("path[id], g[id]");
+
+    clickableZones.forEach((zone) => {
+      zone.style.cursor = "pointer";
+
+      zone.addEventListener("click", async (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+
+        const zoneId = zone.id;
+        let zoneName = zoneId;
+
+        // Essayer de récupérer le nom de la zone depuis un élément text
+        const textElement = zone.querySelector("text");
+        if (textElement) {
+          zoneName = textElement.textContent.trim();
+        }
+
+        console.log("[MAP] Clic direct sur zone:", zoneId, zoneName);
+
+        // Trouver un produit de cette zone (si possible)
+        // Pour l'instant, on track juste la zone sans produit spécifique
+        try {
+          // Appeler l'API pour tracker le clic sur la zone
+          const response = await fetch("/chatbot/localisation/api/track-zone-click/", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              "X-CSRFToken": getCookie("csrftoken"),
+            },
+            body: JSON.stringify({
+              zone_id: zoneId,
+              zone_name: zoneName,
+              source: "carte",
+            }),
+          });
+
+          if (response.ok) {
+            console.log("[MAP] Clic sur zone tracké:", zoneName);
+
+            // Highlight visuel de la zone cliquée
+            applyTemporaryHighlight(svgDoc, zoneId);
+          }
+        } catch (error) {
+          console.error("[MAP] Erreur tracking zone:", error);
+        }
+      });
+    });
+
+    console.log("[MAP] ✅ Clics directs configurés sur", clickableZones.length, "zones");
+  };
+
+  // Helper pour highlight temporaire
+  function applyTemporaryHighlight(svgDoc, pathId) {
+    const path = svgDoc.getElementById(pathId);
+    if (!path) return;
+
+    const originalStroke = path.getAttribute("stroke") || "";
+    const originalStrokeWidth = path.getAttribute("stroke-width") || "";
+
+    path.setAttribute("stroke", "#ff7a00");
+    path.setAttribute("stroke-width", "4");
+
+    setTimeout(() => {
+      path.setAttribute("stroke", originalStroke);
+      path.setAttribute("stroke-width", originalStrokeWidth);
+    }, 800);
+  }
+
+  // Helper pour getCookie
+  function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== "") {
+      const cookies = document.cookie.split(";");
+      for (let i = 0; i < cookies.length; i++) {
+        const cookie = cookies[i].trim();
+        if (cookie.substring(0, name.length + 1) === name + "=") {
+          cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+          break;
+        }
+      }
+    }
+    return cookieValue;
+  }
+
+  // Initialiser quand le SVG est prêt
+  if (svgObject.contentDocument) {
+    setupClickHandlers();
+  } else {
+    svgObject.addEventListener("load", setupClickHandlers);
+  }
+}
+
+// ==========================================
 // AUTO-INITIALISATION
 // ==========================================
 
@@ -327,9 +450,11 @@ document.addEventListener("DOMContentLoaded", () => {
   console.log("[MAP] ━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
   initMapModal();
   initMapHighlight();
+  initMapClicks();
   console.log("[MAP] ✅ Initialisation terminée");
 });
 
 // Exposer les fonctions globalement si nécessaire
 window.initMapModal = initMapModal;
 window.initMapHighlight = initMapHighlight;
+window.initMapClicks = initMapClicks;

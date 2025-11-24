@@ -1,0 +1,313 @@
+{% extends 'dashboard/base.html' %}
+{% load humanize %}
+{% block content %}
+
+<div class="container-fluid py-4">
+
+  <!-- Fil d'Ariane -->
+  <nav aria-label="breadcrumb" class="mb-3">
+    <ol class="breadcrumb">
+      <li class="breadcrumb-item"><a href="{% url 'dashboard_home' %}">Dashboard</a></li>
+      <li class="breadcrumb-item"><a href="{% url 'produits' %}">Produits</a></li>
+      <li class="breadcrumb-item active">{{ product.name|truncatechars:50 }}</li>
+    </ol>
+  </nav>
+
+  <!-- En-tête Produit -->
+  <div class="card p-4 mb-4 shadow-sm">
+    <div class="row">
+      <div class="col-md-2">
+        {% if product.image_url %}
+          <img src="{{ product.image_url }}" alt="{{ product.name }}" class="img-fluid rounded shadow-sm" style="width: 100%; max-width: 200px;">
+        {% else %}
+          <div class="bg-light rounded d-flex align-items-center justify-content-center" style="width: 200px; height: 200px;">
+            <i class="bi bi-image text-muted" style="font-size: 4rem;"></i>
+          </div>
+        {% endif %}
+      </div>
+      <div class="col-md-7">
+        <h3 class="fw-bold">{{ product.name }}</h3>
+        <div class="mt-2">
+          <span class="badge bg-primary me-2">{{ product.product_id }}</span>
+          {% if product.brand %}<span class="badge bg-secondary me-2">{{ product.brand }}</span>{% endif %}
+          {% if product.category %}<span class="badge bg-info me-2">{{ product.category }}</span>{% endif %}
+          {% if product.sport %}<span class="badge bg-warning text-dark">{{ product.sport }}</span>{% endif %}
+        </div>
+        <div class="mt-3">
+          <h4 class="text-primary mb-0">{{ product.price|floatformat:2 }}€</h4>
+        </div>
+      </div>
+      <div class="col-md-3 text-end">
+        {% if product.available %}
+          <span class="badge bg-success fs-5">
+            <i class="bi bi-check-circle-fill me-1"></i> Disponible
+          </span>
+        {% else %}
+          <span class="badge bg-danger fs-5">
+            <i class="bi bi-x-circle-fill me-1"></i> Indisponible
+          </span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div class="row g-3 mb-4">
+    <div class="col-lg-3 col-md-6">
+      <div class="card p-3 text-center shadow-sm">
+        <h6 class="text-muted mb-1">Total Consultations</h6>
+        <h2 class="fw-bold text-primary mb-0">{{ total_views|intcomma }}</h2>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+      <div class="card p-3 text-center shadow-sm">
+        <h6 class="text-muted mb-1">Recommandations IA</h6>
+        <h2 class="fw-bold text-info mb-0">{{ total_recos|intcomma }}</h2>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+      <div class="card p-3 text-center shadow-sm">
+        <h6 class="text-muted mb-1">Clics depuis IA</h6>
+        <h2 class="fw-bold text-success mb-0">{{ clicked_recos|intcomma }}</h2>
+      </div>
+    </div>
+    <div class="col-lg-3 col-md-6">
+      <div class="card p-3 text-center shadow-sm">
+        <h6 class="text-muted mb-1">Taux de Conversion</h6>
+        <h2 class="fw-bold {% if conversion_rate >= 50 %}text-success{% elif conversion_rate >= 25 %}text-warning{% else %}text-danger{% endif %} mb-0">{{ conversion_rate }}%</h2>
+      </div>
+    </div>
+  </div>
+
+  <!-- Graphiques -->
+  <div class="row g-4 mb-4">
+    <!-- Évolution consultations -->
+    <div class="col-lg-8">
+      <div class="card p-3" style="height: 350px;">
+        <h6 class="fw-bold text-primary mb-2">
+          <i class="bi bi-graph-up me-1"></i> Évolution des Consultations (7 derniers jours)
+        </h6>
+        <canvas id="evolutionChart"></canvas>
+      </div>
+    </div>
+
+    <!-- Répartition par source -->
+    <div class="col-lg-4">
+      <div class="card p-3" style="height: 350px;">
+        <h6 class="fw-bold text-primary mb-2">
+          <i class="bi bi-pie-chart-fill me-1"></i> Consultations par Source
+        </h6>
+        <canvas id="sourceChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tableaux -->
+  <div class="row g-4">
+    <!-- Consultations récentes -->
+    <div class="col-lg-6">
+      <div class="card p-3">
+        <h6 class="fw-bold text-primary mb-3">
+          <i class="bi bi-eye-fill me-1"></i> Dernières Consultations
+          <span class="badge bg-primary ms-2">{{ recent_views.count }}</span>
+        </h6>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Date</th>
+                <th>Source</th>
+                <th>Zone</th>
+                <th>Session</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for view in recent_views %}
+              <tr>
+                <td><small>{{ view.viewed_at|date:"d/m/Y H:i" }}</small></td>
+                <td>
+                  {% if view.source == "chatbot" %}
+                    <span class="badge bg-info">Chatbot</span>
+                  {% elif view.source == "carte" %}
+                    <span class="badge bg-warning text-dark">Carte</span>
+                  {% elif view.source == "recherche" %}
+                    <span class="badge bg-primary">Recherche</span>
+                  {% else %}
+                    <span class="badge bg-secondary">{{ view.source|default:"—" }}</span>
+                  {% endif %}
+                </td>
+                <td><small>{{ view.zone|default:"—" }}</small></td>
+                <td><a href="{% url 'session_detail' view.session.id %}" class="text-decoration-none">#{{ view.session.id }}</a></td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="text-center text-muted py-3">Aucune consultation.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recommandations récentes -->
+    <div class="col-lg-6">
+      <div class="card p-3">
+        <h6 class="fw-bold text-primary mb-3">
+          <i class="bi bi-robot me-1"></i> Dernières Recommandations IA
+          <span class="badge bg-info ms-2">{{ recent_recos.count }}</span>
+        </h6>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover align-middle">
+            <thead class="table-light">
+              <tr>
+                <th>Date</th>
+                <th>Cliqué</th>
+                <th>Interaction</th>
+                <th>Session</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for reco in recent_recos %}
+              <tr>
+                <td><small>{{ reco.recommended_at|date:"d/m/Y H:i" }}</small></td>
+                <td>
+                  {% if reco.clicked %}
+                    <span class="badge bg-success">✓ Oui</span>
+                  {% else %}
+                    <span class="badge bg-secondary">✗ Non</span>
+                  {% endif %}
+                </td>
+                <td><small>{{ reco.interaction.user_message|truncatechars:30 }}</small></td>
+                <td><a href="{% url 'session_detail' reco.session.id %}" class="text-decoration-none">#{{ reco.session.id }}</a></td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="text-center text-muted py-3">Aucune recommandation.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Produits similaires -->
+  {% if similar_products %}
+  <div class="card p-3 mt-4">
+    <h6 class="fw-bold text-primary mb-3">
+      <i class="bi bi-box-seam me-1"></i> Produits Similaires
+      <small class="text-muted">(même catégorie)</small>
+    </h6>
+    <div class="row g-3">
+      {% for sim in similar_products %}
+      <div class="col-lg-2 col-md-3 col-sm-4 col-6">
+        <div class="card h-100 shadow-sm" style="cursor: pointer;" onclick="window.location.href='{% url 'product_detail' sim.id %}'">
+          <div class="card-body p-2 text-center">
+            {% if sim.image_url %}
+              <img src="{{ sim.image_url }}" alt="{{ sim.name }}" class="img-fluid rounded mb-2" style="max-height: 100px; object-fit: cover;">
+            {% else %}
+              <div class="bg-light rounded mb-2 d-flex align-items-center justify-content-center" style="height: 100px;">
+                <i class="bi bi-image text-muted"></i>
+              </div>
+            {% endif %}
+            <p class="mb-1 small fw-semibold">{{ sim.name|truncatechars:30 }}</p>
+            <small class="text-muted">{{ sim.views_count }} vues</small>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+  // 1. Évolution temporelle
+  const ctx1 = document.getElementById("evolutionChart").getContext("2d");
+  new Chart(ctx1, {
+    type: "line",
+    data: {
+      labels: {{ view_dates|safe }},
+      datasets: [{
+        label: "Consultations",
+        data: {{ view_counts|safe }},
+        borderColor: "#3B82F6",
+        backgroundColor: "rgba(59,130,246,0.1)",
+        borderWidth: 3,
+        fill: true,
+        tension: 0.4,
+        pointRadius: 5,
+        pointBackgroundColor: "#3B82F6",
+        pointBorderColor: "#fff",
+        pointBorderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { beginAtZero: true, ticks: { precision: 0 } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  // 2. Répartition par source
+  const sourceLabels = [];
+  const sourceData = [];
+  const sourceColors = [];
+
+  {% for item in views_by_source %}
+    {% if item.source == "chatbot" %}
+      sourceLabels.push("Chatbot");
+      sourceColors.push("#3B82F6");
+    {% elif item.source == "carte" %}
+      sourceLabels.push("Carte");
+      sourceColors.push("#F59E0B");
+    {% elif item.source == "recherche" %}
+      sourceLabels.push("Recherche");
+      sourceColors.push("#10B981");
+    {% else %}
+      sourceLabels.push("{{ item.source|default:'Autre' }}");
+      sourceColors.push("#8B5CF6");
+    {% endif %}
+    sourceData.push({{ item.count }});
+  {% endfor %}
+
+  const ctx2 = document.getElementById("sourceChart").getContext("2d");
+  new Chart(ctx2, {
+    type: "doughnut",
+    data: {
+      labels: sourceLabels,
+      datasets: [{
+        data: sourceData,
+        backgroundColor: sourceColors,
+        borderWidth: 2,
+        borderColor: "#fff"
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'bottom', labels: { padding: 15 } },
+        tooltip: {
+          callbacks: {
+            label: function(ctx) {
+              const total = ctx.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = ((ctx.parsed / total) * 100).toFixed(1);
+              return `${ctx.label}: ${ctx.parsed} (${percentage}%)`;
+            }
+          }
+        }
+      }
+    }
+  });
+});
+</script>
+
+{% endblock %}

@@ -4,6 +4,7 @@ from .views import (
     session_detail_view,
     clicks_chart_data,
     products_chart_data,
+    product_detail_view,
     chatbot_chart_data,
 )
 
@@ -22,6 +23,7 @@ urlpatterns = [
 
     # Produits
     path("dashboard/produits/", views.produits_view, name="produits"),
+    path("dashboard/produits/<int:product_id>/", product_detail_view, name="product_detail"),
     path("dashboard/produits/chart-data/", products_chart_data, name="products_chart_data"),
 
     # Analyse des interactions chatbot (statistiques uniquement)

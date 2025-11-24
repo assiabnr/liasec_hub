@@ -609,7 +609,7 @@
         return cookieValue;
       }
 
-      async function trackProductView(productId) {
+      async function trackProductView(productId, source = "recherche") {
         try {
           const response = await fetch(
             "/chatbot/localisation/api/track-view/",
@@ -621,7 +621,7 @@
               },
               body: JSON.stringify({
                 product_id: productId,
-                source: "localisation",
+                source: source,
               }),
             }
           );
