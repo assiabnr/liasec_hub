@@ -1,4 +1,5 @@
 from django.db import models
+from django.db.models import Q
 from django.utils import timezone
 
 
@@ -23,23 +24,31 @@ class Session(models.Model):
 # ==========================
 # PRODUIT (fiche produit complète)
 # ==========================
+
 class Product(models.Model):
-    """
-    Fiche produit complète utilisée pour les recommandations chatbot.
-    """
-    product_id = models.CharField(max_length=100, unique=True, verbose_name="ID produit (référence interne)")
-    name = models.CharField(max_length=255, verbose_name="Nom du produit")
-    description = models.TextField(blank=True, null=True, verbose_name="Description")
-    category = models.CharField(max_length=100, blank=True, null=True, verbose_name="Catégorie")
-    price = models.DecimalField(max_digits=10, decimal_places=2, verbose_name="Prix")
-    available = models.BooleanField(default=True, verbose_name="Disponible")
-    image_url = models.URLField(blank=True, null=True, verbose_name="Image (URL)")
-    brand = models.CharField(max_length=255, blank=True, null=True, verbose_name="Marque")
+    product_id = models.CharField(max_length=100, unique=True)                  # ← non-null
+    name = models.CharField(max_length=255)                                      # ← non-null
+    description = models.TextField(blank=True, null=True)
+    category = models.CharField(max_length=150, blank=True, null=True)
+    sport = models.CharField(max_length=100, blank=True, null=True)
+    brand = models.CharField(max_length=255, blank=True, null=True)
+    price = models.DecimalField(max_digits=10, decimal_places=2, default=0)      # ← non-null avec default
+    available = models.BooleanField(default=True, db_index=True)
+    image_url = models.URLField(blank=True, null=True)
+    image_url_alt = models.URLField(blank=True, null=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=["name"]),
+            models.Index(fields=["brand"]),
+            models.Index(fields=["category"]),
+        ]
+        constraints = [
+            models.CheckConstraint(check=Q(price__gte=0), name="product_price_gte_0"),
+        ]
 
     def __str__(self):
         return f"{self.name} ({'Disponible' if self.available else 'Indisponible'})"
-
-
 # ==========================
 # CLIC UTILISATEUR
 # ==========================

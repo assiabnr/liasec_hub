@@ -110,4 +110,9 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 
-MISTRAL_API_KEY = "cr4pYbsDdZOnJDulb9ESQQC97sy6fklT"
+import os
+from dotenv import load_dotenv
+load_dotenv()
+
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")

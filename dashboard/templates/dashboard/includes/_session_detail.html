@@ -25,8 +25,8 @@
       </small>
       <div class="progress mt-2" style="height: 8px;">
         <div class="progress-bar bg-success" role="progressbar"
-          style="width: {{ satisfaction_rate }}%;" aria-valuenow="{{ satisfaction_rate }}"
-          aria-valuemin="0" aria-valuemax="100">
+             style="width: {{ satisfaction_rate }}%;"
+             aria-valuenow="{{ satisfaction_rate }}" aria-valuemin="0" aria-valuemax="100">
         </div>
       </div>
     </div>
@@ -41,8 +41,8 @@
         <div class="accordion-item">
           <h2 class="accordion-header" id="heading{{ forloop.counter }}">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-              data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="false"
-              aria-controls="collapse{{ forloop.counter }}">
+                    data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="false"
+                    aria-controls="collapse{{ forloop.counter }}">
               {% with first_click=group.list.0 %}
                 {{ first_click.product_name|default:"Page inconnue" }}
                 <span class="badge bg-primary ms-2">{{ group.list|length }} clic{{ group.list|length|pluralize }}</span>
@@ -50,13 +50,13 @@
             </button>
           </h2>
           <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse"
-            aria-labelledby="heading{{ forloop.counter }}" data-bs-parent="#accordionClicks">
+               aria-labelledby="heading{{ forloop.counter }}" data-bs-parent="#accordionClicks">
             <div class="accordion-body p-0">
               <ul class="list-group list-group-flush">
                 {% for c in group.list %}
                   <li class="list-group-item small">
                     <i class="bi bi-clock-history text-secondary me-1"></i>
-                    {{ c.timestamp|date:"H:i" }} —
+                    {{ c.timestamp|date:"d/m/Y H:i" }} —
                     <span class="text-dark">{{ c.page|default:"Page non précisée" }}</span>
                   </li>
                 {% endfor %}
@@ -76,8 +76,8 @@
     <ul class="list-group mb-3">
       {% for chat in chats %}
         <li class="list-group-item">
-          <p class="mb-1"><strong>Q :</strong> {{ chat.question|truncatechars:80 }}</p>
-          <p class="mb-1"><strong>R :</strong> {{ chat.response|default:"(En attente...)"|truncatechars:100 }}</p>
+          <p class="mb-1"><strong>Q :</strong> {{ chat.question|default:"(vide)"|truncatechars:120 }}</p>
+          <p class="mb-1"><strong>R :</strong> {{ chat.response|default:"(En attente...)"|truncatechars:300 }}</p>
 
           {% if chat.intent %}
             <small class="text-muted d-block">
@@ -91,6 +91,13 @@
             </small>
           {% endif %}
 
+          {% if chat.response_success is not None %}
+            <small class="text-muted d-block">
+              <i class="bi bi-check2-circle me-1"></i>
+              Succès modèle : {{ chat.response_success|yesno:"Oui,Non" }}
+            </small>
+          {% endif %}
+
           {% if chat.satisfaction is not None %}
             <small class="d-block mt-1">
               <strong>Satisfaction :</strong>
@@ -101,11 +108,47 @@
               {% endif %}
             </small>
           {% endif %}
+
+          {% if chat.ask_feedback %}
+            <small class="text-warning d-block mt-1">
+              <i class="bi bi-question-circle me-1"></i> Feedback demandé
+            </small>
+          {% endif %}
         </li>
       {% endfor %}
     </ul>
   {% else %}
     <p class="text-muted">Aucune interaction enregistrée.</p>
+  {% endif %}
+
+  <!-- Recommandations produits liées (depuis ChatbotRecommendation) -->
+  <h6 class="fw-bold text-primary mb-2">Produits recommandés par le chatbot</h6>
+  {% if session.chatbot_recommendations.all %}
+    {% if session.chatbot_recommendations.all|length %}
+      <ul class="list-group mb-3">
+        {% for r in session.chatbot_recommendations.all %}
+          <li class="list-group-item">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <strong>{{ r.product.name|default:"Produit inconnu" }}</strong>
+                {% if r.product.brand %}<span class="text-muted">— {{ r.product.brand }}</span>{% endif %}<br>
+                <small class="text-muted">
+                  Recommandé le {{ r.recommended_at|date:"d/m/Y H:i" }}<br>
+                  Interaction #{{ r.interaction.id }}
+                </small>
+              </div>
+              {% if r.product.image_url %}
+                <img src="{{ r.product.image_url }}" alt="{{ r.product.name }}" class="rounded" width="56" height="56" style="object-fit:cover;">
+              {% endif %}
+            </div>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="text-muted">Aucune recommandation liée.</p>
+    {% endif %}
+  {% else %}
+    <p class="text-muted">Aucune recommandation liée.</p>
   {% endif %}
 
   <!-- Produits consultés -->
@@ -125,7 +168,7 @@
               </small>
             </div>
             {% if p.product.image_url %}
-              <img src="{{ p.product.image_url }}" alt="{{ p.product.name }}" class="rounded" width="50">
+              <img src="{{ p.product.image_url }}" alt="{{ p.product.name }}" class="rounded" width="50" height="50" style="object-fit:cover;">
             {% endif %}
           </div>
         </li>

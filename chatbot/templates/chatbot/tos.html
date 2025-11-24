@@ -19,32 +19,42 @@
   <body class="tos-body">
     <main class="tos-container">
       <section class="tos-card">
-           <img
-          src="{% static 'chatbot/images/logo.png' %}"
-          alt="Logo LIASEC"
-          class="tos-logo"
-        />
-        <p class="tos-description">
-          Conçu pour vous assister dans votre parcours d’achat, notre conseiller virtuel alimenté
-          par une intelligence artificielle se concentre sur la
-          <strong>recommandation de produits adaptés à vos besoins</strong>.
-        </p>
 
-        <p class="tos-note">
-          En démarrant cette conversation, vous acceptez que vos échanges soient collectés et
-          analysés à des fins d’amélioration de notre service.
-        </p>
+        <!-- Liste des points comme sur la maquette -->
+        <ul class="tos-list">
+          <li>Le conseiller utilise l'intelligence artificielle pour vous guider</li>
+          <li>Il respecte votre vie privée : aucun besoin de partager vos données personnelles</li>
+          <li>Vos échanges forment le conseiller pour mieux vous aider</li>
+          <li>
+            Il peut faire des erreurs : n’hésitez pas à vérifier les informations importantes
+          </li>
+        </ul>
 
+        <!-- Boutons d’action -->
         <div class="tos-buttons">
-          <a href="{% url 'chatbot:chatbot_index' %}" class="button button-primary">Je refuse</a>
+          <a href="{% url 'chatbot:localisation_produits:home' %}"
+             class="button button-primary tos-btn-orange">
+            <span>Localiser un produit</span>
+            <span>en magasin</span>
+          </a>
 
           <form method="post" action="{% url 'chatbot:accept_tos' %}">
             {% csrf_token %}
-            <button type="submit" class="button button-secondary">J’accepte</button>
+            <button type="submit" class="button button-secondary tos-btn-blue">
+              Démarrer le chat
+            </button>
           </form>
         </div>
 
-
+        <!-- Logo + marque en bas -->
+        <div class="tos-brand">
+          <img
+            src="{% static 'chatbot/images/logo.png' %}"
+            alt="Logo LIASEC"
+            class="tos-logo-footer"
+          />
+          <span class="tos-brand-name">LIASEC</span>
+        </div>
       </section>
     </main>
   </body>

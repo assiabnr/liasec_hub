@@ -1,4 +1,4 @@
-from django.urls import path
+from django.urls import path, include
 from . import views
 
 app_name = "chatbot"
@@ -14,4 +14,10 @@ urlpatterns = [
     path("api/ask/", views.chat_api, name="chat_api"),
     path("api/feedback/", views.feedback_api, name="feedback_api"),
     path("api/reset/", views.reset_chat, name="reset_chat"),
+
+    path(
+            "localisation/",
+            include(("localisation_produits.urls", "localisation_produits"),
+                    namespace="localisation_produits"),
+        ),
 ]

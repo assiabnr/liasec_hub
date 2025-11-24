@@ -1,0 +1,752 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <title>Localiser un produit</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <link rel="stylesheet" href="{% static 'chatbot/css/chat.css' %}" />
+
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css"
+    />
+  </head>
+
+  <body class="chatbody">
+    <!-- Bouton Home localisation -->
+    <button
+      type="button"
+      class="loc-home-btn"
+      id="locHomeButton"
+      title="Retour à l'accueil"
+    >
+      <i class="bi bi-house-fill" aria-hidden="true"></i>
+    </button>
+
+    <main class="loc-layout">
+      <!-- Colonne gauche : carte -->
+      <section class="loc-map-panel">
+        <div class="loc-map-wrapper">
+          <object
+            id="svgMap"
+            type="image/svg+xml"
+            data="{% static 'chatbot/svg/carte_sport.svg' %}"
+            class="map-svg"
+          ></object>
+        </div>
+      </section>
+
+      <!-- Colonne droite : recherche + produits -->
+      <section class="loc-right-panel">
+        <!-- Barre de recherche + filtres texte/sport/catégorie -->
+        <form id="loc-search-form" method="get" class="loc-search-bar">
+          <input
+            type="text"
+            name="q"
+            class="loc-search-input"
+            placeholder="Rechercher un produit par nom, marque, sport…"
+            value="{{ query }}"
+          />
+
+          <div class="loc-filters-row">
+            <select
+              name="sport"
+              class="loc-select"
+              onchange="this.form.submit();"
+            >
+              <option value="">Sélectionnez un sport</option>
+              {% for s in sports %}
+                <option value="{{ s }}" {% if selected_sport == s %}selected{% endif %}>
+                  {{ s }}
+                </option>
+              {% endfor %}
+            </select>
+
+            <select
+              name="category"
+              class="loc-select"
+              onchange="this.form.submit();"
+              {% if not selected_sport %}disabled{% endif %}
+            >
+              <option value="">
+                {% if selected_sport %}
+                  Toutes les catégories
+                {% else %}
+                  Choisissez un sport d'abord
+                {% endif %}
+              </option>
+              {% if selected_sport %}
+                {% for c in categories %}
+                  <option value="{{ c }}" {% if selected_category == c %}selected{% endif %}>
+                    {{ c }}
+                  </option>
+                {% endfor %}
+              {% endif %}
+            </select>
+          </div>
+        </form>
+
+        <!-- Filtres prix -->
+        <div class="loc-price-filters">
+          <button
+            type="submit"
+            form="loc-search-form"
+            name="price"
+            value=""
+            class="loc-price-pill {% if not price_key %}active{% endif %}"
+          >
+            Tous les prix
+          </button>
+          <button
+            type="submit"
+            form="loc-search-form"
+            name="price"
+            value="0-10"
+            class="loc-price-pill {% if price_key == '0-10' %}active{% endif %}"
+          >
+            0 – 10 €
+          </button>
+          <button
+            type="submit"
+            form="loc-search-form"
+            name="price"
+            value="10-25"
+            class="loc-price-pill {% if price_key == '10-25' %}active{% endif %}"
+          >
+            10 – 25 €
+          </button>
+          <button
+            type="submit"
+            form="loc-search-form"
+            name="price"
+            value="25-50"
+            class="loc-price-pill {% if price_key == '25-50' %}active{% endif %}"
+          >
+            25 – 50 €
+          </button>
+          <button
+            type="submit"
+            form="loc-search-form"
+            name="price"
+            value="50-100"
+            class="loc-price-pill {% if price_key == '50-100' %}active{% endif %}"
+          >
+            50 – 100 €
+          </button>
+          <button
+            type="submit"
+            form="loc-search-form"
+            name="price"
+            value="100-250"
+            class="loc-price-pill {% if price_key == '100-250' %}active{% endif %}"
+          >
+            100 – 250 €
+          </button>
+          <button
+            type="submit"
+            form="loc-search-form"
+            name="price"
+            value="250-500"
+            class="loc-price-pill {% if price_key == '250-500' %}active{% endif %}"
+          >
+            250 – 500 €
+          </button>
+          <button
+            type="submit"
+            form="loc-search-form"
+            name="price"
+            value="500+"
+            class="loc-price-pill {% if price_key == '500+' %}active{% endif %}"
+          >
+            500 € et +
+          </button>
+        </div>
+
+        <!-- Liste des produits -->
+        <div class="loc-products-list">
+          {% for p in products %}
+            <article class="loc-product-card">
+              <div class="loc-product-media">
+                {% if p.image_url %}
+                  <img
+                    src="{{ p.image_url }}"
+                    alt="{{ p.name }}"
+                    onerror="this.src='{% static 'chatbot/images/placeholder.png' %}'"
+                  />
+                {% else %}
+                  <img
+                    src="{% static 'chatbot/images/placeholder.png' %}"
+                    alt="{{ p.name }}"
+                  />
+                {% endif %}
+              </div>
+
+              <div class="loc-product-main">
+                <h3 class="loc-product-title">{{ p.name }}</h3>
+
+                <div class="loc-product-meta-row">
+                  {% if p.brand %}
+                    <span class="loc-product-brand">{{ p.brand }}</span>
+                  {% endif %}
+
+                  {% if p.price is not None %}
+                    <span class="loc-product-price">
+                      {{ p.price|floatformat:2 }} €
+                    </span>
+                  {% endif %}
+                </div>
+
+                <p class="loc-product-ref">Réf. {{ p.product_id }}</p>
+              </div>
+
+              <button
+                type="button"
+                class="loc-product-loupe"
+                title="Localiser sur la carte"
+                data-product-id="{{ p.id }}"
+                data-reference="{{ p.product_id }}"
+                data-category="{{ p.category }}"
+                data-sport="{{ p.sport }}"
+                data-name="{{ p.name }}"
+              >
+                <i class="bi bi-search loc-loupe-icon" aria-hidden="true"></i>
+              </button>
+            </article>
+          {% empty %}
+            <p class="loc-empty">
+              Aucun produit ne correspond à votre recherche.
+            </p>
+          {% endfor %}
+        </div>
+
+        {% if page_obj and pagination_items %}
+          <nav class="loc-pagination" aria-label="Pagination produits">
+            {% if page_obj.number > 1 %}
+              <a
+                href="?{% if query %}q={{ query|urlencode }}&{% endif %}{% if price_key %}price={{ price_key }}&{% endif %}{% if selected_sport %}sport={{ selected_sport|urlencode }}&{% endif %}{% if selected_category %}category={{ selected_category|urlencode }}&{% endif %}page=1"
+                class="loc-page-btn"
+              >&laquo;&laquo;</a>
+            {% else %}
+              <span class="loc-page-btn disabled">&laquo;&laquo;</span>
+            {% endif %}
+
+            {% for item in pagination_items %}
+              {% if item == '...' %}
+                <span class="loc-page-btn loc-page-ellipsis">…</span>
+              {% else %}
+                {% if item == page_obj.number %}
+                  <span class="loc-page-btn active">{{ item }}</span>
+                {% else %}
+                  <a
+                    href="?{% if query %}q={{ query|urlencode }}&{% endif %}{% if price_key %}price={{ price_key }}&{% endif %}{% if selected_sport %}sport={{ selected_sport|urlencode }}&{% endif %}{% if selected_category %}category={{ selected_category|urlencode }}&{% endif %}page={{ item }}"
+                    class="loc-page-btn"
+                  >{{ item }}</a>
+                {% endif %}
+              {% endif %}
+            {% endfor %}
+
+            {% if page_obj.number < page_obj.paginator.num_pages %}
+              <a
+                href="?{% if query %}q={{ query|urlencode }}&{% endif %}{% if price_key %}price={{ price_key }}&{% endif %}{% if selected_sport %}sport={{ selected_sport|urlencode }}&{% endif %}{% if selected_category %}category={{ selected_category|urlencode }}&{% endif %}page={{ page_obj.paginator.num_pages }}"
+                class="loc-page-btn"
+              >&raquo;&raquo;</a>
+            {% else %}
+              <span class="loc-page-btn disabled">&raquo;&raquo;</span>
+            {% endif %}
+          </nav>
+        {% endif %}
+      </section>
+    </main>
+
+    <!-- Pop-up confirmation retour accueil -->
+    <div id="homeConfirm" class="reset-popup" style="display: none;">
+      <div class="reset-content">
+        <h3>Voulez-vous retourner à l'accueil ?</h3>
+        <div class="popup-buttons">
+          <button type="button" class="button button-secondary" id="homeCancel">
+            Non
+          </button>
+          <button type="button" class="button button-primary" id="homeConfirmYes">
+            Oui
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      .loc-home-btn {
+        position: fixed;
+        top: 16px;
+        right: 16px;
+        width: 72px;
+        height: 72px;
+        border-radius: 999px;
+        border: none;
+        background: #2563eb;
+        color: #ffffff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 10px 25px rgba(37, 99, 235, 0.45);
+        cursor: pointer;
+        z-index: 50;
+        font-size: 32px;
+      }
+
+      /* Layout page localisation */
+      .loc-layout {
+        display: grid;
+        grid-template-columns: 1fr 420px;
+        column-gap: 8px;
+        max-width: 1600px;
+        margin: 0 auto;
+        padding: 8px;
+        height: 100vh;
+        box-sizing: border-box;
+        align-items: flex-start;
+      }
+
+      .loc-map-panel {
+        background: transparent;
+        border-radius: 0;
+        box-shadow: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .loc-map-wrapper {
+        background: transparent;
+        border-radius: 0;
+        box-shadow: none;
+        border: none;
+        width: 100%;
+        max-width: 100%;
+      }
+
+      .map-svg {
+        display: block;
+        width: 100%;
+        height: auto;
+        max-height: calc(100vh - 20px);
+        background: transparent;
+        border-radius: 0;
+        box-shadow: none;
+        border: none;
+      }
+
+      .loc-right-panel {
+        background: transparent;
+        border-radius: 0;
+        box-shadow: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        max-width: 420px;
+        height: 100vh;
+        overflow-x: hidden;
+      }
+
+      .loc-search-bar {
+        margin-top: 16px;
+        margin-bottom: 20px;
+        flex-shrink: 0;
+      }
+
+      .loc-search-input {
+        width: 100%;
+        box-sizing: border-box;
+        border-radius: 999px;
+        border: 2px solid #cbd5f5;
+        padding: 18px 28px;
+        background: #f3f4ff;
+        font-size: 18px;
+        font-weight: 500;
+        box-shadow: 0 8px 20px rgba(148, 163, 184, 0.35);
+      }
+
+      .loc-filters-row {
+        display: flex;
+        gap: 10px;
+        margin-top: 12px;
+      }
+
+      .loc-select {
+        flex: 1;
+        min-width: 0;
+        box-sizing: border-box;
+        max-width: 100%;
+        border-radius: 999px;
+        border: none;
+        padding: 12px 16px;
+        background: #ffffff;
+        box-shadow: 0 0 0 1px #e5e7eb;
+        font-size: 14px;
+        outline: none;
+      }
+
+      .loc-select:focus {
+        box-shadow: 0 0 0 2px #2563eb33;
+      }
+
+      .loc-price-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 20px;
+        flex-shrink: 0;
+      }
+
+      .loc-price-pill {
+        border-radius: 999px;
+        border: none;
+        padding: 10px 16px;
+        font-size: 13px;
+        background: #f5f5f7;
+        cursor: pointer;
+      }
+
+      .loc-price-pill.active {
+        background: #2563eb;
+        color: #ffffff;
+      }
+
+      .loc-products-list {
+        flex: 1;
+        overflow-y: auto;
+        padding-right: 8px;
+        scrollbar-width: thin;
+        scrollbar-color: #94a3b8 transparent;
+        min-height: 0;
+      }
+
+      .loc-products-list::-webkit-scrollbar {
+        width: 12px;
+      }
+
+      .loc-products-list::-webkit-scrollbar-track {
+        background: rgba(226, 232, 240, 0.7);
+        border-radius: 999px;
+      }
+
+      .loc-products-list::-webkit-scrollbar-thumb {
+        background: #94a3b8;
+        border-radius: 999px;
+        border: 2px solid rgba(241, 245, 249, 0.9);
+      }
+
+      .loc-products-list::-webkit-scrollbar-thumb:hover {
+        background: #64748b;
+      }
+
+      .loc-product-card {
+        display: grid;
+        grid-template-columns: 80px minmax(0, 1fr) 48px;
+        gap: 12px;
+        padding: 10px;
+        border-bottom: 1px solid #f1f1f3;
+        align-items: center;
+        background: #ffffff;
+        border-radius: 16px;
+        margin-bottom: 8px;
+      }
+
+      .loc-product-media img {
+        width: 80px;
+        height: 80px;
+        border-radius: 16px;
+        object-fit: cover;
+      }
+
+      .loc-product-title {
+        font-size: 14px;
+        font-weight: 600;
+        margin: 0 0 4px;
+      }
+
+      .loc-product-meta-row {
+        display: flex;
+        gap: 8px;
+        align-items: baseline;
+        margin-bottom: 2px;
+      }
+
+      .loc-product-brand {
+        font-size: 12px;
+        font-weight: 500;
+        color: #64748b;
+        text-transform: uppercase;
+      }
+
+      .loc-product-price {
+        font-size: 13px;
+        font-weight: 700;
+      }
+
+      .loc-product-ref {
+        font-size: 11px;
+        color: #9ca3af;
+        margin: 0;
+      }
+
+      .loc-product-loupe {
+        width: 44px;
+        height: 44px;
+        border-radius: 999px;
+        border: none;
+        background: #ff7a00;
+        color: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+        transition: transform 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+        padding: 0;
+      }
+
+      .loc-product-loupe:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
+        background: #ff8e1a;
+      }
+
+      .loc-loupe-icon {
+        font-size: 18px;
+        line-height: 1;
+      }
+
+      .loc-pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 6px;
+        margin-top: 10px;
+        padding-top: 10px;
+        padding-bottom: 10px;
+        border-top: 1px solid #f1f1f3;
+        flex-shrink: 0;
+      }
+
+      .loc-page-btn {
+        min-width: 36px;
+        height: 36px;
+        border-radius: 4px;
+        border: 1px solid #e5e7eb;
+        font-size: 13px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        background: #ffffff;
+        color: #2563eb;
+        cursor: pointer;
+        box-shadow: 0 0 0 0 rgba(0, 0, 0, 0.05);
+      }
+
+      .loc-page-btn.active {
+        background: #1d4ed8;
+        color: #ffffff;
+        border-color: #1d4ed8;
+        font-weight: 600;
+      }
+
+      .loc-page-btn.disabled {
+        color: #c4c4c4;
+        border-color: #e5e7eb;
+        cursor: default;
+      }
+
+      .loc-page-ellipsis {
+        cursor: default;
+        color: #9ca3af;
+      }
+    </style>
+
+    <!-- scripts carte -->
+    <script src="{% static 'chatbot/js/sport.js' %}"></script>
+    <script src="{% static 'chatbot/js/map-standalone.js' %}"></script>
+
+    <script>
+      // Contexte pour inactivity.js
+      window.IS_LOCALISATION_PAGE = true;
+      window.INDEX_URL = "{% url 'chatbot:chatbot_index' %}";
+      window.RESET_URL = "{% url 'chatbot:reset_chat' %}";
+    </script>
+
+    <!-- Inactivité borne -->
+    <script type="module">
+      import { initInactivityListener, resetInactivity } from "{% static 'chatbot/js/inactivity.js' %}";
+
+      document.addEventListener("DOMContentLoaded", () => {
+        initInactivityListener();
+        resetInactivity();
+      });
+    </script>
+
+    <script>
+      function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== "") {
+          const cookies = document.cookie.split(";");
+          for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === name + "=") {
+              cookieValue = decodeURIComponent(
+                cookie.substring(name.length + 1)
+              );
+              break;
+            }
+          }
+        }
+        return cookieValue;
+      }
+
+      async function trackProductView(productId) {
+        try {
+          const response = await fetch(
+            "/chatbot/localisation/api/track-view/",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCookie("csrftoken"),
+              },
+              body: JSON.stringify({
+                product_id: productId,
+                source: "localisation",
+              }),
+            }
+          );
+
+          if (!response.ok) {
+            console.error("Erreur lors du tracking de la vue produit");
+          }
+        } catch (error) {
+          console.error("Erreur réseau lors du tracking:", error);
+        }
+      }
+
+      async function trackProductLocalization(
+        productId,
+        productName,
+        zone,
+        zoneName,
+        category,
+        sport
+      ) {
+        try {
+          const response = await fetch(
+            "/chatbot/localisation/api/track-localization/",
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "X-CSRFToken": getCookie("csrftoken"),
+              },
+              body: JSON.stringify({
+                product_id: productId,
+                product_name: productName,
+                zone: zone,
+                zone_name: zoneName,
+                category: category,
+                sport: sport,
+              }),
+            }
+          );
+
+          if (!response.ok) {
+            console.error("Erreur lors du tracking de la localisation");
+          }
+        } catch (error) {
+          console.error("Erreur réseau lors du tracking de localisation:", error);
+        }
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        const list = document.querySelector(".loc-products-list");
+        if (list) {
+          list.addEventListener("click", async function (e) {
+            const btn = e.target.closest(".loc-product-loupe");
+            if (!btn) return;
+
+            const productId = btn.dataset.productId;
+            const reference = btn.dataset.reference;
+            const category = btn.dataset.category;
+            const sport = btn.dataset.sport;
+            const productName = btn.dataset.name;
+
+            await trackProductView(productId);
+
+            const detail = {
+              reference: reference,
+              category: category,
+              sport: sport,
+              product: {
+                id: productId,
+                name: productName,
+                reference: reference,
+                category: category,
+                sport: sport,
+              },
+            };
+
+            const evt = new CustomEvent("localize-product", { detail });
+            document.dispatchEvent(evt);
+          });
+
+          document.addEventListener("product-localized", function (e) {
+            const { productId, productName, zone, zoneName, category, sport } =
+              e.detail || {};
+
+            if (productId && zone) {
+              trackProductLocalization(
+                productId,
+                productName,
+                zone,
+                zoneName,
+                category,
+                sport
+              );
+            }
+          });
+        }
+
+        // Gestion bouton Home + pop-up
+        const homeBtn = document.getElementById("locHomeButton");
+        const modal = document.getElementById("homeConfirm");
+        const btnNo = document.getElementById("homeCancel");
+        const btnYes = document.getElementById("homeConfirmYes");
+
+        if (homeBtn && modal && btnNo && btnYes) {
+          homeBtn.addEventListener("click", () => {
+            modal.style.display = "flex";
+          });
+
+          btnNo.addEventListener("click", () => {
+            modal.style.display = "none";
+          });
+
+          btnYes.addEventListener("click", async () => {
+            try {
+              await fetch(window.RESET_URL, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+              });
+            } catch (e) {
+              console.error("Erreur reset avant retour accueil (localisation):", e);
+            }
+            window.location.href = window.INDEX_URL || "/";
+          });
+        }
+      });
+    </script>
+  </body>
+</html>
