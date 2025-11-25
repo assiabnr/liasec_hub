@@ -99,13 +99,14 @@
 
   <!-- Graphiques d'analyse -->
   <div class="row g-4 mb-4">
-    <!-- Bubble chart -->
+    <!-- Sources de consultation -->
     <div class="col-lg-8">
       <div class="card p-3 chart-card">
         <h6 class="fw-bold text-primary mb-2">
-          <i class="bi bi-graph-up me-1"></i> Corrélation Clics / Recommandations IA
+          <i class="bi bi-arrow-down-up me-1"></i> Sources de Consultation des Produits
         </h6>
-        <canvas id="productBubbleChart"></canvas>
+        <p class="text-muted small mb-3">D'où viennent les utilisateurs pour consulter les produits</p>
+        <canvas id="sourcesChart"></canvas>
       </div>
     </div>
 
@@ -362,46 +363,47 @@ document.addEventListener("DOMContentLoaded", function() {
   fetch("{% url 'products_chart_data' %}")
     .then(res => res.json())
     .then(data => {
-      // 1. Bubble Chart - Corrélation clics/recos
-      const ctx1 = document.getElementById("productBubbleChart").getContext("2d");
-      const bubbleData = data.labels.map((name, i) => ({
-        x: data.clicks[i],
-        y: data.recos[i],
-        r: Math.sqrt(data.clicks[i]) * 2 + 8,
-        label: name
-      }));
-
+      // 1. Sources de consultation - Bar Chart Horizontal
+      const ctx1 = document.getElementById("sourcesChart").getContext("2d");
       new Chart(ctx1, {
-        type: "bubble",
+        type: "bar",
         data: {
+          labels: data.sources_labels,
           datasets: [{
-            label: "Produits",
-            data: bubbleData,
-            backgroundColor: "rgba(59,130,246,0.5)",
-            borderColor: "#2563EB",
-            borderWidth: 2
+            label: "Nombre de consultations",
+            data: data.sources_data,
+            backgroundColor: data.sources_colors,
+            borderRadius: 8,
+            borderWidth: 0
           }]
         },
         options: {
+          indexAxis: 'y',
           responsive: true,
           maintainAspectRatio: false,
-          scales: {
-            x: {
-              title: { display: true, text: "Nombre de Clics" },
-              beginAtZero: true,
-              grid: { color: "rgba(0,0,0,0.05)" }
-            },
-            y: {
-              title: { display: true, text: "Recommandations IA" },
-              beginAtZero: true,
-              grid: { color: "rgba(0,0,0,0.05)" }
-            }
-          },
           plugins: {
             legend: { display: false },
             tooltip: {
               callbacks: {
-                label: ctx => `${ctx.raw.label}: ${ctx.raw.x} clics / ${ctx.raw.y} recos`
+                label: function(context) {
+                  const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                  const percentage = ((context.parsed.x / total) * 100).toFixed(1);
+                  return `${context.parsed.x} consultations (${percentage}%)`;
+                }
+              }
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              grid: { color: "rgba(0,0,0,0.05)" },
+              ticks: { precision: 0 },
+              title: { display: true, text: "Nombre de consultations" }
+            },
+            y: {
+              grid: { display: false },
+              ticks: {
+                font: { size: 13, weight: 'bold' }
               }
             }
           }

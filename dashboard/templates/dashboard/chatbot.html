@@ -2,312 +2,1217 @@
 {% load humanize %}
 {% block content %}
 
+<style>
+/* Styles pour scroll horizontal graphiques */
+.chart-scroll-container {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+}
+
+.chart-scroll-container::-webkit-scrollbar {
+  height: 12px;
+}
+
+.chart-scroll-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.chart-scroll-container::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+.chart-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+.chart-scroll-container {
+  scrollbar-width: thin;
+  scrollbar-color: #888 #f1f1f1;
+}
+
+.chart-inner-container {
+  width: 1400px;
+  height: 320px;
+  position: relative;
+}
+</style>
+
 <div class="container-fluid py-4">
-  <!-- En-tête -->
+
+  <!-- En-tête avec titre et bouton export -->
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="fw-bold mb-0">
-      <i class="bi bi-robot text-primary me-2"></i> Tableau de bord Chatbot
-    </h4>
-    <button id="exportChatbotBtn" class="btn btn-primary shadow-sm">
-      <i class="bi bi-download me-1"></i> Exporter les données
+    <div>
+      <h4 class="fw-bold mb-1">
+        <i class="bi bi-robot me-2 text-primary"></i> Analyse complète du Chatbot
+      </h4>
+      <p class="text-muted mb-0 small">Analyse approfondie des interactions, performances et recommandations</p>
+    </div>
+    <button id="exportChatbotBtn" class="btn btn-primary shadow-sm d-flex align-items-center">
+      <i class="bi bi-download me-2"></i> Exporter
     </button>
   </div>
 
   <!-- Zone de feedback export -->
   <div id="exportAlert" class="alert d-none" role="alert"></div>
 
-  <!-- KPIs globaux -->
-  <div class="row g-3 mb-4">
-    <div class="col-md-3 col-sm-6">
-      <div class="card text-center p-3 shadow-sm">
-        <h6 class="text-muted mb-1">Total d’interactions</h6>
-        <h2 class="fw-bold text-primary">{{ total_interactions|intcomma }}</h2>
-      </div>
+  <!-- ========== FILTRES AVANCÉS ========== -->
+  <div class="card p-3 mb-4 shadow-sm border-0">
+    <div class="d-flex justify-content-between align-items-center mb-2">
+      <h6 class="fw-bold text-primary mb-0"><i class="bi bi-funnel me-2"></i>Filtres avancés</h6>
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetFilters()">
+        <i class="bi bi-arrow-clockwise me-1"></i>Réinitialiser
+      </button>
     </div>
+    <form method="get" action="{% url 'chatbot' %}" id="filterForm">
+      <div class="row g-3">
+        <!-- Période -->
+        <div class="col-md-2">
+          <label class="form-label small fw-semibold">Période</label>
+          <select name="period" class="form-select form-select-sm" onchange="toggleCustomDates(this)">
+            <option value="all" {% if period_filter == "all" %}selected{% endif %}>Toutes</option>
+            <option value="today" {% if period_filter == "today" %}selected{% endif %}>Aujourd'hui</option>
+            <option value="7days" {% if period_filter == "7days" %}selected{% endif %}>7 derniers jours</option>
+            <option value="30days" {% if period_filter == "30days" %}selected{% endif %}>30 derniers jours</option>
+            <option value="custom" {% if period_filter == "custom" %}selected{% endif %}>Personnalisé</option>
+          </select>
+        </div>
 
-    <div class="col-md-3 col-sm-6">
-      <div class="card text-center p-3 shadow-sm">
-        <h6 class="text-muted mb-1">Taux de réussite</h6>
-        <h2 class="fw-bold text-success">{{ success_rate }}%</h2>
-      </div>
-    </div>
+        <!-- Dates personnalisées -->
+        <div class="col-md-2" id="customStartDate" style="display: {% if period_filter == 'custom' %}block{% else %}none{% endif %};">
+          <label class="form-label small fw-semibold">Du</label>
+          <input type="date" name="start_date" class="form-control form-control-sm" value="{{ request.GET.start_date }}">
+        </div>
+        <div class="col-md-2" id="customEndDate" style="display: {% if period_filter == 'custom' %}block{% else %}none{% endif %};">
+          <label class="form-label small fw-semibold">Au</label>
+          <input type="date" name="end_date" class="form-control form-control-sm" value="{{ request.GET.end_date }}">
+        </div>
 
-    <div class="col-md-3 col-sm-6">
-      <div class="card text-center p-3 shadow-sm">
-        <h6 class="text-muted mb-1">Taux de fallback</h6>
-        <h2 class="fw-bold text-danger">{{ fallback_rate }}%</h2>
-      </div>
-    </div>
+        <!-- Intent -->
+        <div class="col-md-2">
+          <label class="form-label small fw-semibold">Intent</label>
+          <select name="intent" class="form-select form-select-sm">
+            <option value="all" {% if intent_filter == "all" %}selected{% endif %}>Tous</option>
+            {% for intent in all_intents %}
+              <option value="{{ intent }}" {% if intent_filter == intent %}selected{% endif %}>{{ intent }}</option>
+            {% endfor %}
+          </select>
+        </div>
 
-    <div class="col-md-3 col-sm-6">
-      <div class="card text-center p-3 shadow-sm">
-        <h6 class="text-muted mb-1">Temps moyen de réponse</h6>
-        <h2 class="fw-bold text-primary">{{ avg_response_time }}s</h2>
+        <!-- Succès -->
+        <div class="col-md-2">
+          <label class="form-label small fw-semibold">Résultat</label>
+          <select name="success" class="form-select form-select-sm">
+            <option value="all" {% if success_filter == "all" %}selected{% endif %}>Tous</option>
+            <option value="success" {% if success_filter == "success" %}selected{% endif %}>Succès</option>
+            <option value="failure" {% if success_filter == "failure" %}selected{% endif %}>Échecs</option>
+          </select>
+        </div>
+
+        <!-- Temps de réponse min -->
+        <div class="col-md-2">
+          <label class="form-label small fw-semibold">Temps min (s)</label>
+          <input type="number" step="0.1" name="min_response_time" class="form-control form-control-sm" placeholder="Ex: 0.5" value="{{ request.GET.min_response_time }}">
+        </div>
+
+        <!-- Temps de réponse max -->
+        <div class="col-md-2">
+          <label class="form-label small fw-semibold">Temps max (s)</label>
+          <input type="number" step="0.1" name="max_response_time" class="form-control form-control-sm" placeholder="Ex: 3.0" value="{{ request.GET.max_response_time }}">
+        </div>
+
+        <!-- Recherche -->
+        <div class="col-md-4">
+          <label class="form-label small fw-semibold">Recherche</label>
+          <input type="text" name="search" class="form-control form-control-sm" placeholder="Question ou réponse..." value="{{ search_query }}">
+        </div>
+
+        <!-- Bouton -->
+        <div class="col-md-2 d-flex align-items-end">
+          <button type="submit" class="btn btn-primary btn-sm w-100">
+            <i class="bi bi-search me-1"></i>Appliquer
+          </button>
+        </div>
       </div>
-    </div>
+    </form>
   </div>
 
-  <!-- Seconde ligne de KPIs -->
+  <!-- ========== KPIs GLOBAUX ========== -->
   <div class="row g-3 mb-4">
-    <div class="col-md-3 col-sm-6">
-      <div class="card text-center p-3 shadow-sm">
-        <h6 class="text-muted mb-1">Sessions avec chatbot</h6>
-        <h2 class="fw-bold text-primary">{{ chatbot_session_rate }}%</h2>
-      </div>
-    </div>
-
-    <div class="col-md-3 col-sm-6">
-      <div class="card text-center p-3 shadow-sm">
-        <h6 class="text-muted mb-1">Taux de satisfaction</h6>
-        <h2 class="fw-bold text-warning">{{ satisfaction_rate }}%</h2>
+    <!-- Total interactions -->
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="card text-center p-3 shadow-sm border-0">
+        <h6 class="text-muted mb-1 small">Total interactions</h6>
+        <h2 class="fw-bold text-primary mb-0">{{ total_interactions|intcomma }}</h2>
         <small class="text-muted">
-          {{ satisfied }} satisfaits / {{ unsatisfied }} insatisfaits
+          {% if today_vs_yesterday_pct >= 0 %}
+            <i class="bi bi-arrow-up text-success"></i> +{{ today_vs_yesterday_pct }}%
+          {% else %}
+            <i class="bi bi-arrow-down text-danger"></i> {{ today_vs_yesterday_pct }}%
+          {% endif %}
+          vs hier
         </small>
       </div>
     </div>
 
-    <div class="col-md-3 col-sm-6">
-      <div class="card text-center p-3 shadow-sm">
-        <h6 class="text-muted mb-1">Total de recommandations</h6>
-        <h2 class="fw-bold text-primary">{{ total_recommendations }}</h2>
+    <!-- Taux de succès -->
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="card text-center p-3 shadow-sm border-0">
+        <h6 class="text-muted mb-1 small">Taux de succès</h6>
+        <h2 class="fw-bold text-success mb-0">{{ success_rate }}%</h2>
+        <small class="text-muted">{{ success_count }} succès</small>
       </div>
     </div>
 
-    <div class="col-md-3 col-sm-6">
-      <div class="card text-center p-3 shadow-sm">
-        <h6 class="text-muted mb-1">Taux de clics sur recos</h6>
-        <h2 class="fw-bold text-success">{{ click_rate }}%</h2>
+    <!-- Taux de fallback -->
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="card text-center p-3 shadow-sm border-0">
+        <h6 class="text-muted mb-1 small">Taux de fallback</h6>
+        <h2 class="fw-bold text-danger mb-0">{{ fallback_rate }}%</h2>
+        <small class="text-muted">{{ fallback_count }} échecs</small>
+      </div>
+    </div>
+
+    <!-- Temps de réponse moyen -->
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="card text-center p-3 shadow-sm border-0">
+        <h6 class="text-muted mb-1 small">Temps de réponse</h6>
+        <h3 class="fw-bold text-info mb-0">{{ avg_response_time }}s</h3>
+        <small class="text-muted">Médiane: {{ median_response_time }}s</small>
+      </div>
+    </div>
+
+    <!-- Taux de satisfaction -->
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="card text-center p-3 shadow-sm border-0">
+        <h6 class="text-muted mb-1 small">Satisfaction</h6>
+        <h2 class="fw-bold {% if satisfaction_rate >= 70 %}text-success{% elif satisfaction_rate >= 50 %}text-warning{% else %}text-danger{% endif %} mb-0">
+          {{ satisfaction_rate }}%
+        </h2>
+        <small class="text-muted">{{ total_feedbacks }} retours</small>
+      </div>
+    </div>
+
+    <!-- Taux de recommandations -->
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="card text-center p-3 shadow-sm border-0">
+        <h6 class="text-muted mb-1 small">Taux de clic recos</h6>
+        <h2 class="fw-bold text-success mb-0">{{ click_rate }}%</h2>
+        <small class="text-muted">{{ clicked_recos }}/{{ total_recommendations }}</small>
       </div>
     </div>
   </div>
 
-  <!-- Graphiques -->
-  <div class="row g-4 mb-4">
-    <div class="col-lg-7">
-      <div class="card p-3 chart-card">
-        <h6 class="fw-bold text-primary mb-2">
-          <i class="bi bi-graph-up me-1"></i> Interactions & Temps de réponse
-        </h6>
-        <canvas id="chatbotPerformanceChart"></canvas>
+  <!-- ========== STATISTIQUES DÉTAILLÉES ========== -->
+  <div class="row g-3 mb-4">
+    <!-- Temps de réponse détaillé -->
+    <div class="col-lg-3 col-md-6">
+      <div class="card p-3 shadow-sm border-0">
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-speedometer2 me-2"></i>Temps de réponse</h6>
+        <div class="mb-2">
+          <small class="text-muted">Moyenne</small>
+          <h4 class="fw-bold text-info mb-0">{{ avg_response_time }}s</h4>
+        </div>
+        <div class="mb-2">
+          <small class="text-muted">Médiane</small>
+          <h4 class="fw-bold text-primary mb-0">{{ median_response_time }}s</h4>
+        </div>
+        <div class="d-flex justify-content-between small">
+          <span>Min: <strong>{{ min_response_time_val }}s</strong></span>
+          <span>Max: <strong>{{ max_response_time_val }}s</strong></span>
+        </div>
       </div>
     </div>
 
-    <div class="col-lg-5">
-      <div class="card p-3 h-100">
+    <!-- Satisfaction détaillée -->
+    <div class="col-lg-3 col-md-6">
+      <div class="card p-3 shadow-sm border-0">
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-emoji-smile me-2"></i>Satisfaction détaillée</h6>
+        {% if total_feedbacks > 0 %}
+          <div class="mb-2">
+            <div class="d-flex justify-content-between small mb-1">
+              <span><i class="bi bi-hand-thumbs-up-fill text-success me-1"></i>Satisfaits</span>
+              <strong>{{ satisfied }}</strong>
+            </div>
+            <div class="d-flex justify-content-between small mb-1">
+              <span><i class="bi bi-hand-thumbs-down-fill text-danger me-1"></i>Insatisfaits</span>
+              <strong>{{ unsatisfied }}</strong>
+            </div>
+            <div class="d-flex justify-content-between small">
+              <span><i class="bi bi-question-circle me-1"></i>Sans retour</span>
+              <strong>{{ no_feedback }}</strong>
+            </div>
+          </div>
+        {% else %}
+          <p class="text-muted text-center mb-0">Aucun retour</p>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Recommandations détaillées -->
+    <div class="col-lg-3 col-md-6">
+      <div class="card p-3 shadow-sm border-0">
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-stars me-2"></i>Recommandations</h6>
+        <div class="mb-2">
+          <small class="text-muted">Total recommandations</small>
+          <h4 class="fw-bold text-primary mb-0">{{ total_recommendations }}</h4>
+        </div>
+        <div class="mb-2">
+          <small class="text-muted">Taux de reco</small>
+          <h5 class="fw-bold text-info mb-0">{{ reco_rate }}%</h5>
+          <small class="text-muted">{{ interactions_with_reco }} interactions</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- Comparaisons temporelles -->
+    <div class="col-lg-3 col-md-6">
+      <div class="card p-3 shadow-sm border-0">
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-calendar-week me-2"></i>Comparaisons</h6>
+        <div class="mb-2">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="small">Aujourd'hui vs Hier</span>
+            <span class="badge {% if today_vs_yesterday >= 0 %}bg-success{% else %}bg-danger{% endif %}">
+              {% if today_vs_yesterday >= 0 %}+{% endif %}{{ today_vs_yesterday }}
+            </span>
+          </div>
+          <small class="text-muted">{{ interactions_today }} vs {{ interactions_yesterday }}</small>
+        </div>
+        <hr class="my-2">
+        <div class="mb-0">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="small">Cette semaine vs Semaine dernière</span>
+            <span class="badge {% if week_vs_last_week >= 0 %}bg-success{% else %}bg-danger{% endif %}">
+              {% if week_vs_last_week >= 0 %}+{% endif %}{{ week_vs_last_week }}
+            </span>
+          </div>
+          <small class="text-muted">{{ interactions_this_week }} vs {{ interactions_last_week }}</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== GRAPHIQUES ANALYTIQUES AVANCÉS ========== -->
+  <div class="row g-3 mb-4">
+    <!-- Évolution (30 jours) -->
+    <div class="col-lg-12">
+      <div class="card p-3 shadow-sm border-0">
         <h6 class="fw-bold text-primary mb-3">
-          <i class="bi bi-lightbulb me-1"></i> Top 5 produits recommandés
+          <i class="bi bi-graph-up me-2"></i>Évolution des interactions (30 derniers jours)
+          <small class="text-muted ms-2" style="font-size: 0.75rem;">
+            <i class="bi bi-arrow-left-right"></i> Défilez horizontalement
+          </small>
         </h6>
-        <ul class="list-group list-group-flush" id="topProductsList">
-          {% for p in top_products %}
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            {{ p.product__name }}
-            <span class="badge bg-primary rounded-pill">{{ p.total }}</span>
-          </li>
-          {% empty %}
-          <li class="list-group-item text-muted text-center">Aucune donnée</li>
-          {% endfor %}
-        </ul>
+        <div class="chart-scroll-container">
+          <div class="chart-inner-container">
+            <canvas id="evolutionChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Distribution intents -->
+    <div class="col-lg-6">
+      <div class="card p-3 shadow-sm border-0">
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-pie-chart me-2"></i>Distribution des intents (Top 10)</h6>
+        <canvas id="intentChart" height="250"></canvas>
+      </div>
+    </div>
+
+    <!-- Distribution temps de réponse -->
+    <div class="col-lg-6">
+      <div class="card p-3 shadow-sm border-0">
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-clock-history me-2"></i>Distribution des temps de réponse</h6>
+        <canvas id="responseTimeChart" height="250"></canvas>
+      </div>
+    </div>
+
+    <!-- Évolution de la satisfaction -->
+    <div class="col-lg-6">
+      <div class="card p-3 shadow-sm border-0">
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-heart-pulse me-2"></i>Évolution de la satisfaction (30 jours)</h6>
+        <canvas id="satisfactionEvolutionChart" height="250"></canvas>
+      </div>
+    </div>
+
+    <!-- Temps de réponse par intent -->
+    <div class="col-lg-6">
+      <div class="card p-3 shadow-sm border-0">
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-speedometer me-2"></i>Top 10 Intents les plus lents</h6>
+        <canvas id="responseTimeByIntentChart" height="250"></canvas>
+      </div>
+    </div>
+
+    <!-- Funnel d'engagement -->
+    <div class="col-lg-6">
+      <div class="card p-3 shadow-sm border-0">
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-funnel me-2"></i>Funnel d'engagement</h6>
+        <canvas id="funnelChart" height="250"></canvas>
+      </div>
+    </div>
+
+    <!-- Activité par heure -->
+    <div class="col-lg-12">
+      <div class="card p-3 shadow-sm border-0">
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-hourglass-split me-2"></i>Activité par heure</h6>
+        <canvas id="activityChart" height="120"></canvas>
       </div>
     </div>
   </div>
 
-  <!-- Intentions -->
-  <div class="card p-3 mb-4">
-    <h6 class="fw-bold text-primary mb-3">
-      <i class="bi bi-diagram-3 me-1"></i> Analyse des intentions détectées
-    </h6>
-    <div class="table-responsive">
-      <table class="table align-middle table-hover">
-        <thead class="table-light">
-          <tr>
-            <th>Intention</th>
-            <th>Volume</th>
-            <th>Taux de réussite</th>
-            <th>Taux de satisfaction</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for intent in top_intents %}
-          <tr>
-<td class="fw-semibold">{{ intent.intent_lower|default:"(non défini)" }}</td>
-            <td>{{ intent.total }}</td>
-            <td>{{ intent.success_rate|floatformat:1 }}%</td>
-            <td>{{ intent.satisfaction_rate|floatformat:1 }}%</td>
-          </tr>
-          {% empty %}
-          <tr><td colspan="4" class="text-center text-muted">Aucune donnée</td></tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  <!-- ========== ANALYSES DÉTAILLÉES ========== -->
+  <div class="row g-3 mb-4">
+    <!-- Top Intents -->
+    <div class="col-lg-6">
+      <div class="card p-3 shadow-sm border-0">
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-trophy me-2"></i>Top 10 Intents</h6>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover">
+            <thead class="table-light">
+              <tr>
+                <th>Intent</th>
+                <th class="text-center">Total</th>
+                <th class="text-center">Succès</th>
+                <th class="text-center">Satisfaction</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for intent in top_intents %}
+              <tr style="cursor: pointer;" onclick="showIntentDetail('{{ intent.intent_lower }}')">
+                <td class="fw-semibold">{{ intent.intent_lower }}</td>
+                <td class="text-center"><span class="badge bg-primary">{{ intent.total }}</span></td>
+                <td class="text-center">
+                  <span class="badge {% if intent.success_rate >= 80 %}bg-success{% elif intent.success_rate >= 60 %}bg-warning{% else %}bg-danger{% endif %}">
+                    {{ intent.success_rate|floatformat:1 }}%
+                  </span>
+                </td>
+                <td class="text-center">
+                  <span class="badge {% if intent.satisfaction_rate >= 70 %}bg-success{% elif intent.satisfaction_rate >= 50 %}bg-warning{% else %}bg-secondary{% endif %}">
+                    {{ intent.satisfaction_rate|floatformat:1 }}%
+                  </span>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="4" class="text-center text-muted">Aucun intent disponible</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Pires Intents -->
+    <div class="col-lg-6">
+      <div class="card p-3 shadow-sm border-0">
+        <h6 class="fw-bold text-danger mb-3"><i class="bi bi-exclamation-triangle me-2"></i>Top 5 Intents à améliorer</h6>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover">
+            <thead class="table-light">
+              <tr>
+                <th>Intent</th>
+                <th class="text-center">Total</th>
+                <th class="text-center">Taux d'échec</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for intent in worst_intents %}
+              <tr style="cursor: pointer;" onclick="showIntentDetail('{{ intent.intent_lower }}')">
+                <td class="fw-semibold">{{ intent.intent_lower }}</td>
+                <td class="text-center"><span class="badge bg-secondary">{{ intent.total }}</span></td>
+                <td class="text-center"><span class="badge bg-danger">{{ intent.failure_rate|floatformat:1 }}%</span></td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="3" class="text-center text-muted">Aucun intent en échec</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Questions -->
+    <div class="col-lg-6">
+      <div class="card p-3 shadow-sm border-0">
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-chat-quote me-2"></i>Top 10 Questions</h6>
+        <div style="max-height: 400px; overflow-y: auto;">
+          <ol class="list-group list-group-numbered list-group-flush">
+            {% for question, count in top_questions %}
+            <li class="list-group-item d-flex justify-content-between align-items-start" style="cursor: pointer;" onclick="showQuestionDetail('{{ question|escapejs }}')">
+              <div class="ms-2 me-auto">
+                <div class="fw-semibold">{{ question|truncatechars:80 }}</div>
+              </div>
+              <span class="badge bg-primary rounded-pill">{{ count }}</span>
+            </li>
+            {% empty %}
+            <li class="list-group-item text-center text-muted">Aucune question enregistrée</li>
+            {% endfor %}
+          </ol>
+        </div>
+      </div>
+    </div>
+
+    <!-- Top Produits recommandés -->
+    <div class="col-lg-6">
+      <div class="card p-3 shadow-sm border-0">
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-box-seam me-2"></i>Top 10 Produits recommandés</h6>
+        <div style="max-height: 400px; overflow-y: auto;">
+          <div class="table-responsive">
+            <table class="table table-sm table-hover">
+              <thead class="table-light">
+                <tr>
+                  <th>Produit</th>
+                  <th class="text-center">Recos</th>
+                  <th class="text-center">Clics</th>
+                  <th class="text-center">Taux</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for product in top_products %}
+                <tr style="cursor: pointer;" onclick="showProductDetail({{ product.product__id }})">
+                  <td class="fw-semibold">{{ product.product__name|truncatechars:40 }}</td>
+                  <td class="text-center"><span class="badge bg-primary">{{ product.total }}</span></td>
+                  <td class="text-center"><span class="badge bg-success">{{ product.clicks }}</span></td>
+                  <td class="text-center">
+                    <span class="badge {% if product.click_rate >= 50 %}bg-success{% elif product.click_rate >= 30 %}bg-warning{% else %}bg-secondary{% endif %}">
+                      {{ product.click_rate|floatformat:1 }}%
+                    </span>
+                  </td>
+                </tr>
+                {% empty %}
+                <tr><td colspan="4" class="text-center text-muted">Aucune recommandation</td></tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sessions les plus actives -->
+    <div class="col-lg-6">
+      <div class="card p-3 shadow-sm border-0">
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-lightning-charge me-2"></i>Top 10 Sessions les plus actives</h6>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover">
+            <thead class="table-light">
+              <tr>
+                <th>Session ID</th>
+                <th class="text-center">Interactions</th>
+                <th class="text-center">Succès</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for session in most_active_sessions %}
+              <tr style="cursor: pointer;" onclick="showSessionDetail({{ session.session__id }})">
+                <td class="fw-semibold">#{{ session.session__id }}</td>
+                <td class="text-center"><span class="badge bg-primary">{{ session.interaction_count }}</span></td>
+                <td class="text-center">
+                  <span class="badge {% if session.success_rate >= 80 %}bg-success{% elif session.success_rate >= 60 %}bg-warning{% else %}bg-danger{% endif %}">
+                    {{ session.success_rate|floatformat:1 }}%
+                  </span>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="3" class="text-center text-muted">Aucune session</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 
-  <!-- Historique des recommandations -->
-  <div class="card p-3">
-    <h6 class="fw-bold text-primary mb-3">
-      <i class="bi bi-box-seam me-1"></i> Historique des recommandations chatbot
-    </h6>
-    <div class="table-responsive">
-      <table class="table align-middle table-hover">
-        <thead class="table-light">
-          <tr>
-            <th>Date</th>
-            <th>Produit recommandé</th>
-            <th>Question utilisateur</th>
-            <th>Intent</th>
-            <th>Session</th>
-            <th>Clic</th>
-          </tr>
-        </thead>
-        <tbody>
-          {% for reco in recommendations %}
-          <tr>
-            <td>{{ reco.recommended_at|date:"d/m/Y H:i" }}</td>
-            <td class="fw-semibold">{{ reco.product.name }}</td>
-            <td>{{ reco.interaction.question|truncatechars:60 }}</td>
-            <td>{{ reco.interaction.intent|default:"—" }}</td>
-            <td>#{{ reco.session.id }}</td>
-            <td>
-              {% if reco.clicked %}
-                <span class="badge bg-success">Oui</span>
-              {% else %}
-                <span class="badge bg-secondary">Non</span>
-              {% endif %}
-            </td>
-          </tr>
-          {% empty %}
-          <tr>
-            <td colspan="6" class="text-center text-muted py-3">
-              Aucune recommandation enregistrée.
-            </td>
-          </tr>
-          {% endfor %}
-        </tbody>
-      </table>
+  <!-- ========== ANALYSE DES ÉCHECS ========== -->
+  <div class="row g-3 mb-4">
+    <div class="col-12">
+      <div class="card p-3 shadow-sm border-0">
+        <h6 class="fw-bold text-danger mb-3"><i class="bi bi-bug me-2"></i>Dernières interactions en échec (20 dernières)</h6>
+        <div class="table-responsive">
+          <table class="table table-sm table-hover">
+            <thead class="table-light">
+              <tr>
+                <th>Date</th>
+                <th>Session</th>
+                <th>Question</th>
+                <th>Réponse</th>
+                <th>Intent</th>
+                <th>Modèle</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for interaction in failed_interactions %}
+              <tr style="cursor: pointer;" onclick="showInteractionDetail({{ interaction.id }})">
+                <td class="small">{{ interaction.created_at|date:"d/m/Y H:i" }}</td>
+                <td class="small">#{{ interaction.session_id }}</td>
+                <td class="small">{{ interaction.question|truncatechars:50 }}</td>
+                <td class="small text-muted">{{ interaction.response|truncatechars:50|default:"—" }}</td>
+                <td class="small"><span class="badge bg-warning text-dark">{{ interaction.intent|default:"—" }}</span></td>
+                <td class="small"><span class="badge bg-secondary">{{ interaction.model_used }}</span></td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="6" class="text-center text-muted py-3">Aucune interaction en échec</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
+  </div>
 
-    <!-- Pagination -->
-    {% if recommendations.has_other_pages %}
-    <nav aria-label="Pagination recos" class="mt-3">
-      <ul class="pagination justify-content-center mb-0">
-        {% if recommendations.has_previous %}
-          <li class="page-item"><a class="page-link" href="?page={{ recommendations.previous_page_number }}">&laquo;</a></li>
-        {% else %}
-          <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
-        {% endif %}
-        {% for num in recommendations.paginator.page_range %}
-          {% if num == recommendations.number %}
-            <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-          {% elif num > recommendations.number|add:'-3' and num < recommendations.number|add:'3' %}
-            <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
-          {% endif %}
-        {% endfor %}
-        {% if recommendations.has_next %}
-          <li class="page-item"><a class="page-link" href="?page={{ recommendations.next_page_number }}">&raquo;</a></li>
-        {% else %}
-          <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
-        {% endif %}
-      </ul>
-    </nav>
-    {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  // ========== CHARGEMENT DES DONNÉES ANALYTIQUES ==========
+  fetch("{% url 'chatbot_analytics_data' %}")
+    .then(response => response.json())
+    .then(data => {
+      // 1. Graphique évolution (30 jours)
+      const ctxEvolution = document.getElementById("evolutionChart");
+      new Chart(ctxEvolution, {
+        type: "line",
+        data: {
+          labels: data.evolution_labels,
+          datasets: [
+            {
+              label: "Interactions",
+              data: data.evolution_interactions,
+              borderColor: "#3B82F6",
+              backgroundColor: "rgba(59,130,246,0.1)",
+              yAxisID: 'y',
+              tension: 0.3,
+              fill: true,
+              pointRadius: 5,
+              pointHoverRadius: 7,
+              borderWidth: 2
+            },
+            {
+              label: "Taux de succès (%)",
+              data: data.evolution_success,
+              borderColor: "#10B981",
+              backgroundColor: "rgba(16,185,129,0.1)",
+              yAxisID: 'y1',
+              tension: 0.3,
+              fill: true,
+              pointRadius: 5,
+              pointHoverRadius: 7,
+              borderWidth: 2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          interaction: {
+            mode: 'index',
+            intersect: false,
+          },
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top',
+            },
+            tooltip: {
+              mode: 'index',
+              intersect: false,
+            }
+          },
+          scales: {
+            y: {
+              type: 'linear',
+              display: true,
+              position: 'left',
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Interactions'
+              }
+            },
+            y1: {
+              type: 'linear',
+              display: true,
+              position: 'right',
+              beginAtZero: true,
+              max: 100,
+              title: {
+                display: true,
+                text: 'Succès (%)'
+              },
+              grid: {
+                drawOnChartArea: false,
+              },
+            },
+            x: {
+              ticks: {
+                maxRotation: 45,
+                minRotation: 45
+              }
+            }
+          }
+        }
+      });
+
+      // 2. Graphique distribution intents
+      const ctxIntent = document.getElementById("intentChart").getContext("2d");
+      new Chart(ctxIntent, {
+        type: "doughnut",
+        data: {
+          labels: data.intent_labels,
+          datasets: [{
+            data: data.intent_counts,
+            backgroundColor: [
+              "#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6",
+              "#EC4899", "#06B6D4", "#84CC16", "#F97316", "#14B8A6"
+            ]
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: { legend: { position: 'right' } }
+        }
+      });
+
+      // 3. Graphique distribution temps de réponse
+      const ctxResponseTime = document.getElementById("responseTimeChart").getContext("2d");
+      new Chart(ctxResponseTime, {
+        type: "bar",
+        data: {
+          labels: data.response_time_labels,
+          datasets: [{
+            label: "Nombre d'interactions",
+            data: data.response_time_counts,
+            backgroundColor: "#3B82F6"
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+
+      // 4. Graphique évolution de la satisfaction
+      const ctxSatisfaction = document.getElementById("satisfactionEvolutionChart").getContext("2d");
+      new Chart(ctxSatisfaction, {
+        type: "line",
+        data: {
+          labels: data.satisfaction_evolution_labels,
+          datasets: [{
+            label: "Satisfaction (%)",
+            data: data.satisfaction_evolution_rates,
+            borderColor: "#10B981",
+            backgroundColor: "rgba(16,185,129,0.1)",
+            tension: 0.3,
+            fill: true,
+            pointRadius: 5,
+            pointHoverRadius: 7,
+            borderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: {
+            legend: { display: false }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              max: 100,
+              title: {
+                display: true,
+                text: 'Satisfaction (%)'
+              }
+            },
+            x: {
+              ticks: {
+                maxRotation: 45,
+                minRotation: 45
+              }
+            }
+          }
+        }
+      });
+
+      // 5. Graphique temps de réponse par intent
+      const ctxResponseByIntent = document.getElementById("responseTimeByIntentChart").getContext("2d");
+      new Chart(ctxResponseByIntent, {
+        type: "bar",
+        data: {
+          labels: data.response_time_intent_labels,
+          datasets: [{
+            label: "Temps moyen (s)",
+            data: data.response_time_intent_values,
+            backgroundColor: "#F59E0B"
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: { legend: { display: false } },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Temps de réponse (s)'
+              }
+            }
+          }
+        }
+      });
+
+      // 6. Funnel d'engagement
+      const ctxFunnel = document.getElementById("funnelChart").getContext("2d");
+      new Chart(ctxFunnel, {
+        type: "bar",
+        data: {
+          labels: data.funnel_labels,
+          datasets: [{
+            label: "Nombre",
+            data: data.funnel_values,
+            backgroundColor: ["#3B82F6", "#10B981", "#F59E0B", "#EF4444"]
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: { legend: { display: false } },
+          scales: { x: { beginAtZero: true } }
+        }
+      });
+
+      // 7. Activité par heure
+      const ctxActivity = document.getElementById("activityChart").getContext("2d");
+      new Chart(ctxActivity, {
+        type: "line",
+        data: {
+          labels: data.activity_labels,
+          datasets: [{
+            label: "Interactions",
+            data: data.activity_counts,
+            borderColor: "#3B82F6",
+            backgroundColor: "rgba(59,130,246,0.1)",
+            tension: 0.3,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: true,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+    });
+});
+
+// ========== FONCTIONS UTILITAIRES ==========
+function toggleCustomDates(select) {
+  const customStart = document.getElementById("customStartDate");
+  const customEnd = document.getElementById("customEndDate");
+  if (select.value === "custom") {
+    customStart.style.display = "block";
+    customEnd.style.display = "block";
+  } else {
+    customStart.style.display = "none";
+    customEnd.style.display = "none";
+  }
+}
+
+function resetFilters() {
+  window.location.href = "{% url 'chatbot' %}";
+}
+
+// ========== FONCTIONS POUR AFFICHER LES DÉTAILS ==========
+
+function showQuestionDetail(question) {
+  fetch(`{% url 'chatbot_question_detail' %}?question=${encodeURIComponent(question)}`)
+    .then(response => response.json())
+    .then(data => {
+      document.getElementById('questionDetailTitle').textContent = data.question;
+      document.getElementById('questionDetailContent').innerHTML = `
+        <div class="row g-3 mb-3">
+          <div class="col-md-3">
+            <div class="card text-center p-2">
+              <h6 class="text-muted mb-0 small">Total</h6>
+              <h4 class="fw-bold text-primary mb-0">${data.total}</h4>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card text-center p-2">
+              <h6 class="text-muted mb-0 small">Succès</h6>
+              <h4 class="fw-bold text-success mb-0">${data.success_rate}%</h4>
+              <small class="text-muted">${data.success_count}/${data.total}</small>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card text-center p-2">
+              <h6 class="text-muted mb-0 small">Satisfaction</h6>
+              <h4 class="fw-bold text-info mb-0">${data.satisfaction_rate}%</h4>
+              <small class="text-muted">${data.satisfied}/${data.with_feedback}</small>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card text-center p-2">
+              <h6 class="text-muted mb-0 small">Temps moy.</h6>
+              <h4 class="fw-bold text-warning mb-0">${data.avg_time}s</h4>
+            </div>
+          </div>
+        </div>
+        <h6 class="fw-bold mb-2">Intents associés:</h6>
+        <div class="mb-3">${data.intents.map(i => `<span class="badge bg-secondary me-1">${i}</span>`).join('')}</div>
+        <h6 class="fw-bold mb-2">Dernières interactions (10):</h6>
+        <div style="max-height: 400px; overflow-y: auto;">
+          ${data.recent_interactions.map((i, idx) => `
+            <div class="card mb-2">
+              <div class="card-body p-2">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <small class="text-muted">${new Date(i.created_at).toLocaleString('fr-FR')}</small>
+                  <div>
+                    ${i.response_success ? '<span class="badge bg-success">Succès</span>' : '<span class="badge bg-danger">Échec</span>'}
+                    <span class="badge bg-secondary ms-1">${i.response_time || '—'}s</span>
+                  </div>
+                </div>
+                <p class="mb-1 small"><strong>Réponse:</strong> ${i.response || '—'}</p>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      new bootstrap.Modal(document.getElementById('questionDetailModal')).show();
+    });
+}
+
+function showSessionDetail(sessionId) {
+  fetch(`/dashboard/chatbot/session-detail/${sessionId}/`)
+    .then(response => response.json())
+    .then(data => {
+      document.getElementById('sessionDetailTitle').textContent = `Session #${data.session_id}`;
+      document.getElementById('sessionDetailContent').innerHTML = `
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <div class="card text-center p-2">
+              <h6 class="text-muted mb-0 small">Interactions</h6>
+              <h4 class="fw-bold text-primary mb-0">${data.total_interactions}</h4>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card text-center p-2">
+              <h6 class="text-muted mb-0 small">Succès</h6>
+              <h4 class="fw-bold text-success mb-0">${data.success_rate}%</h4>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card text-center p-2">
+              <h6 class="text-muted mb-0 small">Temps moy.</h6>
+              <h4 class="fw-bold text-warning mb-0">${data.avg_time}s</h4>
+            </div>
+          </div>
+        </div>
+        <p><strong>Durée:</strong> ${data.duration}</p>
+        <p><strong>User Agent:</strong> ${data.user_agent}</p>
+        <h6 class="fw-bold mb-2">Intents:</h6>
+        <div class="mb-3">${Object.entries(data.intents).map(([intent, count]) => `<span class="badge bg-secondary me-1">${intent} (${count})</span>`).join('')}</div>
+        <h6 class="fw-bold mb-2">Conversation complète:</h6>
+        <div style="max-height: 500px; overflow-y: auto;">
+          ${data.interactions.map((i, idx) => `
+            <div class="card mb-3 ${i.response_success ? 'border-success' : 'border-danger'}">
+              <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                <span class="small text-muted">#${idx + 1} - ${new Date(i.created_at).toLocaleString('fr-FR')}</span>
+                <div>
+                  ${i.response_success ? '<span class="badge bg-success">Succès</span>' : '<span class="badge bg-danger">Échec</span>'}
+                  ${i.intent ? '<span class="badge bg-secondary ms-1">' + i.intent + '</span>' : ''}
+                  ${i.response_time ? '<span class="badge bg-info ms-1">' + i.response_time + 's</span>' : ''}
+                  ${i.satisfaction !== null ? (i.satisfaction ? '<span class="ms-1">👍</span>' : '<span class="ms-1">👎</span>') : ''}
+                </div>
+              </div>
+              <div class="card-body p-3">
+                <div class="mb-3">
+                  <div class="d-flex align-items-start mb-2">
+                    <div class="bg-primary text-white rounded-circle p-2 me-2" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                      <i class="bi bi-person-fill"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                      <strong class="d-block mb-1">Question:</strong>
+                      <p class="mb-0">${i.question || '—'}</p>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div class="d-flex align-items-start">
+                    <div class="bg-success text-white rounded-circle p-2 me-2" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                      <i class="bi bi-robot"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                      <strong class="d-block mb-1">Réponse:</strong>
+                      <p class="mb-0">${i.response || '—'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      new bootstrap.Modal(document.getElementById('sessionDetailModal')).show();
+    });
+}
+
+function showIntentDetail(intent) {
+  fetch(`{% url 'chatbot_intent_detail' %}?intent=${encodeURIComponent(intent)}`)
+    .then(response => response.json())
+    .then(data => {
+      document.getElementById('intentDetailTitle').textContent = `Intent: ${data.intent}`;
+      document.getElementById('intentDetailContent').innerHTML = `
+        <div class="row g-3 mb-3">
+          <div class="col-md-3">
+            <div class="card text-center p-2">
+              <h6 class="text-muted mb-0 small">Total</h6>
+              <h4 class="fw-bold text-primary mb-0">${data.total}</h4>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card text-center p-2">
+              <h6 class="text-muted mb-0 small">Succès</h6>
+              <h4 class="fw-bold text-success mb-0">${data.success_rate}%</h4>
+              <small class="text-muted">${data.success_count}/${data.total}</small>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card text-center p-2">
+              <h6 class="text-muted mb-0 small">Satisfaction</h6>
+              <h4 class="fw-bold text-info mb-0">${data.satisfaction_rate}%</h4>
+            </div>
+          </div>
+          <div class="col-md-3">
+            <div class="card text-center p-2">
+              <h6 class="text-muted mb-0 small">Temps moy.</h6>
+              <h4 class="fw-bold text-warning mb-0">${data.avg_time}s</h4>
+            </div>
+          </div>
+        </div>
+        <h6 class="fw-bold mb-2">Top questions pour cet intent:</h6>
+        <ol class="list-group list-group-numbered mb-3" style="max-height: 300px; overflow-y: auto;">
+          ${data.top_questions.map(q => `<li class="list-group-item d-flex justify-content-between align-items-start"><div class="ms-2 me-auto">${q.question}</div><span class="badge bg-primary rounded-pill">${q.count}</span></li>`).join('')}
+        </ol>
+        <h6 class="fw-bold mb-2">Dernières interactions:</h6>
+        <div style="max-height: 400px; overflow-y: auto;">
+          ${data.recent_interactions.map((i, idx) => `
+            <div class="card mb-2 ${i.response_success ? 'border-success' : 'border-danger'}">
+              <div class="card-body p-2">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                  <small class="text-muted">${new Date(i.created_at).toLocaleString('fr-FR')}</small>
+                  <div>
+                    ${i.response_success ? '<span class="badge bg-success">Succès</span>' : '<span class="badge bg-danger">Échec</span>'}
+                    <span class="badge bg-secondary ms-1">${i.response_time || '—'}s</span>
+                    ${i.satisfaction !== null ? (i.satisfaction ? '<span class="ms-1">👍</span>' : '<span class="ms-1">👎</span>') : ''}
+                  </div>
+                </div>
+                <p class="mb-1"><strong>Question:</strong> ${i.question || '—'}</p>
+                <p class="mb-0"><strong>Réponse:</strong> ${i.response || '—'}</p>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+      `;
+      new bootstrap.Modal(document.getElementById('intentDetailModal')).show();
+    });
+}
+
+function showProductDetail(productId) {
+  fetch(`/dashboard/chatbot/product-detail/${productId}/`)
+    .then(response => response.json())
+    .then(data => {
+      document.getElementById('productDetailTitle').textContent = data.product_name;
+      document.getElementById('productDetailContent').innerHTML = `
+        <p class="text-muted">${data.product_description}</p>
+        <div class="row g-3 mb-3">
+          <div class="col-md-4">
+            <div class="card text-center p-2">
+              <h6 class="text-muted mb-0 small">Recommandations</h6>
+              <h4 class="fw-bold text-primary mb-0">${data.total_recommendations}</h4>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card text-center p-2">
+              <h6 class="text-muted mb-0 small">Clics</h6>
+              <h4 class="fw-bold text-success mb-0">${data.clicked}</h4>
+            </div>
+          </div>
+          <div class="col-md-4">
+            <div class="card text-center p-2">
+              <h6 class="text-muted mb-0 small">Taux de clic</h6>
+              <h4 class="fw-bold text-info mb-0">${data.click_rate}%</h4>
+            </div>
+          </div>
+        </div>
+        <h6 class="fw-bold mb-2">Intents associés:</h6>
+        <div class="mb-3">${data.intents.map(i => `<span class="badge bg-secondary me-1">${i.intent} (${i.count})</span>`).join('')}</div>
+        <h6 class="fw-bold mb-2">Top questions qui ont mené à ce produit:</h6>
+        <ol class="list-group list-group-numbered mb-3" style="max-height: 400px; overflow-y: auto;">
+          ${data.top_questions.map(q => `<li class="list-group-item d-flex justify-content-between align-items-start"><div class="ms-2 me-auto">${q.question}</div><span class="badge bg-primary rounded-pill">${q.count}</span></li>`).join('')}
+        </ol>
+      `;
+      new bootstrap.Modal(document.getElementById('productDetailModal')).show();
+    });
+}
+
+function showInteractionDetail(interactionId) {
+  fetch(`/dashboard/chatbot/interaction-detail/${interactionId}/`)
+    .then(response => response.json())
+    .then(data => {
+      document.getElementById('interactionDetailTitle').textContent = `Interaction en échec #${data.id}`;
+      document.getElementById('interactionDetailContent').innerHTML = `
+        <div class="alert alert-danger mb-3">
+          <h6 class="fw-bold">Interaction en échec:</h6>
+          <p><strong>Session:</strong> #${data.session_id}</p>
+          <p><strong>Date:</strong> ${new Date(data.created_at).toLocaleString('fr-FR')}</p>
+          <p><strong>Intent:</strong> <span class="badge bg-secondary">${data.intent}</span></p>
+          <p><strong>Temps de réponse:</strong> ${data.response_time || '—'}s</p>
+          <hr>
+          <p class="mb-1"><strong>Question:</strong></p>
+          <p class="mb-2">${data.question}</p>
+          <p class="mb-1"><strong>Réponse:</strong></p>
+          <p class="mb-0">${data.response}</p>
+        </div>
+
+        <h6 class="fw-bold mb-2">Conversation complète de la session #${data.session_id}:</h6>
+        <div style="max-height: 500px; overflow-y: auto;" class="mb-3">
+          ${data.session_conversation.map((i, idx) => `
+            <div class="card mb-3 ${i.id === data.id ? 'border-danger border-3' : (i.response_success ? 'border-success' : 'border-danger')}">
+              <div class="card-header py-2 d-flex justify-content-between align-items-center ${i.id === data.id ? 'bg-danger text-white' : ''}">
+                <span class="small">#${idx + 1} - ${new Date(i.created_at).toLocaleString('fr-FR')}</span>
+                <div>
+                  ${i.id === data.id ? '<span class="badge bg-white text-danger">Interaction en échec</span>' : ''}
+                  ${i.response_success ? '<span class="badge bg-success">Succès</span>' : '<span class="badge bg-danger">Échec</span>'}
+                  ${i.intent ? '<span class="badge bg-secondary ms-1">' + i.intent + '</span>' : ''}
+                  ${i.response_time ? '<span class="badge bg-info ms-1">' + i.response_time + 's</span>' : ''}
+                  ${i.satisfaction !== null ? (i.satisfaction ? '<span class="ms-1">👍</span>' : '<span class="ms-1">👎</span>') : ''}
+                </div>
+              </div>
+              <div class="card-body p-3">
+                <div class="mb-3">
+                  <div class="d-flex align-items-start mb-2">
+                    <div class="bg-primary text-white rounded-circle p-2 me-2" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                      <i class="bi bi-person-fill"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                      <strong class="d-block mb-1">Question:</strong>
+                      <p class="mb-0">${i.question || '—'}</p>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div class="d-flex align-items-start">
+                    <div class="bg-success text-white rounded-circle p-2 me-2" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center;">
+                      <i class="bi bi-robot"></i>
+                    </div>
+                    <div class="flex-grow-1">
+                      <strong class="d-block mb-1">Réponse:</strong>
+                      <p class="mb-0">${i.response || '—'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+
+        <h6 class="fw-bold mb-2">Interactions similaires (même question dans d'autres sessions):</h6>
+        <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+          <table class="table table-sm">
+            <thead><tr><th>Date</th><th>Succès</th><th>Satisfaction</th><th>Temps</th></tr></thead>
+            <tbody>
+              ${data.similar_interactions.map(i => `
+                <tr>
+                  <td class="small">${new Date(i.created_at).toLocaleString('fr-FR')}</td>
+                  <td class="small">${i.response_success ? '<span class="badge bg-success">✓</span>' : '<span class="badge bg-danger">✗</span>'}</td>
+                  <td class="small">${i.satisfaction === null ? '—' : i.satisfaction ? '👍' : '👎'}</td>
+                  <td class="small">${i.response_time || '—'}s</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+      new bootstrap.Modal(document.getElementById('interactionDetailModal')).show();
+    });
+}
+</script>
+
+<!-- ========== MODALS POUR LES DÉTAILS ========== -->
+
+<!-- Modal Question Detail -->
+<div class="modal fade" id="questionDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="questionDetailTitle"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="questionDetailContent"></div>
+    </div>
   </div>
 </div>
 
-<!-- Chart.js -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<!-- Modal Session Detail -->
+<div class="modal fade" id="sessionDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="sessionDetailTitle"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="sessionDetailContent"></div>
+    </div>
+  </div>
+</div>
 
-<script>
-document.addEventListener("DOMContentLoaded", async function () {
-  const ctx = document.getElementById("chatbotPerformanceChart").getContext("2d");
+<!-- Modal Intent Detail -->
+<div class="modal fade" id="intentDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="intentDetailTitle"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="intentDetailContent"></div>
+    </div>
+  </div>
+</div>
 
-  try {
-    const response = await fetch("{% url 'chatbot_chart_data' %}");
-    const data = await response.json();
+<!-- Modal Product Detail -->
+<div class="modal fade" id="productDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="productDetailTitle"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="productDetailContent"></div>
+    </div>
+  </div>
+</div>
 
-    new Chart(ctx, {
-      type: "line",
-      data: {
-        labels: data.labels,
-        datasets: [
-          {
-            label: "Interactions",
-            data: data.interactions,
-            borderColor: "#3B82F6",
-            backgroundColor: "rgba(59,130,246,0.1)",
-            yAxisID: "y1",
-            tension: 0.3,
-            fill: true
-          },
-          {
-            label: "Temps de réponse (s)",
-            data: data.avg_response_times,
-            borderColor: "#F59E0B",
-            backgroundColor: "rgba(245,158,11,0.15)",
-            yAxisID: "y2",
-            tension: 0.3,
-            fill: true
-          }
-        ]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        interaction: { mode: "index", intersect: false },
-        plugins: {
-          legend: { position: "top" },
-          tooltip: {
-            backgroundColor: "#1E293B",
-            titleColor: "#fff",
-            bodyColor: "#f8fafc",
-            cornerRadius: 6,
-            padding: 10
-          }
-        },
-        scales: {
-          y1: {
-            type: "linear",
-            position: "left",
-            title: { display: true, text: "Interactions" },
-            grid: { color: "rgba(0,0,0,0.05)" }
-          },
-          y2: {
-            type: "linear",
-            position: "right",
-            title: { display: true, text: "Temps (s)" },
-            grid: { drawOnChartArea: false }
-          }
-        }
-      }
-    });
-
-    const topList = document.getElementById("topProductsList");
-    topList.innerHTML = "";
-    if (data.top_products.labels.length > 0) {
-      data.top_products.labels.forEach((name, i) => {
-        const value = data.top_products.values[i];
-        topList.innerHTML += `
-          <li class="list-group-item d-flex justify-content-between align-items-center">
-            ${name}
-            <span class="badge bg-primary rounded-pill">${value}</span>
-          </li>`;
-      });
-    } else {
-      topList.innerHTML = `<li class="list-group-item text-center text-muted">Aucune donnée</li>`;
-    }
-
-  } catch (err) {
-    console.error("Erreur de chargement du graphique :", err);
-  }
-});
-</script>
-
-<style>
-.chart-card {
-  height: 380px;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
-  border-radius: 12px;
-  background-color: #fff;
-}
-</style>
+<!-- Modal Interaction Detail -->
+<div class="modal fade" id="interactionDetailModal" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="interactionDetailTitle"></h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="interactionDetailContent"></div>
+    </div>
+  </div>
+</div>
 
 {% endblock %}

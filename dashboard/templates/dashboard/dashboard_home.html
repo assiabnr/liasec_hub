@@ -1,85 +1,486 @@
 {% extends 'dashboard/base.html' %}
 {% load static %}
 {% load humanize %}
+
 {% block content %}
 <div class="container-fluid py-4">
 
-  <!-- Bannière de bienvenue -->
+  <!-- ============================
+       BANNIÈRE DE BIENVENUE
+  ============================ -->
   <div class="row mb-4">
     <div class="col-12">
-      <div class="welcome-banner d-flex align-items-center justify-content-between flex-wrap">
-        <div class="mb-3 mb-md-0">
-          <h4 class="fw-bold mb-1">
-            Bienvenue sur le tableau de bord <span class="text-primary">LIASEC</span>
-          </h4>
-          <p class="text-light opacity-75 mb-0">
-            Suivez en temps réel les interactions sur vos bornes connectées.
-          </p>
+      <div class="welcome-banner p-4 rounded-3 shadow-sm">
+        <div class="d-flex align-items-center justify-content-between flex-wrap">
+          <div class="mb-3 mb-md-0">
+            <h3 class="fw-bold mb-2 text-white">
+              <i class="bi bi-speedometer2 me-2"></i>Tableau de bord <span class="text-info">LIASEC</span>
+            </h3>
+            <p class="text-white-50 mb-0">
+              <i class="bi bi-calendar3 me-1"></i>{{ "now"|date:"l d F Y" }} • Vue d'ensemble de l'activité
+            </p>
+          </div>
+          <div>
+            <a href="{% url 'exports' %}" class="btn btn-light fw-semibold shadow-sm">
+              <i class="bi bi-download me-2"></i>Exporter les données
+            </a>
+          </div>
         </div>
-        <button class="btn btn-light fw-semibold shadow-sm">
-          <i class="bi bi-download me-1"></i> Exporter les données
-        </button>
       </div>
     </div>
   </div>
 
-  <!-- Cartes KPI -->
-  <div class="row g-3 mb-4">
-    <div class="col-md-3 col-sm-6">
-      <div class="card text-center p-3 shadow-sm border-0">
-        <h6 class="text-muted mb-1">Sessions</h6>
-        <h2 class="fw-bold text-primary">{{ sessions_count|intcomma }}</h2>
-      </div>
-    </div>
-
-    <div class="col-md-3 col-sm-6">
-      <div class="card text-center p-3 shadow-sm border-0">
-        <h6 class="text-muted mb-1">Clics</h6>
-        <h2 class="fw-bold text-primary">{{ clicks_count|intcomma }}</h2>
-      </div>
-    </div>
-
-    <div class="col-md-3 col-sm-6">
-      <div class="card text-center p-3 shadow-sm border-0">
-        <h6 class="text-muted mb-1">Produits consultés</h6>
-        <h2 class="fw-bold text-primary">{{ products_count|intcomma }}</h2>
-      </div>
-    </div>
-
-    <div class="col-md-3 col-sm-6">
-      <div class="card text-center p-3 shadow-sm border-0">
-        <h6 class="text-muted mb-1">Chatbot</h6>
-        <h2 class="fw-bold text-primary">{{ chatbot_count|intcomma }}</h2>
-      </div>
-    </div>
-  </div>
-
-  <!-- Graphiques -->
-  <div class="row g-4">
+  <!-- ============================
+       KPIs PRINCIPAUX (4 cartes)
+  ============================ -->
+  <div class="row g-4 mb-4">
     <!-- Sessions -->
-    <div class="col-md-6">
-      <div class="card p-3 shadow-sm border-0">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <h6 class="fw-bold text-primary mb-0">
-            <i class="bi bi-graph-up me-1"></i> Sessions par jour
-          </h6>
+    <div class="col-xl-3 col-md-6">
+      <a href="{% url 'sessions' %}?period=7days" class="text-decoration-none">
+        <div class="card border-0 shadow-sm h-100 kpi-card">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <div>
+                <p class="text-muted mb-1 small fw-semibold text-uppercase">Sessions</p>
+                <h2 class="fw-bold mb-0 text-primary">{{ sessions_total|intcomma }}</h2>
+              </div>
+              <div class="icon-box bg-primary bg-opacity-10 text-primary">
+                <i class="bi bi-people-fill fs-4"></i>
+              </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <small class="text-muted">7 derniers jours: {{ sessions_last_7|intcomma }}</small>
+              {% if sessions_variation > 0 %}
+                <span class="badge bg-success"><i class="bi bi-arrow-up"></i> {{ sessions_variation }}%</span>
+              {% elif sessions_variation < 0 %}
+                <span class="badge bg-danger"><i class="bi bi-arrow-down"></i> {{ sessions_variation }}%</span>
+              {% else %}
+                <span class="badge bg-secondary">0%</span>
+              {% endif %}
+            </div>
+          </div>
         </div>
-        <div style="height: 300px; position: relative;">
-          <canvas id="chartSessions"></canvas>
+      </a>
+    </div>
+
+    <!-- Interactions Chatbot -->
+    <div class="col-xl-3 col-md-6">
+      <a href="{% url 'chatbot' %}?period=7days" class="text-decoration-none">
+        <div class="card border-0 shadow-sm h-100 kpi-card">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <div>
+                <p class="text-muted mb-1 small fw-semibold text-uppercase">Interactions Chatbot</p>
+                <h2 class="fw-bold mb-0 text-success">{{ interactions_total|intcomma }}</h2>
+              </div>
+              <div class="icon-box bg-success bg-opacity-10 text-success">
+                <i class="bi bi-robot fs-4"></i>
+              </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <small class="text-muted">7 derniers jours: {{ interactions_last_7|intcomma }}</small>
+              {% if interactions_variation > 0 %}
+                <span class="badge bg-success"><i class="bi bi-arrow-up"></i> {{ interactions_variation }}%</span>
+              {% elif interactions_variation < 0 %}
+                <span class="badge bg-danger"><i class="bi bi-arrow-down"></i> {{ interactions_variation }}%</span>
+              {% else %}
+                <span class="badge bg-secondary">0%</span>
+              {% endif %}
+            </div>
+          </div>
         </div>
-      </div>
+      </a>
+    </div>
+
+    <!-- Consultations Produits -->
+    <div class="col-xl-3 col-md-6">
+      <a href="{% url 'clicks' %}" class="text-decoration-none">
+        <div class="card border-0 shadow-sm h-100 kpi-card">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <div>
+                <p class="text-muted mb-1 small fw-semibold text-uppercase">Consultations Produits</p>
+                <h2 class="fw-bold mb-0 text-info">{{ product_views_total|intcomma }}</h2>
+              </div>
+              <div class="icon-box bg-info bg-opacity-10 text-info">
+                <i class="bi bi-box-seam-fill fs-4"></i>
+              </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <small class="text-muted">7 derniers jours: {{ product_views_last_7|intcomma }}</small>
+              {% if product_views_variation > 0 %}
+                <span class="badge bg-success"><i class="bi bi-arrow-up"></i> {{ product_views_variation }}%</span>
+              {% elif product_views_variation < 0 %}
+                <span class="badge bg-danger"><i class="bi bi-arrow-down"></i> {{ product_views_variation }}%</span>
+              {% else %}
+                <span class="badge bg-secondary">0%</span>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </a>
     </div>
 
     <!-- Clics -->
-    <div class="col-md-6">
-      <div class="card p-3 shadow-sm border-0">
-        <div class="d-flex justify-content-between align-items-center mb-2">
-          <h6 class="fw-bold text-primary mb-0">
-            <i class="bi bi-mouse3-fill me-1"></i> Clics par jour
-          </h6>
+    <div class="col-xl-3 col-md-6">
+      <a href="{% url 'clicks' %}" class="text-decoration-none">
+        <div class="card border-0 shadow-sm h-100 kpi-card">
+          <div class="card-body">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+              <div>
+                <p class="text-muted mb-1 small fw-semibold text-uppercase">Clics</p>
+                <h2 class="fw-bold mb-0 text-warning">{{ clicks_total|intcomma }}</h2>
+              </div>
+              <div class="icon-box bg-warning bg-opacity-10 text-warning">
+                <i class="bi bi-cursor-fill fs-4"></i>
+              </div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center">
+              <small class="text-muted">7 derniers jours: {{ clicks_last_7|intcomma }}</small>
+              {% if clicks_variation > 0 %}
+                <span class="badge bg-success"><i class="bi bi-arrow-up"></i> {{ clicks_variation }}%</span>
+              {% elif clicks_variation < 0 %}
+                <span class="badge bg-danger"><i class="bi bi-arrow-down"></i> {{ clicks_variation }}%</span>
+              {% else %}
+                <span class="badge bg-secondary">0%</span>
+              {% endif %}
+            </div>
+          </div>
         </div>
-        <div style="height: 300px; position: relative;">
-          <canvas id="chartClicks"></canvas>
+      </a>
+    </div>
+  </div>
+
+  <!-- ============================
+       MÉTRIQUES SECONDAIRES (6 cartes)
+  ============================ -->
+  <div class="row g-3 mb-4">
+    <!-- Durée moyenne session -->
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="card border-0 shadow-sm text-center p-3 metric-card">
+        <div class="mb-2">
+          <i class="bi bi-clock-history text-primary fs-3"></i>
+        </div>
+        <h4 class="fw-bold mb-1">{{ avg_duration_minutes }} min</h4>
+        <p class="text-muted small mb-0">Durée moy. session</p>
+      </div>
+    </div>
+
+    <!-- Taux d'engagement -->
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="card border-0 shadow-sm text-center p-3 metric-card">
+        <div class="mb-2">
+          <i class="bi bi-heart-fill text-danger fs-3"></i>
+        </div>
+        <h4 class="fw-bold mb-1">{{ active_sessions_rate }}%</h4>
+        <p class="text-muted small mb-0">Taux d'engagement</p>
+      </div>
+    </div>
+
+    <!-- Satisfaction -->
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="card border-0 shadow-sm text-center p-3 metric-card">
+        <div class="mb-2">
+          <i class="bi bi-emoji-smile-fill text-success fs-3"></i>
+        </div>
+        <h4 class="fw-bold mb-1">{{ satisfaction_rate }}%</h4>
+        <p class="text-muted small mb-0">Satisfaction chatbot</p>
+      </div>
+    </div>
+
+    <!-- Taux de succès -->
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="card border-0 shadow-sm text-center p-3 metric-card">
+        <div class="mb-2">
+          <i class="bi bi-check-circle-fill text-success fs-3"></i>
+        </div>
+        <h4 class="fw-bold mb-1">{{ success_rate }}%</h4>
+        <p class="text-muted small mb-0">Taux de succès IA</p>
+      </div>
+    </div>
+
+    <!-- Temps de réponse -->
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="card border-0 shadow-sm text-center p-3 metric-card">
+        <div class="mb-2">
+          <i class="bi bi-lightning-charge-fill text-warning fs-3"></i>
+        </div>
+        <h4 class="fw-bold mb-1">{{ avg_response_time }}s</h4>
+        <p class="text-muted small mb-0">Temps de réponse</p>
+      </div>
+    </div>
+
+    <!-- CTR recommandations -->
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="card border-0 shadow-sm text-center p-3 metric-card">
+        <div class="mb-2">
+          <i class="bi bi-hand-index-thumb-fill text-info fs-3"></i>
+        </div>
+        <h4 class="fw-bold mb-1">{{ recommendations_ctr }}%</h4>
+        <p class="text-muted small mb-0">CTR recommandations</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================
+       GRAPHIQUES D'ÉVOLUTION
+  ============================ -->
+  <div class="row g-4 mb-4">
+    <!-- Évolution globale -->
+    <div class="col-lg-8">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <h5 class="fw-bold text-primary mb-3">
+            <i class="bi bi-graph-up-arrow me-2"></i>Évolution de l'activité (7 derniers jours)
+          </h5>
+          <div style="height: 350px; position: relative;">
+            <canvas id="evolutionChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Sources de consultation -->
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <h5 class="fw-bold text-primary mb-3">
+            <i class="bi bi-arrows-angle-contract me-2"></i>Sources de consultation
+          </h5>
+          <div style="height: 350px; position: relative;">
+            <canvas id="sourcesChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================
+       TOP INTENTS & TOP PRODUITS
+  ============================ -->
+  <div class="row g-4 mb-4">
+    <!-- Top intents -->
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <h5 class="fw-bold text-primary mb-3">
+            <i class="bi bi-chat-left-text-fill me-2"></i>Top 5 Intentions les plus fréquentes
+          </h5>
+          {% if top_intents %}
+            <div class="row g-3">
+              {% for intent in top_intents %}
+              <div class="col-12">
+                <a href="{% url 'chatbot' %}?intent={{ intent.intent }}" class="text-decoration-none">
+                  <div class="d-flex align-items-center p-3 border rounded-3 bg-light bg-opacity-50 hover-card">
+                    <!-- Rang -->
+                    <div class="text-center me-3" style="min-width: 50px;">
+                      <div class="rounded-circle d-flex align-items-center justify-content-center
+                        {% if forloop.counter == 1 %}bg-warning
+                        {% elif forloop.counter == 2 %}bg-secondary
+                        {% elif forloop.counter == 3 %}bg-info
+                        {% else %}bg-light border{% endif %}"
+                        style="width: 40px; height: 40px;">
+                        <span class="fw-bold
+                          {% if forloop.counter <= 3 %}text-white{% else %}text-dark{% endif %}"
+                          style="font-size: 1.1rem;">
+                          {{ forloop.counter }}
+                        </span>
+                      </div>
+                    </div>
+
+                    <!-- Intention -->
+                    <div class="flex-grow-1">
+                      <span class="badge bg-primary bg-opacity-10 text-primary" style="font-size: 0.95rem; padding: 0.5rem 1rem;">
+                        {{ intent.intent }}
+                        <i class="bi bi-arrow-right small ms-2"></i>
+                      </span>
+                    </div>
+
+                    <!-- Compteur -->
+                    <div class="text-end ms-3">
+                      <h4 class="mb-0 fw-bold text-primary">{{ intent.count|intcomma }}</h4>
+                      <small class="text-muted">interactions</small>
+                    </div>
+                  </div>
+                </a>
+              </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-center text-muted py-5">
+              <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+              <p class="mb-0">Aucune intention détectée</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Top produits -->
+    <div class="col-lg-6">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <h5 class="fw-bold text-primary mb-3">
+            <i class="bi bi-trophy-fill me-2"></i>Top 5 Produits les plus consultés
+          </h5>
+          {% if top_products %}
+            <div class="row g-3">
+              {% for product in top_products %}
+              <div class="col-12">
+                <div class="d-flex align-items-center p-3 border rounded-3 bg-light bg-opacity-50 hover-card">
+                  <!-- Rang -->
+                  <div class="text-center me-3" style="min-width: 50px;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center
+                      {% if forloop.counter == 1 %}bg-warning
+                      {% elif forloop.counter == 2 %}bg-secondary
+                      {% elif forloop.counter == 3 %}bg-info
+                      {% else %}bg-light border{% endif %}"
+                      style="width: 40px; height: 40px;">
+                      <span class="fw-bold
+                        {% if forloop.counter <= 3 %}text-white{% else %}text-dark{% endif %}"
+                        style="font-size: 1.1rem;">
+                        {{ forloop.counter }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Produit -->
+                  <div class="flex-grow-1">
+                    {% if product.product__id %}
+                      <a href="{% url 'product_detail' product.product__id %}"
+                         class="text-decoration-none text-dark fw-semibold d-block"
+                         style="font-size: 0.95rem;">
+                        <i class="bi bi-box-seam text-info me-2"></i>{{ product.product__name|truncatewords:8 }}
+                      </a>
+                    {% else %}
+                      <span class="text-dark fw-semibold d-block" style="font-size: 0.95rem;">
+                        <i class="bi bi-box-seam text-info me-2"></i>{{ product.product__name|truncatewords:8|default:"Produit inconnu" }}
+                      </span>
+                    {% endif %}
+                  </div>
+
+                  <!-- Compteur -->
+                  <div class="text-end ms-3">
+                    <h4 class="mb-0 fw-bold text-info">{{ product.views|intcomma }}</h4>
+                    <small class="text-muted">vues</small>
+                  </div>
+                </div>
+              </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-center text-muted py-5">
+              <i class="bi bi-inbox fs-1 d-block mb-2"></i>
+              <p class="mb-0">Aucun produit consulté</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================
+       STATISTIQUES SUPPLÉMENTAIRES
+  ============================ -->
+  <div class="row g-4">
+    <!-- Résumé sessions -->
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <h5 class="fw-bold text-primary mb-3">
+            <i class="bi bi-activity me-2"></i>Résumé Sessions
+          </h5>
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <span class="text-muted">Sessions totales</span>
+              <span class="fw-bold">{{ sessions_total|intcomma }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <span class="text-muted">Sessions actives</span>
+              <span class="fw-bold text-success">{{ active_sessions|intcomma }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <span class="text-muted">Durée moyenne</span>
+              <span class="fw-bold">{{ avg_duration_minutes }} min</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <span class="text-muted">Taux d'engagement</span>
+              <span class="badge bg-primary">{{ active_sessions_rate }}%</span>
+            </li>
+          </ul>
+          <div class="mt-3">
+            <a href="{% url 'sessions' %}" class="btn btn-outline-primary btn-sm w-100">
+              <i class="bi bi-eye me-1"></i>Voir toutes les sessions
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Résumé chatbot -->
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <h5 class="fw-bold text-success mb-3">
+            <i class="bi bi-robot me-2"></i>Résumé Chatbot
+          </h5>
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <span class="text-muted">Interactions totales</span>
+              <span class="fw-bold">{{ interactions_total|intcomma }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <span class="text-muted">Taux de satisfaction</span>
+              <span class="badge bg-success">{{ satisfaction_rate }}%</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <span class="text-muted">Taux de succès</span>
+              <span class="badge bg-success">{{ success_rate }}%</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <span class="text-muted">Temps de réponse</span>
+              <span class="fw-bold">{{ avg_response_time }}s</span>
+            </li>
+          </ul>
+          <div class="mt-3">
+            <a href="{% url 'chatbot' %}" class="btn btn-outline-success btn-sm w-100">
+              <i class="bi bi-eye me-1"></i>Voir l'analyse chatbot
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Résumé produits -->
+    <div class="col-lg-4">
+      <div class="card border-0 shadow-sm h-100">
+        <div class="card-body">
+          <h5 class="fw-bold text-info mb-3">
+            <i class="bi bi-box-seam me-2"></i>Résumé Produits
+          </h5>
+          <ul class="list-group list-group-flush">
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <span class="text-muted">Produits disponibles</span>
+              <span class="fw-bold">{{ products_total|intcomma }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <span class="text-muted">Produits consultés</span>
+              <span class="fw-bold">{{ unique_products_viewed|intcomma }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <span class="text-muted">Vues totales</span>
+              <span class="fw-bold">{{ product_views_total|intcomma }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <span class="text-muted">Produit le plus vu</span>
+              <span class="fw-bold small">{{ top_product.product__name|truncatewords:3|default:"—" }}</span>
+            </li>
+          </ul>
+          <div class="mt-3">
+            <a href="{% url 'produits' %}" class="btn btn-outline-info btn-sm w-100">
+              <i class="bi bi-eye me-1"></i>Voir l'analyse produits
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -88,19 +489,57 @@
 </div>
 
 <!-- ============================
-     STYLES
+     STYLES PERSONNALISÉS
 ============================ -->
 <style>
-  /* Empêche les graphs de s'étirer verticalement */
+  .welcome-banner {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+
+  .kpi-card {
+    transition: transform 0.2s, box-shadow 0.2s;
+  }
+
+  .kpi-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+  }
+
+  .metric-card {
+    transition: transform 0.2s;
+  }
+
+  .metric-card:hover {
+    transform: scale(1.05);
+  }
+
+  .icon-box {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+  }
+
+  .hover-card {
+    transition: all 0.3s ease;
+  }
+
+  .hover-card:hover {
+    transform: translateX(5px);
+    box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+    background-color: rgba(255, 255, 255, 0.8) !important;
+  }
+
   canvas {
     width: 100% !important;
     height: 100% !important;
   }
 
-  /* Sur petit écran : graphes plus compacts */
   @media (max-width: 992px) {
-    div[style*="height: 300px"] {
-      height: 240px !important;
+    div[style*="height: 350px"] {
+      height: 280px !important;
     }
   }
 </style>
@@ -111,72 +550,172 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-  const ctxSessions = document.getElementById("chartSessions");
-  const ctxClicks = document.getElementById("chartClicks");
+  const evolutionCtx = document.getElementById("evolutionChart");
+  const sourcesCtx = document.getElementById("sourcesChart");
 
-  if (!ctxSessions || !ctxClicks) return;
+  if (!evolutionCtx || !sourcesCtx) return;
 
-  window.myCharts = window.myCharts || {};
+  // ========== DONNÉES D'ÉVOLUTION ==========
+  const evolutionData = {{ evolution_data|safe }};
+  const labels = evolutionData.map(d => d.date);
+  const sessionsData = evolutionData.map(d => d.sessions);
+  const interactionsData = evolutionData.map(d => d.interactions);
+  const productViewsData = evolutionData.map(d => d.product_views);
+  const clicksData = evolutionData.map(d => d.clicks);
 
-  fetch("{% url 'chart_data' %}")
-    .then(response => response.json())
-    .then(data => {
-      // --- Sessions ---
-      if (window.myCharts.sessions) {
-        window.myCharts.sessions.destroy();
-      }
-
-      window.myCharts.sessions = new Chart(ctxSessions.getContext("2d"), {
-        type: "line",
-        data: {
-          labels: data.labels,
-          datasets: [{
-            label: "Sessions",
-            data: data.sessions,
-            fill: true,
-            borderColor: "#3B82F6",
-            backgroundColor: "rgba(59,130,246,0.15)",
-            tension: 0.4,
-            pointRadius: 4,
-            pointBackgroundColor: "#1E3A8A"
-          }]
+  // ========== GRAPHIQUE D'ÉVOLUTION ==========
+  new Chart(evolutionCtx.getContext("2d"), {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [
+        {
+          label: "Sessions",
+          data: sessionsData,
+          borderColor: "#667eea",
+          backgroundColor: "rgba(102, 126, 234, 0.1)",
+          tension: 0.4,
+          fill: true,
+          pointRadius: 4,
+          pointBackgroundColor: "#667eea"
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } }
+        {
+          label: "Interactions Chatbot",
+          data: interactionsData,
+          borderColor: "#10B981",
+          backgroundColor: "rgba(16, 185, 129, 0.1)",
+          tension: 0.4,
+          fill: true,
+          pointRadius: 4,
+          pointBackgroundColor: "#10B981"
+        },
+        {
+          label: "Consultations Produits",
+          data: productViewsData,
+          borderColor: "#3B82F6",
+          backgroundColor: "rgba(59, 130, 246, 0.1)",
+          tension: 0.4,
+          fill: true,
+          pointRadius: 4,
+          pointBackgroundColor: "#3B82F6"
+        },
+        {
+          label: "Clics",
+          data: clicksData,
+          borderColor: "#F59E0B",
+          backgroundColor: "rgba(245, 158, 11, 0.1)",
+          tension: 0.4,
+          fill: true,
+          pointRadius: 4,
+          pointBackgroundColor: "#F59E0B"
         }
-      });
-
-      // --- Clics ---
-      if (window.myCharts.clicks) {
-        window.myCharts.clicks.destroy();
-      }
-
-      window.myCharts.clicks = new Chart(ctxClicks.getContext("2d"), {
-        type: "bar",
-        data: {
-          labels: data.labels,
-          datasets: [{
-            label: "Clics",
-            data: data.clicks,
-            backgroundColor: "#1E3A8A",
-            hoverBackgroundColor: "#3B82F6",
-            borderRadius: 8
-          }]
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: {
+        mode: 'index',
+        intersect: false,
+      },
+      plugins: {
+        legend: {
+          position: 'top',
+          labels: {
+            usePointStyle: true,
+            padding: 15
+          }
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { grid: { display: false } },
-            y: { beginAtZero: true }
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          padding: 12,
+          titleFont: { size: 14, weight: 'bold' },
+          bodyFont: { size: 13 },
+          callbacks: {
+            label: function(context) {
+              return context.dataset.label + ': ' + context.parsed.y.toLocaleString();
+            }
           }
         }
-      });
-    })
-    .catch(error => console.error("Erreur chargement données graphiques :", error));
+      },
+      scales: {
+        x: {
+          grid: { display: false }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: "rgba(0, 0, 0, 0.05)" },
+          ticks: {
+            callback: function(value) {
+              return value.toLocaleString();
+            }
+          }
+        }
+      }
+    }
+  });
+
+  // ========== DONNÉES SOURCES ==========
+  const sourcesData = [
+    {% for source in sources_data %}
+    { source: "{{ source.source|default:'Autre' }}", count: {{ source.count }} },
+    {% endfor %}
+  ];
+
+  const sourceMapping = {
+    "chatbot": { label: "Chatbot", color: "#3B82F6" },
+    "carte": { label: "Carte Interactive", color: "#10B981" },
+    "recherche": { label: "Recherche", color: "#F59E0B" }
+  };
+
+  const sourcesLabels = [];
+  const sourcesValues = [];
+  const sourcesColors = [];
+
+  sourcesData.forEach(s => {
+    const mapping = sourceMapping[s.source] || { label: s.source, color: "#6B7280" };
+    sourcesLabels.push(mapping.label);
+    sourcesValues.push(s.count);
+    sourcesColors.push(mapping.color);
+  });
+
+  // ========== GRAPHIQUE SOURCES ==========
+  new Chart(sourcesCtx.getContext("2d"), {
+    type: "doughnut",
+    data: {
+      labels: sourcesLabels,
+      datasets: [{
+        data: sourcesValues,
+        backgroundColor: sourcesColors,
+        borderWidth: 0,
+        hoverOffset: 10
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            padding: 15,
+            usePointStyle: true
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(0, 0, 0, 0.8)',
+          padding: 12,
+          callbacks: {
+            label: function(context) {
+              const total = context.dataset.data.reduce((a, b) => a + b, 0);
+              const percentage = ((context.parsed / total) * 100).toFixed(1);
+              return context.label + ': ' + context.parsed.toLocaleString() + ' (' + percentage + '%)';
+            }
+          }
+        }
+      }
+    }
+  });
 });
 </script>
 

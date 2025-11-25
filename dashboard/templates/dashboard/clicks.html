@@ -161,7 +161,18 @@
           {% for click in clicks %}
           <tr>
             <td>{{ click.viewed_at|date:"d/m/Y H:i" }}</td>
-            <td><strong>{{ click.product.name|default:"—" }}</strong></td>
+            <td>
+              {% if click.product %}
+                <strong>
+                  <a href="{% url 'product_detail' click.product.id %}" class="text-decoration-none text-primary">
+                    {{ click.product.name|default:"—" }}
+                    <i class="bi bi-box-arrow-up-right small ms-1"></i>
+                  </a>
+                </strong>
+              {% else %}
+                <strong>—</strong>
+              {% endif %}
+            </td>
             <td>{{ click.product.brand|default:"—" }}</td>
             <td>
               {% if click.source == "chatbot" %}

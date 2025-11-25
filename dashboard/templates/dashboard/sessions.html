@@ -1,102 +1,486 @@
 {% extends 'dashboard/base.html' %}
 {% load humanize %}
 {% block content %}
+
+<style>
+/* Styles pour le scroll horizontal du graphique */
+.chart-scroll-container {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+}
+
+.chart-scroll-container::-webkit-scrollbar {
+  height: 12px;
+}
+
+.chart-scroll-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+.chart-scroll-container::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 10px;
+}
+
+.chart-scroll-container::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Pour Firefox */
+.chart-scroll-container {
+  scrollbar-width: thin;
+  scrollbar-color: #888 #f1f1f1;
+}
+
+.chart-inner-container {
+  width: 1400px;
+  height: 320px;
+  position: relative;
+}
+
+@media (max-width: 768px) {
+  .chart-inner-container {
+    width: 1200px;
+  }
+}
+</style>
+
 <div class="container-fluid py-4">
 
-  <!-- En-tête -->
+  <!-- En-tête avec titre et bouton export -->
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="fw-bold mb-0">
-      <i class="bi bi-people-fill me-2 text-primary"></i> Activité utilisateur
-    </h4>
+    <div>
+      <h4 class="fw-bold mb-1">
+        <i class="bi bi-people-fill me-2 text-primary"></i> Analyse des sessions utilisateurs
+      </h4>
+      <p class="text-muted mb-0 small">Analysez le comportement et l'engagement de vos utilisateurs</p>
+    </div>
     <button id="exportSessionsBtn" class="btn btn-primary shadow-sm d-flex align-items-center">
-      <i class="bi bi-download me-2"></i> Exporter les sessions
+      <i class="bi bi-download me-2"></i> Exporter
     </button>
   </div>
 
   <!-- Zone de feedback export -->
   <div id="exportAlert" class="alert d-none" role="alert"></div>
 
-  <!-- Statistiques globales -->
-  <div class="row g-3 mb-4">
-    <div class="col-md-3 col-sm-6">
-      <div class="card text-center p-3 shadow-sm border-0">
-        <h6 class="text-muted mb-1">Total de sessions</h6>
-        <h2 class="fw-bold text-primary mb-0">{{ total_sessions|intcomma }}</h2>
-      </div>
-    </div>
-
-    <div class="col-md-3 col-sm-6">
-      <div class="card text-center p-3 shadow-sm border-0">
-        <h6 class="text-muted mb-1">Durée totale</h6>
-        <h2 class="fw-bold text-primary mb-0">{{ total_duration }}</h2>
-      </div>
-    </div>
-
-    <div class="col-md-3 col-sm-6">
-      <div class="card text-center p-3 shadow-sm border-0">
-        <h6 class="text-muted mb-1">Durée moyenne</h6>
-        <h2 class="fw-bold text-primary mb-0">{{ avg_duration }}</h2>
-      </div>
-    </div>
-
-    <div class="col-md-3 col-sm-6">
-      <div class="card text-center p-3 shadow-sm border-0">
-        <h6 class="text-muted mb-1">Interactions chatbot</h6>
-        <h2 class="fw-bold text-primary mb-0">{{ total_chatbot_interactions|intcomma }}</h2>
-      </div>
-    </div>
-  </div>
-
-  <!-- Graphique sessions -->
-  <div class="card p-3 mb-4">
+  <!-- ========== FILTRES ========== -->
+  <div class="card p-3 mb-4 shadow-sm border-0">
     <div class="d-flex justify-content-between align-items-center mb-2">
-      <h6 class="fw-bold text-primary mb-0">Sessions par jour</h6>
+      <h6 class="fw-bold text-primary mb-0"><i class="bi bi-funnel me-2"></i>Filtres</h6>
+      <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetFilters()">
+        <i class="bi bi-arrow-clockwise me-1"></i>Réinitialiser
+      </button>
     </div>
-    <canvas id="sessionsChart" height="120"></canvas>
+    <form method="get" action="{% url 'sessions' %}" id="filterForm">
+      <div class="row g-3">
+        <!-- Filtre période -->
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold">Période</label>
+          <select name="period" class="form-select form-select-sm" onchange="toggleCustomDates(this)">
+            <option value="all" {% if period_filter == "all" %}selected{% endif %}>Toutes</option>
+            <option value="today" {% if period_filter == "today" %}selected{% endif %}>Aujourd'hui</option>
+            <option value="7days" {% if period_filter == "7days" %}selected{% endif %}>7 derniers jours</option>
+            <option value="30days" {% if period_filter == "30days" %}selected{% endif %}>30 derniers jours</option>
+            <option value="custom" {% if period_filter == "custom" %}selected{% endif %}>Personnalisé</option>
+          </select>
+        </div>
+
+        <!-- Dates personnalisées (affichées si période = custom) -->
+        <div class="col-md-2" id="customStartDate" style="display: {% if period_filter == 'custom' %}block{% else %}none{% endif %};">
+          <label class="form-label small fw-semibold">Du</label>
+          <input type="date" name="start_date" class="form-control form-control-sm" value="{{ request.GET.start_date }}">
+        </div>
+        <div class="col-md-2" id="customEndDate" style="display: {% if period_filter == 'custom' %}block{% else %}none{% endif %};">
+          <label class="form-label small fw-semibold">Au</label>
+          <input type="date" name="end_date" class="form-control form-control-sm" value="{{ request.GET.end_date }}">
+        </div>
+
+        <!-- Type de session -->
+        <div class="col-md-2">
+          <label class="form-label small fw-semibold">Type</label>
+          <select name="type" class="form-select form-select-sm">
+            <option value="all" {% if session_type_filter == "all" %}selected{% endif %}>Toutes</option>
+            <option value="with_chatbot" {% if session_type_filter == "with_chatbot" %}selected{% endif %}>Avec chatbot</option>
+            <option value="with_products" {% if session_type_filter == "with_products" %}selected{% endif %}>Avec produits</option>
+            <option value="active" {% if session_type_filter == "active" %}selected{% endif %}>Actives</option>
+            <option value="completed" {% if session_type_filter == "completed" %}selected{% endif %}>Terminées</option>
+          </select>
+        </div>
+
+        <!-- Engagement -->
+        <div class="col-md-2">
+          <label class="form-label small fw-semibold">Engagement</label>
+          <select name="engagement" class="form-select form-select-sm">
+            <option value="all" {% if engagement_filter == "all" %}selected{% endif %}>Tous niveaux</option>
+            <option value="high" {% if engagement_filter == "high" %}selected{% endif %}>Élevé (>10)</option>
+            <option value="medium" {% if engagement_filter == "medium" %}selected{% endif %}>Moyen (5-10)</option>
+            <option value="low" {% if engagement_filter == "low" %}selected{% endif %}>Faible (1-4)</option>
+            <option value="none" {% if engagement_filter == "none" %}selected{% endif %}>Aucun (0)</option>
+          </select>
+        </div>
+
+        <!-- Durée min/max -->
+        <div class="col-md-2">
+          <label class="form-label small fw-semibold">Durée min (s)</label>
+          <input type="number" name="min_duration" class="form-control form-control-sm" placeholder="Ex: 30" value="{{ min_duration }}">
+        </div>
+        <div class="col-md-2">
+          <label class="form-label small fw-semibold">Durée max (s)</label>
+          <input type="number" name="max_duration" class="form-control form-control-sm" placeholder="Ex: 600" value="{{ max_duration }}">
+        </div>
+
+        <!-- Recherche -->
+        <div class="col-md-3">
+          <label class="form-label small fw-semibold">Recherche</label>
+          <input type="text" name="search" class="form-control form-control-sm" placeholder="ID, user, device..." value="{{ search_query }}">
+        </div>
+
+        <!-- Bouton appliquer -->
+        <div class="col-md-2 d-flex align-items-end">
+          <button type="submit" class="btn btn-primary btn-sm w-100">
+            <i class="bi bi-search me-1"></i>Appliquer
+          </button>
+        </div>
+      </div>
+    </form>
   </div>
 
-  <!-- Tableau des sessions -->
-  <div class="card p-3">
-    <h6 class="fw-bold text-primary mb-3">Liste des sessions</h6>
+  <!-- ========== KPIs GLOBAUX ========== -->
+  <div class="row g-3 mb-4">
+    <!-- Total sessions -->
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="card text-center p-3 shadow-sm border-0">
+        <h6 class="text-muted mb-1 small">Total sessions</h6>
+        <h2 class="fw-bold text-primary mb-0">{{ total_sessions|intcomma }}</h2>
+        <small class="text-muted">
+          {% if today_vs_yesterday_pct >= 0 %}
+            <i class="bi bi-arrow-up text-success"></i> +{{ today_vs_yesterday_pct }}%
+          {% else %}
+            <i class="bi bi-arrow-down text-danger"></i> {{ today_vs_yesterday_pct }}%
+          {% endif %}
+          vs hier
+        </small>
+      </div>
+    </div>
 
-    <div class="table-responsive d-none d-md-block">
-      <table class="table align-middle">
+    <!-- Durée moyenne -->
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="card text-center p-3 shadow-sm border-0">
+        <h6 class="text-muted mb-1 small">Durée moyenne</h6>
+        <h3 class="fw-bold text-info mb-0">{{ avg_duration }}</h3>
+        <small class="text-muted">Médiane: {{ median_duration }}</small>
+      </div>
+    </div>
+
+    <!-- Sessions actives -->
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="card text-center p-3 shadow-sm border-0">
+        <h6 class="text-muted mb-1 small">Sessions actives</h6>
+        <h2 class="fw-bold text-success mb-0">{{ active_sessions|intcomma }}</h2>
+        <small class="text-muted">{{ completed_sessions|intcomma }} terminées</small>
+      </div>
+    </div>
+
+    <!-- Taux de rebond -->
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="card text-center p-3 shadow-sm border-0">
+        <h6 class="text-muted mb-1 small">Taux de rebond</h6>
+        <h2 class="fw-bold text-warning mb-0">{{ bounce_rate }}%</h2>
+        <small class="text-muted">{{ bounce_sessions }} sessions < 30s</small>
+      </div>
+    </div>
+
+    <!-- Sessions avec chatbot -->
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="card text-center p-3 shadow-sm border-0">
+        <h6 class="text-muted mb-1 small">Sessions avec chatbot</h6>
+        <h2 class="fw-bold text-primary mb-0">{{ sessions_with_chatbot }}</h2>
+        <small class="text-muted">{{ chatbot_session_rate }}% des sessions</small>
+      </div>
+    </div>
+
+    <!-- Sessions localisation produit -->
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="card text-center p-3 shadow-sm border-0">
+        <h6 class="text-muted mb-1 small">Sessions localisation</h6>
+        <h2 class="fw-bold text-info mb-0">{{ sessions_with_products }}</h2>
+        <small class="text-muted">{{ product_session_rate }}% des sessions</small>
+      </div>
+    </div>
+
+    <!-- Engagement filtré -->
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="card text-center p-3 shadow-sm border-0">
+        <h6 class="text-muted mb-1 small">{{ engagement_label }}</h6>
+        <h2 class="fw-bold
+          {% if engagement_filter == 'high' %}text-success
+          {% elif engagement_filter == 'medium' %}text-warning
+          {% elif engagement_filter == 'low' %}text-danger
+          {% elif engagement_filter == 'none' %}text-secondary
+          {% else %}text-primary{% endif %} mb-0">
+          {{ engagement_percentage }}%
+        </h2>
+        <small class="text-muted">{{ engagement_count }} sessions</small>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== STATISTIQUES DÉTAILLÉES ========== -->
+  <div class="row g-3 mb-4">
+    <!-- Activité utilisateur -->
+    <div class="col-lg-4 col-md-6">
+      <div class="card p-3 shadow-sm border-0">
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-activity me-2"></i>Activité utilisateur</h6>
+        <div class="row g-2">
+          <div class="col-6">
+            <div class="text-center p-3 rounded" style="background: linear-gradient(135deg, #667eea15 0%, #764ba215 100%);">
+              <div class="d-flex align-items-center justify-content-center mb-2">
+                <i class="bi bi-chat-dots-fill text-primary me-2" style="font-size: 1.2rem;"></i>
+                <span class="small text-muted">Chatbot</span>
+              </div>
+              <h3 class="fw-bold text-primary mb-0">{{ total_chatbot_interactions }}</h3>
+              <small class="text-muted">interactions</small>
+            </div>
+          </div>
+          <div class="col-6">
+            <div class="text-center p-3 rounded" style="background: linear-gradient(135deg, #06b6d415 0%, #3b82f615 100%);">
+              <div class="d-flex align-items-center justify-content-center mb-2">
+                <i class="bi bi-bag-fill text-info me-2" style="font-size: 1.2rem;"></i>
+                <span class="small text-muted">Produits</span>
+              </div>
+              <h3 class="fw-bold text-info mb-0">{{ total_product_views }}</h3>
+              <small class="text-muted">consultations</small>
+            </div>
+          </div>
+          <div class="col-12 mt-3">
+            <div class="p-3 rounded" style="background: linear-gradient(135deg, #10b98115 0%, #059f6915 100%);">
+              <div class="d-flex align-items-center mb-2">
+                <i class="bi bi-people-fill text-success me-2" style="font-size: 1.2rem;"></i>
+                <span class="small fw-semibold text-muted">Répartition des sessions</span>
+              </div>
+              <div class="row g-2 text-center">
+                <div class="col-6">
+                  <h4 class="fw-bold text-primary mb-0">{{ sessions_with_chatbot }}</h4>
+                  <small class="text-muted">avec chatbot</small>
+                </div>
+                <div class="col-6">
+                  <h4 class="fw-bold text-info mb-0">{{ sessions_with_products }}</h4>
+                  <small class="text-muted">avec produits</small>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Satisfaction -->
+    <div class="col-lg-4 col-md-6">
+      <div class="card p-3 shadow-sm border-0">
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-emoji-smile me-2"></i>Satisfaction Chatbot</h6>
+        {% if total_interactions_with_feedback_option > 0 %}
+          <div class="text-center mb-3">
+            <div class="position-relative d-inline-block">
+              <h1 class="display-3 fw-bold mb-0 {% if satisfaction_rate >= 70 %}text-success{% elif satisfaction_rate >= 50 %}text-warning{% else %}text-danger{% endif %}">
+                {{ satisfaction_rate }}<span style="font-size: 0.4em;">%</span>
+              </h1>
+            </div>
+            <p class="text-muted small mb-0">Taux de satisfaction global</p>
+          </div>
+
+          <div class="row g-2 mb-3">
+            <!-- Positifs -->
+            <div class="col-6">
+              <div class="p-3 rounded text-center" style="background: linear-gradient(135deg, #10b98115 0%, #059f6915 100%);">
+                <div class="d-flex align-items-center justify-content-center mb-2">
+                  <i class="bi bi-hand-thumbs-up-fill text-success me-2" style="font-size: 1.3rem;"></i>
+                </div>
+                <h3 class="fw-bold text-success mb-0">{{ satisfied }}</h3>
+                <small class="text-muted">Positifs</small>
+              </div>
+            </div>
+
+            <!-- Négatifs -->
+            <div class="col-6">
+              <div class="p-3 rounded text-center" style="background: linear-gradient(135deg, #ef444415 0%, #dc262615 100%);">
+                <div class="d-flex align-items-center justify-content-center mb-2">
+                  <i class="bi bi-hand-thumbs-down-fill text-danger me-2" style="font-size: 1.3rem;"></i>
+                </div>
+                <h3 class="fw-bold text-danger mb-0">{{ unsatisfied }}</h3>
+                <small class="text-muted">Négatifs</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Sans retour -->
+          <div class="p-2 rounded text-center" style="background-color: #f8f9fa;">
+            <small class="text-muted">
+              <i class="bi bi-question-circle me-1"></i>{{ no_feedback }} conversation(s) sans retour
+            </small>
+          </div>
+
+          <!-- Statistique totale -->
+          <div class="text-center mt-3">
+            <small class="text-muted fw-semibold">
+              Total : {{ total_interactions_with_feedback_option }} interaction(s) avec demande de feedback
+            </small>
+          </div>
+        {% else %}
+          <div class="text-center py-4">
+            <i class="bi bi-inbox text-muted" style="font-size: 3rem;"></i>
+            <p class="text-muted mb-2 mt-3">Aucune demande de feedback pour le moment</p>
+            {% if no_feedback > 0 %}
+              <small class="text-muted">
+                <i class="bi bi-info-circle me-1"></i>{{ no_feedback }} interaction(s) sans demande de feedback
+              </small>
+            {% endif %}
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Comparaisons temporelles -->
+    <div class="col-lg-4 col-md-12">
+      <div class="card p-3 shadow-sm border-0">
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-calendar-week me-2"></i>Comparaisons</h6>
+        <div class="mb-2">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="small">Aujourd'hui vs Hier</span>
+            <span class="badge {% if today_vs_yesterday >= 0 %}bg-success{% else %}bg-danger{% endif %}">
+              {% if today_vs_yesterday >= 0 %}+{% endif %}{{ today_vs_yesterday }}
+            </span>
+          </div>
+          <small class="text-muted">{{ sessions_today }} vs {{ sessions_yesterday }}</small>
+        </div>
+        <hr class="my-2">
+        <div class="mb-0">
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="small">Cette semaine vs Semaine dernière</span>
+            <span class="badge {% if week_vs_last_week >= 0 %}bg-success{% else %}bg-danger{% endif %}">
+              {% if week_vs_last_week >= 0 %}+{% endif %}{{ week_vs_last_week }}
+            </span>
+          </div>
+          <small class="text-muted">{{ sessions_this_week }} vs {{ sessions_last_week }}</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== GRAPHIQUES ANALYTIQUES ========== -->
+  <div class="row g-3 mb-4">
+    <!-- Évolution des sessions (30 jours) -->
+    <div class="col-lg-8">
+      <div class="card p-3 shadow-sm border-0">
+        <h6 class="fw-bold text-primary mb-3">
+          <i class="bi bi-graph-up me-2"></i>Évolution des sessions (30 derniers jours)
+          <small class="text-muted ms-2" style="font-size: 0.75rem;">
+            <i class="bi bi-arrow-left-right"></i> Défilez horizontalement
+          </small>
+        </h6>
+        <div class="chart-scroll-container">
+          <div class="chart-inner-container">
+            <canvas id="evolutionChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Distribution de durée -->
+    <div class="col-lg-4">
+      <div class="card p-3 shadow-sm border-0">
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-clock-history me-2"></i>Distribution de durée</h6>
+        <canvas id="durationChart" height="160"></canvas>
+      </div>
+    </div>
+
+    <!-- Activité par heure -->
+    <div class="col-lg-6">
+      <div class="card p-3 shadow-sm border-0">
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-hourglass-split me-2"></i>Activité par heure</h6>
+        <canvas id="activityChart" height="100"></canvas>
+      </div>
+    </div>
+
+    <!-- Taux d'engagement -->
+    <div class="col-lg-6">
+      <div class="card p-3 shadow-sm border-0">
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-speedometer2 me-2"></i>Taux d'engagement (7 derniers jours)</h6>
+        <canvas id="engagementChart" height="100"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== TABLEAU DES SESSIONS ========== -->
+  <div class="card p-3 shadow-sm border-0">
+    <h6 class="fw-bold text-primary mb-3"><i class="bi bi-table me-2"></i>Liste des sessions ({{ total_sessions }} au total)</h6>
+
+    <div class="table-responsive">
+      <table class="table table-hover align-middle">
         <thead class="table-light">
           <tr>
             <th>ID</th>
-            <th>Utilisateur</th>
             <th>Début</th>
-            <th>Fin</th>
             <th>Durée</th>
-            <th>Clics</th>
-            <th>Chatbot</th>
-            <th>Détail</th>
+            <th>État</th>
+            <th>Interactions</th>
+            <th>Produits</th>
+            <th>Engagement</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           {% for session in sessions %}
           <tr>
-            <td>#{{ session.id }}</td>
-            <td>{{ session.user_id|default:"Visiteur" }}</td>
+            <td class="fw-semibold">#{{ session.id }}</td>
             <td>{{ session.start_time|date:"d/m/Y H:i" }}</td>
-            <td>{{ session.end_time|date:"d/m/Y H:i"|default:"—" }}</td>
             <td>
               {% if session.duration %}
-                {{ session.duration }}
+                <span class="badge bg-info">{{ session.duration }}</span>
               {% else %}
                 <span class="text-muted">—</span>
               {% endif %}
             </td>
-            <td>{{ session.product_views.count }}</td>
-            <td>{{ session.chatbot_interactions.count }}</td>
+            <td>
+              {% if session.end_time %}
+                <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Terminée</span>
+              {% else %}
+                <span class="badge bg-warning"><i class="bi bi-hourglass-split me-1"></i>Active</span>
+              {% endif %}
+            </td>
+            <td>
+              <span class="badge bg-primary">
+                <i class="bi bi-chat-dots me-1"></i>{{ session.chatbot_interactions.count }}
+              </span>
+            </td>
+            <td>
+              <span class="badge bg-info">
+                <i class="bi bi-bag me-1"></i>{{ session.product_views.count }}
+              </span>
+            </td>
+            <td>
+              {% with total_actions=session.chatbot_interactions.count|add:session.product_views.count %}
+                {% if total_actions > 10 %}
+                  <span class="badge bg-success">Élevé ({{ total_actions }})</span>
+                {% elif total_actions > 5 %}
+                  <span class="badge bg-warning">Moyen ({{ total_actions }})</span>
+                {% elif total_actions > 0 %}
+                  <span class="badge bg-secondary">Faible ({{ total_actions }})</span>
+                {% else %}
+                  <span class="badge bg-light text-dark">Aucun</span>
+                {% endif %}
+              {% endwith %}
+            </td>
             <td>
               <button class="btn btn-sm btn-outline-primary" data-session-id="{{ session.id }}" onclick="openSessionDetail(this)">
-                <i class="bi bi-eye"></i>
+                <i class="bi bi-eye"></i> Détails
               </button>
             </td>
           </tr>
           {% empty %}
-          <tr><td colspan="8" class="text-center text-muted py-3">Aucune session trouvée.</td></tr>
+          <tr><td colspan="9" class="text-center text-muted py-4">Aucune session trouvée avec ces filtres.</td></tr>
           {% endfor %}
         </tbody>
       </table>
@@ -107,7 +491,7 @@
     <nav aria-label="Pagination sessions">
       <ul class="pagination justify-content-center mt-3 mb-0">
         {% if sessions.has_previous %}
-          <li class="page-item"><a class="page-link" href="?page={{ sessions.previous_page_number }}">&laquo;</a></li>
+          <li class="page-item"><a class="page-link" href="?page={{ sessions.previous_page_number }}&{{ request.GET.urlencode }}">&laquo;</a></li>
         {% else %}
           <li class="page-item disabled"><span class="page-link">&laquo;</span></li>
         {% endif %}
@@ -115,11 +499,11 @@
           {% if sessions.number == num %}
             <li class="page-item active"><span class="page-link">{{ num }}</span></li>
           {% elif num > sessions.number|add:'-3' and num < sessions.number|add:'3' %}
-            <li class="page-item"><a class="page-link" href="?page={{ num }}">{{ num }}</a></li>
+            <li class="page-item"><a class="page-link" href="?page={{ num }}&{{ request.GET.urlencode }}">{{ num }}</a></li>
           {% endif %}
         {% endfor %}
         {% if sessions.has_next %}
-          <li class="page-item"><a class="page-link" href="?page={{ sessions.next_page_number }}">&raquo;</a></li>
+          <li class="page-item"><a class="page-link" href="?page={{ sessions.next_page_number }}&{{ request.GET.urlencode }}">&raquo;</a></li>
         {% else %}
           <li class="page-item disabled"><span class="page-link">&raquo;</span></li>
         {% endif %}
@@ -131,14 +515,16 @@
 
 <!-- Modal détail session -->
 <div class="modal fade" id="sessionDetailModal" tabindex="-1">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+  <div class="modal-dialog modal-xl modal-dialog-scrollable">
     <div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title fw-bold">Détail de la session</h5>
+        <h5 class="modal-title fw-bold"><i class="bi bi-clipboard-data me-2"></i>Détail de la session</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
-        <div id="sessionDetailContent" class="text-center text-muted">Chargement...</div>
+        <div id="sessionDetailContent" class="text-center text-muted">
+          <div class="spinner-border" role="status"><span class="visually-hidden">Chargement...</span></div>
+        </div>
       </div>
     </div>
   </div>
@@ -147,20 +533,166 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-  // --- Graphique ---
-  fetch("{% url 'chart_data' %}")
+  // ========== CHARGEMENT DES DONNÉES ANALYTIQUES ==========
+  fetch("{% url 'sessions_analytics_data' %}")
     .then(response => response.json())
     .then(data => {
-      const ctx = document.getElementById("sessionsChart").getContext("2d");
-      new Chart(ctx, {
+      // 1. Graphique évolution (30 jours) - Avec scroll horizontal
+      const ctxEvolution = document.getElementById("evolutionChart");
+      const evolutionChart = new Chart(ctxEvolution, {
         type: "line",
         data: {
-          labels: data.labels,
+          labels: data.evolution_labels,
+          datasets: [
+            {
+              label: "Total sessions",
+              data: data.evolution_total,
+              borderColor: "#3B82F6",
+              backgroundColor: "rgba(59,130,246,0.1)",
+              tension: 0.3,
+              fill: true,
+              pointRadius: 5,
+              pointHoverRadius: 7,
+              borderWidth: 2
+            },
+            {
+              label: "Avec chatbot",
+              data: data.evolution_with_chatbot,
+              borderColor: "#10B981",
+              backgroundColor: "rgba(16,185,129,0.1)",
+              tension: 0.3,
+              fill: true,
+              pointRadius: 5,
+              pointHoverRadius: 7,
+              borderWidth: 2
+            },
+            {
+              label: "Avec produits",
+              data: data.evolution_with_products,
+              borderColor: "#F59E0B",
+              backgroundColor: "rgba(245,158,11,0.1)",
+              tension: 0.3,
+              fill: true,
+              pointRadius: 5,
+              pointHoverRadius: 7,
+              borderWidth: 2
+            }
+          ]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              display: true,
+              position: 'top',
+              labels: {
+                usePointStyle: true,
+                padding: 15,
+                font: {
+                  size: 12,
+                  weight: 'bold'
+                }
+              }
+            },
+            tooltip: {
+              mode: 'index',
+              intersect: false,
+              backgroundColor: 'rgba(0, 0, 0, 0.8)',
+              padding: 12,
+              titleFont: {
+                size: 14,
+                weight: 'bold'
+              },
+              bodyFont: {
+                size: 13
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: {
+                color: 'rgba(0, 0, 0, 0.05)',
+                drawBorder: false
+              },
+              ticks: {
+                font: {
+                  size: 11
+                },
+                padding: 8
+              }
+            },
+            x: {
+              grid: {
+                display: false
+              },
+              ticks: {
+                font: {
+                  size: 11,
+                  weight: '500'
+                },
+                padding: 8,
+                maxRotation: 45,
+                minRotation: 45
+              }
+            }
+          },
+          interaction: {
+            mode: 'nearest',
+            axis: 'x',
+            intersect: false
+          }
+        }
+      });
+
+      // 2. Graphique distribution durée
+      const ctxDuration = document.getElementById("durationChart").getContext("2d");
+      new Chart(ctxDuration, {
+        type: "doughnut",
+        data: {
+          labels: data.duration_labels,
+          datasets: [{
+            data: data.duration_counts,
+            backgroundColor: ["#EF4444", "#F59E0B", "#10B981", "#3B82F6", "#8B5CF6", "#EC4899"]
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { position: 'bottom' } }
+        }
+      });
+
+      // 3. Graphique activité par heure
+      const ctxActivity = document.getElementById("activityChart").getContext("2d");
+      new Chart(ctxActivity, {
+        type: "bar",
+        data: {
+          labels: data.activity_labels,
           datasets: [{
             label: "Sessions",
-            data: data.sessions,
-            borderColor: "#3B82F6",
-            backgroundColor: "rgba(59,130,246,0.1)",
+            data: data.activity_counts,
+            backgroundColor: "#3B82F6"
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: true } }
+        }
+      });
+
+      // 4. Graphique taux d'engagement
+      const ctxEngagement = document.getElementById("engagementChart").getContext("2d");
+      new Chart(ctxEngagement, {
+        type: "line",
+        data: {
+          labels: data.engagement_labels,
+          datasets: [{
+            label: "Taux d'engagement (%)",
+            data: data.engagement_rates,
+            borderColor: "#10B981",
+            backgroundColor: "rgba(16,185,129,0.2)",
             tension: 0.3,
             fill: true
           }]
@@ -168,12 +700,12 @@ document.addEventListener("DOMContentLoaded", function () {
         options: {
           responsive: true,
           plugins: { legend: { display: false } },
-          scales: { y: { beginAtZero: true }, x: { grid: { display: false } } }
+          scales: { y: { beginAtZero: true, max: 100 } }
         }
       });
     });
 
-  // --- Export CSV ---
+  // ========== EXPORT CSV ==========
   const exportBtn = document.getElementById("exportSessionsBtn");
   const exportAlert = document.getElementById("exportAlert");
 
@@ -192,7 +724,7 @@ document.addEventListener("DOMContentLoaded", function () {
     .then(response => response.json())
     .then(data => {
       exportBtn.disabled = false;
-      exportBtn.innerHTML = '<i class="bi bi-download me-2"></i> Exporter les sessions';
+      exportBtn.innerHTML = '<i class="bi bi-download me-2"></i> Exporter';
 
       if (data.success) {
         exportAlert.className = "alert alert-success alert-dismissible fade show";
@@ -212,7 +744,7 @@ document.addEventListener("DOMContentLoaded", function () {
     })
     .catch(err => {
       exportBtn.disabled = false;
-      exportBtn.innerHTML = '<i class="bi bi-download me-2"></i> Exporter les sessions';
+      exportBtn.innerHTML = '<i class="bi bi-download me-2"></i> Exporter';
       exportAlert.className = "alert alert-danger";
       exportAlert.innerHTML = "<i class='bi bi-bug-fill me-2'></i> Erreur lors de l'export.";
       exportAlert.classList.remove("d-none");
@@ -235,11 +767,28 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 });
 
+// ========== FONCTIONS UTILITAIRES ==========
+function toggleCustomDates(select) {
+  const customStart = document.getElementById("customStartDate");
+  const customEnd = document.getElementById("customEndDate");
+  if (select.value === "custom") {
+    customStart.style.display = "block";
+    customEnd.style.display = "block";
+  } else {
+    customStart.style.display = "none";
+    customEnd.style.display = "none";
+  }
+}
+
+function resetFilters() {
+  window.location.href = "{% url 'sessions' %}";
+}
+
 function openSessionDetail(button) {
   const sessionId = button.getAttribute("data-session-id");
   const modal = new bootstrap.Modal(document.getElementById("sessionDetailModal"));
   const content = document.getElementById("sessionDetailContent");
-  content.innerHTML = "Chargement...";
+  content.innerHTML = '<div class="spinner-border" role="status"><span class="visually-hidden">Chargement...</span></div>';
 
   fetch(`/dashboard/session/${sessionId}/detail/`)
     .then(response => response.text())

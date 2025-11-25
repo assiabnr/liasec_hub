@@ -1,168 +1,655 @@
-<div class="text-start">
+<style>
+/* ========== STYLES POUR LA VUE CONVERSATION ========== */
+.chat-container {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px;
+  max-height: 600px;
+  overflow-y: auto;
+}
 
-  <!-- Informations de base -->
-  <h6 class="fw-bold text-primary mb-2">Informations de base</h6>
-  <ul class="list-unstyled mb-3">
-    <li><strong>ID :</strong> {{ session.id }}</li>
-    <li><strong>Utilisateur :</strong> {{ session.user_id|default:"Visiteur anonyme" }}</li>
-    <li><strong>Début :</strong> {{ session.start_time|date:"d/m/Y H:i" }}</li>
-    <li><strong>Fin :</strong> {{ session.end_time|date:"d/m/Y H:i"|default:"—" }}</li>
-    <li><strong>Durée :</strong> {{ session.duration|default:"—" }}</li>
-    <li><strong>Localisation :</strong> {{ session.location|default:"—" }}</li>
-    <li><strong>Appareil :</strong> {{ session.device|default:"—" }}</li>
-  </ul>
+.chat-message {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: flex-start;
+}
 
-  <!-- Résumé satisfaction -->
-  {% if total_feedbacks %}
-    <div class="mb-4">
-      <h6 class="fw-bold text-primary mb-1">Satisfaction utilisateur</h6>
-      <p class="mb-1">
-        <strong>Taux de satisfaction :</strong>
-        <span class="text-success fw-semibold">{{ satisfaction_rate }}%</span>
-      </p>
-      <small class="text-muted">
-        {{ satisfied }} avis positifs / {{ unsatisfied }} avis négatifs ({{ total_feedbacks }} au total)
-      </small>
-      <div class="progress mt-2" style="height: 8px;">
-        <div class="progress-bar bg-success" role="progressbar"
-             style="width: {{ satisfaction_rate }}%;"
-             aria-valuenow="{{ satisfaction_rate }}" aria-valuemin="0" aria-valuemax="100">
+.chat-message.user {
+  justify-content: flex-end;
+}
+
+.chat-message.bot {
+  justify-content: flex-start;
+}
+
+.message-bubble {
+  max-width: 70%;
+  padding: 12px 16px;
+  border-radius: 12px;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.chat-message.user .message-bubble {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-message.bot .message-bubble {
+  background: white;
+  color: #333;
+  border: 1px solid #e5e7eb;
+  border-bottom-left-radius: 4px;
+}
+
+.message-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.message-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.chat-message.user .message-avatar {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  order: 2;
+  margin-right: 0;
+  margin-left: 12px;
+}
+
+.chat-message.bot .message-avatar {
+  background: linear-gradient(135deg, #3B82F6 0%, #1D4ED8 100%);
+  color: white;
+}
+
+.message-content {
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+
+.message-footer {
+  margin-top: 8px;
+  font-size: 0.7rem;
+  opacity: 0.7;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.message-metadata {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.timeline-item {
+  padding: 16px;
+  border-left: 3px solid #3B82F6;
+  margin-bottom: 16px;
+  background: white;
+  border-radius: 0 8px 8px 0;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  transition: all 0.2s ease;
+}
+
+.timeline-item:hover {
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  transform: translateX(4px);
+}
+
+.timeline-item.chatbot-event {
+  border-left-color: #3B82F6;
+}
+
+.timeline-item.product-event {
+  border-left-color: #10B981;
+}
+
+.stats-card {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.badge-satisfaction {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.tab-custom {
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.tab-custom.active {
+  border-bottom-color: #3B82F6;
+  color: #3B82F6 !important;
+}
+
+.session-stat-box {
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  border-radius: 12px;
+  padding: 16px;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.session-stat-box h3 {
+  font-size: 1.8rem;
+  font-weight: bold;
+  margin: 8px 0;
+}
+
+.session-stat-box .label {
+  font-size: 0.85rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+</style>
+
+<div class="session-detail-content">
+
+  <!-- ========== EN-TÊTE DE SESSION ========== -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="card border-0 shadow-sm">
+        <div class="card-body">
+          <div class="row g-3">
+            <div class="col-md-6">
+              <h5 class="fw-bold mb-3">
+                <i class="bi bi-info-circle me-2 text-primary"></i>Informations de base
+                {% if session_type == "chatbot" %}
+                  <span class="badge bg-primary ms-2"><i class="bi bi-robot"></i> Session Chatbot</span>
+                {% elif session_type == "produit" %}
+                  <span class="badge bg-success ms-2"><i class="bi bi-box-seam"></i> Session Produits</span>
+                {% elif session_type == "mixte" %}
+                  <span class="badge bg-info ms-2"><i class="bi bi-layers"></i> Session Mixte</span>
+                {% endif %}
+              </h5>
+              <ul class="list-unstyled mb-0">
+                <li class="mb-2"><strong>ID Session :</strong> <span class="badge bg-dark">#{{ session.id }}</span></li>
+                <li class="mb-2"><strong>Utilisateur :</strong> <span class="badge bg-secondary">{{ session.user_id|default:"Visiteur anonyme" }}</span></li>
+                <li class="mb-2"><strong>Début :</strong> {{ session.start_time|date:"d/m/Y à H:i" }}</li>
+                <li class="mb-2"><strong>Fin :</strong> {% if session.end_time %}{{ session.end_time|date:"d/m/Y à H:i" }}{% else %}<span class="badge bg-warning">Session active</span>{% endif %}</li>
+                <li class="mb-2"><strong>Durée :</strong> <span class="badge bg-info">{{ duration_formatted|default:"—" }}</span></li>
+              </ul>
+            </div>
+            <div class="col-md-6">
+              <h5 class="fw-bold mb-3"><i class="bi bi-geo-alt me-2 text-primary"></i>Contexte</h5>
+              <ul class="list-unstyled mb-0">
+                <li class="mb-2"><strong>Localisation :</strong> {{ session.location|default:"Non renseignée" }}</li>
+                <li class="mb-2"><strong>Appareil :</strong> {{ session.device|default:"Non renseigné" }}</li>
+                {% if has_products %}
+                  <li class="mb-2"><strong>Produits consultés :</strong> <span class="badge bg-success">{{ unique_products }} unique(s)</span></li>
+                  <li class="mb-2"><strong>Total vues :</strong> <span class="badge bg-info">{{ total_product_views }}</span></li>
+                {% endif %}
+                {% if has_chatbot %}
+                  <li class="mb-2"><strong>Interactions chatbot :</strong> <span class="badge bg-primary">{{ total_responses }}</span></li>
+                {% endif %}
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- ========== KPIs SESSION ========== -->
+  {% if session_type == "chatbot" or session_type == "mixte" %}
+  <!-- KPIs pour sessions avec chatbot -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-3">
+      <div class="session-stat-box">
+        <div class="label">Satisfaction</div>
+        {% if satisfaction_rate %}
+          <h3 class="{% if satisfaction_rate >= 70 %}text-success{% elif satisfaction_rate >= 50 %}text-warning{% else %}text-danger{% endif %}">
+            {{ satisfaction_rate }}%
+          </h3>
+          <small>{{ satisfied }}/{{ total_feedbacks }} positifs</small>
+        {% else %}
+          <h3 class="text-muted">—</h3>
+          <small>Aucun feedback</small>
+        {% endif %}
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="session-stat-box">
+        <div class="label">Temps de réponse</div>
+        {% if avg_response_time %}
+          <h3 class="text-info">{{ avg_response_time }}s</h3>
+          <small>Moyenne</small>
+        {% else %}
+          <h3 class="text-muted">—</h3>
+          <small>N/A</small>
+        {% endif %}
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="session-stat-box">
+        <div class="label">Taux de réussite</div>
+        {% if response_success_rate %}
+          <h3 class="{% if response_success_rate >= 80 %}text-success{% elif response_success_rate >= 60 %}text-warning{% else %}text-danger{% endif %}">
+            {{ response_success_rate }}%
+          </h3>
+          <small>{{ successful_responses }}/{{ total_responses }}</small>
+        {% else %}
+          <h3 class="text-muted">—</h3>
+          <small>N/A</small>
+        {% endif %}
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="session-stat-box">
+        <div class="label">Taux de clic reco</div>
+        {% if reco_click_rate %}
+          <h3 class="text-primary">{{ reco_click_rate }}%</h3>
+          <small>{{ clicked_recos }}/{{ total_recos }}</small>
+        {% else %}
+          <h3 class="text-muted">—</h3>
+          <small>Aucune reco</small>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% elif session_type == "produit" %}
+  <!-- KPIs pour sessions produits uniquement -->
+  <div class="row g-3 mb-4">
+    <div class="col-md-4">
+      <div class="session-stat-box">
+        <div class="label">Produits consultés</div>
+        <h3 class="text-success">{{ unique_products }}</h3>
+        <small>{{ unique_products }} unique(s)</small>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="session-stat-box">
+        <div class="label">Total vues</div>
+        <h3 class="text-info">{{ total_product_views }}</h3>
+        <small>Consultations</small>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="session-stat-box">
+        <div class="label">Durée moyenne / produit</div>
+        {% if unique_products > 0 and duration_formatted %}
+          <h3 class="text-primary">{{ duration_formatted }}</h3>
+          <small>Par produit</small>
+        {% else %}
+          <h3 class="text-muted">—</h3>
+          <small>N/A</small>
+        {% endif %}
+      </div>
+    </div>
+  </div>
   {% endif %}
 
-  <!-- Interactions Chatbot -->
-  <h6 class="fw-bold text-primary mb-2">Interactions Chatbot</h6>
-  {% if chats %}
-    <ul class="list-group mb-3">
-      {% for chat in chats %}
-        <li class="list-group-item">
-          <p class="mb-1"><strong>Q :</strong> {{ chat.question|default:"(vide)"|truncatechars:120 }}</p>
-          <p class="mb-1"><strong>R :</strong> {{ chat.response|default:"(En attente...)"|truncatechars:300 }}</p>
-
-          {% if chat.intent %}
-            <small class="text-muted d-block">
-              <i class="bi bi-diagram-3 me-1"></i> Intent : {{ chat.intent }}
-            </small>
-          {% endif %}
-
-          {% if chat.response_time %}
-            <small class="text-muted d-block">
-              <i class="bi bi-stopwatch me-1"></i> Temps de réponse : {{ chat.response_time }} s
-            </small>
-          {% endif %}
-
-          {% if chat.response_success is not None %}
-            <small class="text-muted d-block">
-              <i class="bi bi-check2-circle me-1"></i>
-              Succès modèle : {{ chat.response_success|yesno:"Oui,Non" }}
-            </small>
-          {% endif %}
-
-          {% if chat.satisfaction is not None %}
-            <small class="d-block mt-1">
-              <strong>Satisfaction :</strong>
-              {% if chat.satisfaction %}
-                <span class="text-success fw-semibold"><i class="bi bi-hand-thumbs-up-fill me-1"></i> Oui</span>
-              {% else %}
-                <span class="text-danger fw-semibold"><i class="bi bi-hand-thumbs-down-fill me-1"></i> Non</span>
-              {% endif %}
-            </small>
-          {% endif %}
-
-          {% if chat.ask_feedback %}
-            <small class="text-warning d-block mt-1">
-              <i class="bi bi-question-circle me-1"></i> Feedback demandé
-            </small>
-          {% endif %}
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p class="text-muted">Aucune interaction enregistrée.</p>
-  {% endif %}
-
-  <!-- Recommandations produits liées (depuis ChatbotRecommendation) -->
-  <h6 class="fw-bold text-primary mb-2">Produits recommandés par le chatbot</h6>
-  {% if session.chatbot_recommendations.all %}
-    {% if session.chatbot_recommendations.all|length %}
-      <ul class="list-group mb-3">
-        {% for r in session.chatbot_recommendations.all %}
-          <li class="list-group-item {% if r.clicked %}border-success{% endif %}">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <div class="d-flex align-items-center gap-2 mb-1">
-                  <strong>{{ r.product.name|default:"Produit inconnu" }}</strong>
-                  {% if r.clicked %}
-                    <span class="badge bg-success">
-                      <i class="bi bi-check-circle-fill me-1"></i>Cliqué
-                    </span>
-                  {% else %}
-                    <span class="badge bg-secondary">Non cliqué</span>
-                  {% endif %}
-                </div>
-                {% if r.product.brand %}<span class="text-muted">{{ r.product.brand }}</span><br>{% endif %}
-                <small class="text-muted">
-                  Recommandé le {{ r.recommended_at|date:"d/m/Y H:i" }}<br>
-                  Interaction #{{ r.interaction.id }}
-                </small>
-              </div>
-              {% if r.product.image_url %}
-                <img src="{{ r.product.image_url }}" alt="{{ r.product.name }}" class="rounded" width="56" height="56" style="object-fit:cover;">
-              {% endif %}
-            </div>
-          </li>
-        {% endfor %}
-      </ul>
-    {% else %}
-      <p class="text-muted">Aucune recommandation liée.</p>
+  <!-- ========== ONGLETS ========== -->
+  <ul class="nav nav-tabs mb-3" id="sessionDetailTabs" role="tablist">
+    {% if has_chatbot %}
+    <li class="nav-item" role="presentation">
+      <button class="nav-link tab-custom active" id="conversation-tab" data-bs-toggle="tab" data-bs-target="#conversation" type="button">
+        <i class="bi bi-chat-dots me-2"></i>Conversation
+      </button>
+    </li>
     {% endif %}
-  {% else %}
-    <p class="text-muted">Aucune recommandation liée.</p>
-  {% endif %}
+    <li class="nav-item" role="presentation">
+      <button class="nav-link tab-custom {% if not has_chatbot %}active{% endif %}" id="timeline-tab" data-bs-toggle="tab" data-bs-target="#timeline" type="button">
+        <i class="bi bi-clock-history me-2"></i>Timeline complète
+      </button>
+    </li>
+    {% if has_products %}
+    <li class="nav-item" role="presentation">
+      <button class="nav-link tab-custom" id="products-tab" data-bs-toggle="tab" data-bs-target="#products" type="button">
+        <i class="bi bi-bag me-2"></i>Produits ({{ total_product_views }})
+      </button>
+    </li>
+    {% endif %}
+    {% if has_chatbot and total_recos > 0 %}
+    <li class="nav-item" role="presentation">
+      <button class="nav-link tab-custom" id="recommendations-tab" data-bs-toggle="tab" data-bs-target="#recommendations" type="button">
+        <i class="bi bi-star me-2"></i>Recommandations ({{ total_recos }})
+      </button>
+    </li>
+    {% endif %}
+  </ul>
 
-  <!-- Produits consultés -->
-  <h6 class="fw-bold text-primary mb-2">Produits consultés</h6>
-  {% if products %}
-    <ul class="list-group">
-      {% for p in products %}
-        <li class="list-group-item">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <div class="d-flex align-items-center gap-2 mb-1">
-                <strong>{{ p.product.name|default:"Produit inconnu" }}</strong>
-                {% if p.source == "chatbot" %}
-                  <span class="badge bg-info">
-                    <i class="bi bi-chat-dots-fill me-1"></i>Chatbot
-                  </span>
-                {% elif p.source == "carte" %}
-                  <span class="badge bg-warning text-dark">
-                    <i class="bi bi-map-fill me-1"></i>Carte
-                  </span>
-                {% elif p.source == "recherche" %}
-                  <span class="badge bg-primary">
-                    <i class="bi bi-search me-1"></i>Recherche
-                  </span>
-                {% elif p.source %}
-                  <span class="badge bg-secondary">{{ p.source }}</span>
-                {% endif %}
+  <!-- ========== CONTENU DES ONGLETS ========== -->
+  <div class="tab-content" id="sessionDetailTabsContent">
+
+    <!-- ========== ONGLET CONVERSATION ========== -->
+    {% if has_chatbot %}
+    <div class="tab-pane fade show active" id="conversation" role="tabpanel">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-primary text-white">
+          <h6 class="mb-0"><i class="bi bi-chat-left-text me-2"></i>Conversation complète utilisateur - bot</h6>
+        </div>
+        <div class="card-body p-0">
+          <div class="chat-container">
+            {% if chats %}
+              {% for chat in chats %}
+                <!-- Message utilisateur (question) -->
+                <div class="chat-message user">
+                  <div>
+                    <div class="message-bubble">
+                      <div class="message-header">
+                        <i class="bi bi-person-fill me-1"></i>
+                        <span>Utilisateur</span>
+                      </div>
+                      <div class="message-content">
+                        {{ chat.question }}
+                      </div>
+                      <div class="message-footer">
+                        <span class="message-metadata">
+                          <i class="bi bi-clock"></i>
+                          {{ chat.created_at|date:"H:i:s" }}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="message-avatar">
+                    <i class="bi bi-person"></i>
+                  </div>
+                </div>
+
+                <!-- Message bot (réponse) -->
+                <div class="chat-message bot">
+                  <div class="message-avatar">
+                    <i class="bi bi-robot"></i>
+                  </div>
+                  <div>
+                    <div class="message-bubble">
+                      <div class="message-header">
+                        <i class="bi bi-cpu me-1"></i>
+                        <span>Bot ({{ chat.model_used }})</span>
+                      </div>
+                      <div class="message-content">
+                        {{ chat.response|default:"<em class='text-muted'>Pas de réponse enregistrée</em>"|safe }}
+                      </div>
+                      <div class="message-footer">
+                        <span class="message-metadata">
+                          <i class="bi bi-clock"></i>
+                          {{ chat.created_at|date:"H:i:s" }}
+                        </span>
+                        {% if chat.response_time %}
+                          <span class="message-metadata">
+                            <i class="bi bi-speedometer2"></i>
+                            {{ chat.response_time }}s
+                          </span>
+                        {% endif %}
+                        {% if chat.intent %}
+                          <span class="badge bg-info badge-satisfaction">
+                            <i class="bi bi-tag"></i>
+                            {{ chat.intent }}
+                          </span>
+                        {% endif %}
+                        {% if chat.response_success %}
+                          <span class="badge bg-success badge-satisfaction">
+                            <i class="bi bi-check-circle"></i>
+                            Succès
+                          </span>
+                        {% else %}
+                          <span class="badge bg-danger badge-satisfaction">
+                            <i class="bi bi-x-circle"></i>
+                            Échec
+                          </span>
+                        {% endif %}
+                        {% if chat.satisfaction is not None %}
+                          {% if chat.satisfaction %}
+                            <span class="badge bg-success badge-satisfaction">
+                              <i class="bi bi-hand-thumbs-up-fill"></i>
+                              Satisfait
+                            </span>
+                          {% else %}
+                            <span class="badge bg-danger badge-satisfaction">
+                              <i class="bi bi-hand-thumbs-down-fill"></i>
+                              Insatisfait
+                            </span>
+                          {% endif %}
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            {% else %}
+              <div class="text-center text-muted py-5">
+                <i class="bi bi-chat-dots" style="font-size: 3rem;"></i>
+                <p class="mt-3">Aucune conversation enregistrée pour cette session.</p>
               </div>
-              <small class="text-muted">
-                ID : {{ p.product.product_id|default:"—" }}<br>
-                Zone : {{ p.zone|default:"—" }}<br>
-                Vu à : {{ p.viewed_at|date:"d/m/Y H:i" }}
-              </small>
-            </div>
-            {% if p.product.image_url %}
-              <img src="{{ p.product.image_url }}" alt="{{ p.product.name }}" class="rounded" width="50" height="50" style="object-fit:cover;">
             {% endif %}
           </div>
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p class="text-muted">Aucun produit consulté.</p>
-  {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
 
+    <!-- ========== ONGLET TIMELINE COMPLÈTE ========== -->
+    <div class="tab-pane fade {% if not has_chatbot %}show active{% endif %}" id="timeline" role="tabpanel">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-info text-white">
+          <h6 class="mb-0"><i class="bi bi-list-task me-2"></i>Timeline complète de l'activité</h6>
+        </div>
+        <div class="card-body">
+          {% if timeline %}
+            {% for event in timeline %}
+              {% if event.type == "chatbot_interaction" %}
+                <div class="timeline-item chatbot-event">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h6 class="mb-0 fw-bold text-primary">
+                      <i class="bi bi-chat-dots-fill me-2"></i>Interaction Chatbot
+                    </h6>
+                    <small class="text-muted">{{ event.timestamp|date:"H:i:s" }}</small>
+                  </div>
+                  <p class="mb-1"><strong>Q:</strong> {{ event.data.question|truncatechars:100 }}</p>
+                  <p class="mb-2"><strong>R:</strong> {{ event.data.response|truncatechars:150|default:"<em>Pas de réponse</em>"|safe }}</p>
+                  <div class="d-flex gap-2 flex-wrap">
+                    {% if event.data.intent %}
+                      <span class="badge bg-info"><i class="bi bi-tag me-1"></i>{{ event.data.intent }}</span>
+                    {% endif %}
+                    {% if event.data.response_time %}
+                      <span class="badge bg-secondary"><i class="bi bi-stopwatch me-1"></i>{{ event.data.response_time }}s</span>
+                    {% endif %}
+                    {% if event.data.satisfaction is not None %}
+                      {% if event.data.satisfaction %}
+                        <span class="badge bg-success"><i class="bi bi-hand-thumbs-up me-1"></i>Satisfait</span>
+                      {% else %}
+                        <span class="badge bg-danger"><i class="bi bi-hand-thumbs-down me-1"></i>Insatisfait</span>
+                      {% endif %}
+                    {% endif %}
+                  </div>
+                </div>
+
+              {% elif event.type == "product_view" %}
+                <div class="timeline-item product-event">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h6 class="mb-0 fw-bold text-success">
+                      <i class="bi bi-bag-fill me-2"></i>Consultation Produit
+                    </h6>
+                    <small class="text-muted">{{ event.timestamp|date:"H:i:s" }}</small>
+                  </div>
+                  <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                      <p class="mb-1"><strong>{{ event.data.product.name|default:"Produit inconnu" }}</strong></p>
+                      <div class="d-flex gap-2 flex-wrap">
+                        {% if event.data.source == "chatbot" %}
+                          <span class="badge bg-primary"><i class="bi bi-chat me-1"></i>Chatbot</span>
+                        {% elif event.data.source == "carte" %}
+                          <span class="badge bg-warning text-dark"><i class="bi bi-map me-1"></i>Carte</span>
+                        {% elif event.data.source == "recherche" %}
+                          <span class="badge bg-info"><i class="bi bi-search me-1"></i>Recherche</span>
+                        {% endif %}
+                        {% if event.data.zone %}
+                          <span class="badge bg-secondary">{{ event.data.zone }}</span>
+                        {% endif %}
+                      </div>
+                    </div>
+                    {% if event.data.product.image_url %}
+                      <img src="{{ event.data.product.image_url }}" alt="{{ event.data.product.name }}" class="rounded" width="50" height="50" style="object-fit:cover;">
+                    {% endif %}
+                  </div>
+                </div>
+              {% endif %}
+            {% endfor %}
+          {% else %}
+            <div class="text-center text-muted py-5">
+              <i class="bi bi-clock-history" style="font-size: 3rem;"></i>
+              <p class="mt-3">Aucune activité enregistrée pour cette session.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== ONGLET PRODUITS ========== -->
+    {% if has_products %}
+    <div class="tab-pane fade" id="products" role="tabpanel">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-success text-white">
+          <h6 class="mb-0"><i class="bi bi-bag-check me-2"></i>Produits consultés</h6>
+        </div>
+        <div class="card-body">
+          {% if products %}
+            <div class="row g-3">
+              {% for p in products %}
+                <div class="col-md-6">
+                  <div class="card h-100 border">
+                    <div class="card-body">
+                      <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                          {% if p.product %}
+                            <h6 class="fw-bold mb-2">
+                              <a href="{% url 'product_detail' p.product.id %}" class="text-decoration-none text-primary" target="_blank">
+                                {{ p.product.name|default:"Produit inconnu" }}
+                                <i class="bi bi-box-arrow-up-right small ms-1"></i>
+                              </a>
+                            </h6>
+                          {% else %}
+                            <h6 class="fw-bold mb-2">Produit inconnu</h6>
+                          {% endif %}
+                          <p class="text-muted small mb-2">ID: {{ p.product.product_id|default:"—" }}</p>
+                          <div class="mb-2">
+                            {% if p.source == "chatbot" %}
+                              <span class="badge bg-primary"><i class="bi bi-chat-dots-fill me-1"></i>Chatbot</span>
+                            {% elif p.source == "carte" %}
+                              <span class="badge bg-warning text-dark"><i class="bi bi-map-fill me-1"></i>Carte</span>
+                            {% elif p.source == "recherche" %}
+                              <span class="badge bg-info"><i class="bi bi-search me-1"></i>Recherche</span>
+                            {% endif %}
+                            {% if p.zone %}
+                              <span class="badge bg-secondary">{{ p.zone }}</span>
+                            {% endif %}
+                          </div>
+                          <small class="text-muted">
+                            <i class="bi bi-clock"></i> {{ p.viewed_at|date:"d/m/Y H:i" }}
+                          </small>
+                        </div>
+                        {% if p.product.image_url %}
+                          <img src="{{ p.product.image_url }}" alt="{{ p.product.name }}" class="rounded ms-3" width="80" height="80" style="object-fit:cover;">
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-center text-muted py-5">
+              <i class="bi bi-bag-x" style="font-size: 3rem;"></i>
+              <p class="mt-3">Aucun produit consulté durant cette session.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- ========== ONGLET RECOMMANDATIONS ========== -->
+    {% if has_chatbot and total_recos > 0 %}
+    <div class="tab-pane fade" id="recommendations" role="tabpanel">
+      <div class="card border-0 shadow-sm">
+        <div class="card-header bg-warning text-dark">
+          <h6 class="mb-0"><i class="bi bi-star-fill me-2"></i>Recommandations du chatbot</h6>
+        </div>
+        <div class="card-body">
+          {% if recommendations %}
+            <div class="row g-3">
+              {% for r in recommendations %}
+                <div class="col-md-6">
+                  <div class="card h-100 {% if r.clicked %}border-success{% else %}border{% endif %}">
+                    <div class="card-body">
+                      <div class="d-flex justify-content-between align-items-start">
+                        <div class="flex-grow-1">
+                          <div class="d-flex align-items-center gap-2 mb-2">
+                            {% if r.product %}
+                              <h6 class="fw-bold mb-0">
+                                <a href="{% url 'product_detail' r.product.id %}" class="text-decoration-none text-primary" target="_blank">
+                                  {{ r.product.name|default:"Produit inconnu" }}
+                                  <i class="bi bi-box-arrow-up-right small ms-1"></i>
+                                </a>
+                              </h6>
+                            {% else %}
+                              <h6 class="fw-bold mb-0">Produit inconnu</h6>
+                            {% endif %}
+                            {% if r.clicked %}
+                              <span class="badge bg-success">
+                                <i class="bi bi-check-circle-fill me-1"></i>Cliqué
+                              </span>
+                            {% else %}
+                              <span class="badge bg-secondary">Non cliqué</span>
+                            {% endif %}
+                          </div>
+                          {% if r.product.brand %}
+                            <p class="text-muted small mb-2">{{ r.product.brand }}</p>
+                          {% endif %}
+                          <small class="text-muted d-block">
+                            <i class="bi bi-clock"></i> Recommandé le {{ r.recommended_at|date:"d/m/Y H:i" }}
+                          </small>
+                          <small class="text-muted d-block">
+                            <i class="bi bi-chat"></i> Interaction #{{ r.interaction.id }}
+                          </small>
+                        </div>
+                        {% if r.product.image_url %}
+                          <img src="{{ r.product.image_url }}" alt="{{ r.product.name }}" class="rounded ms-3" width="80" height="80" style="object-fit:cover;">
+                        {% endif %}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="text-center text-muted py-5">
+              <i class="bi bi-star" style="font-size: 3rem;"></i>
+              <p class="mt-3">Aucune recommandation émise durant cette session.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
 </div>
