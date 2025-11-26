@@ -165,6 +165,17 @@ function generateKeyboard() {
 function openKeyboard(keyboardElement) {
   createKeys(keyboardElement);
   keyboardElement.classList.add("active");
+
+  // Ajuster le padding du conteneur de messages pour voir le dernier message
+  setTimeout(() => {
+    const messagesContainer = document.getElementById("messages");
+    if (messagesContainer) {
+      const keyboardHeight = keyboardElement.offsetHeight;
+      messagesContainer.style.paddingBottom = `${keyboardHeight + 200}px`;
+      // Scroller vers le bas pour voir le dernier message
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+  }, 100);
 }
 
 function closeKeyboard(event, keyboardElement) {

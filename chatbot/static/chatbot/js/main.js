@@ -1,8 +1,8 @@
 "use strict";
 
 import { DOM_SELECTORS } from "./config.js";
-import { bubble } from "./ui.js";
-import { toggleVoice } from "./speech.js";
+import { typingBubble } from "./ui.js";
+import { toggleVoice, speak, initializeDefaultVoice } from "./speech.js";
 import { setupSTT, toggleRecognition } from "./recognition.js";
 import { resetInactivity, initInactivityListener } from "./inactivity.js";
 import { sendMessage, hardResetChat } from "./chat.js";
@@ -30,7 +30,7 @@ function initEventListeners() {
   document.addEventListener("triggerSendMessage", sendMessage);
 }
 
-function init() {
+async function init() {
   console.log("Init chatbot");
 
   setupSTT();
@@ -42,7 +42,15 @@ function init() {
     DOM_SELECTORS.feedbackDock.classList.add("hidden");
   }
 
-  bubble(DOM_SELECTORS.chatMessages, "bot", "Bonjour, je suis votre conseiller. Posez votre question.");
+  // Attendre que la voix masculine par défaut soit initialisée
+  await initializeDefaultVoice();
+
+  // Utiliser l'effet de frappe pour le message de bienvenue avec synthèse vocale
+  typingBubble(
+    DOM_SELECTORS.chatMessages,
+    "Bonjour, je suis votre conseiller virtuel. Comment puis-je vous aider ?",
+    () => speak("Bonjour, je suis votre conseiller virtuel. Comment puis-je vous aider ?")
+  );
   resetInactivity();
 
   console.log("Chatbot prêt");

@@ -26,10 +26,17 @@ export const STATE = {
   lastInteractionId: null,
   voiceEnabled: true,
   isSending: false,
+  isTyping: false,
   recognizing: false,
   recognition: null,
   inactivityTimer: null,
   inactivityCountdownTimer: null,
   inactivityPopup: null,
   micLabelEl: null,
+  voiceSettings: {
+    volume: 1,
+    rate: 1,
+    pitch: 1,
+    voice: null,
+  },
 };

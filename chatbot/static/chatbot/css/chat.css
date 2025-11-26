@@ -54,6 +54,25 @@ body {
   overflow-y: auto;
   scrollbar-color: var(--decathlon-blue) transparent;
   scrollbar-width: thin;
+  scroll-behavior: smooth;
+}
+
+/* Personnalisation scrollbar pour WebKit */
+.messages::-webkit-scrollbar {
+  width: 8px;
+}
+
+.messages::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.messages::-webkit-scrollbar-thumb {
+  background: var(--decathlon-blue);
+  border-radius: 4px;
+}
+
+.messages::-webkit-scrollbar-thumb:hover {
+  background: var(--decathlon-purple);
 }
 
 .message {
@@ -191,7 +210,7 @@ body {
 }
 
 .feedback-text {
-  font-size: 1.3rem;
+  font-size: 1.1rem;
   color: #333;
   margin: 0;
   font-weight: 500;
@@ -199,7 +218,7 @@ body {
 
 .feedback-buttons {
   display: flex;
-  gap: 16px;
+  gap: 12px;
 }
 
 .feedback-button {
@@ -216,7 +235,7 @@ body {
   gap: 12px;
   transition: all 0.3s ease;
   color: white;
-  min-height: 60px;
+  min-height: 44px;
 }
 
 .feedback-button.primary {
@@ -251,8 +270,8 @@ body {
 }
 
 .feedback-button img {
-  width: 24px;
-  height: 24px;
+  width: 18px;
+  height: 18px;
 }
 
 /* =========================
@@ -1242,4 +1261,179 @@ body {
   font-style: italic;
   color: #777;
   opacity: 0.9;
+}
+
+/* =========================
+   ANIMATIONS & UX AMÉLIORÉE
+========================= */
+
+/* Animation d'apparition pour les bulles */
+.message {
+  animation: fadeInUp 0.4s ease-out;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Curseur clignotant pendant le typing effect */
+.bubble.typing::after {
+  content: '|';
+  animation: blink 1s infinite;
+  margin-left: 2px;
+}
+
+@keyframes blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+/* Effet de hover sur les boutons */
+.btn:hover {
+  transform: scale(1.05);
+  transition: transform 0.2s ease;
+}
+
+.btn:active {
+  transform: scale(0.95);
+}
+
+/* Animation pour le panneau des paramètres vocaux */
+#voiceSettingsPanel {
+  animation: slideInFadeIn 0.3s ease-out;
+}
+
+@keyframes slideInFadeIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -45%);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+/* Overlay animé */
+#voiceSettingsOverlay {
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Amélioration des sliders */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 5px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  background: var(--decathlon-blue);
+  cursor: pointer;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+  transition: all 0.2s ease;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  transform: scale(1.2);
+  background: var(--decathlon-purple);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  background: var(--decathlon-blue);
+  cursor: pointer;
+  border-radius: 50%;
+  border: none;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.4);
+  transition: all 0.2s ease;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+  transform: scale(1.2);
+  background: var(--decathlon-purple);
+}
+
+/* Boutons désactivés pendant le typing */
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Transition fluide pour le clavier */
+.keyboard {
+  transition: all 0.3s ease-in-out;
+}
+
+.keyboard.active {
+  animation: slideUpKeyboard 0.3s ease-out;
+}
+
+@keyframes slideUpKeyboard {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Amélioration visuelle des messages utilisateur */
+.message.user .bubble {
+  background: linear-gradient(135deg, var(--decathlon-blue-light) 0%, var(--decathlon-blue) 100%);
+  color: white;
+  border: none;
+}
+
+/* Amélioration visuelle des messages bot */
+.message.bot .bubble {
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+  .messages {
+    padding: 20px 15px;
+    padding-bottom: 180px;
+  }
+
+  .message .bubble {
+    font-size: 1.2rem;
+    padding: 16px 20px;
+  }
+
+  #voiceSettingsPanel {
+    width: 95%;
+    padding: 20px;
+  }
+
+  .chat-home-btn, .chat-voice-settings {
+    width: 56px;
+    height: 56px;
+    font-size: 24px;
+  }
 }
