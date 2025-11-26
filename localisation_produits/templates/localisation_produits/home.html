@@ -609,7 +609,16 @@
         return cookieValue;
       }
 
-      async function trackProductView(productId, source = "recherche") {
+      // État global pour tracer le contexte de navigation
+      let navigationContext = {
+        lastSource: "recherche", // Par défaut: recherche
+        lastZoneClick: null
+      };
+
+      async function trackProductView(productId, source = null) {
+        // Si pas de source spécifiée, utiliser le contexte de navigation
+        const finalSource = source || navigationContext.lastSource;
+
         try {
           const response = await fetch(
             "/chatbot/localisation/api/track-view/",
@@ -621,13 +630,15 @@
               },
               body: JSON.stringify({
                 product_id: productId,
-                source: source,
+                source: finalSource,
               }),
             }
           );
 
           if (!response.ok) {
             console.error("Erreur lors du tracking de la vue produit");
+          } else {
+            console.log(`[TRACKING] ProductView créé: produit ${productId}, source: ${finalSource}`);
           }
         } catch (error) {
           console.error("Erreur réseau lors du tracking:", error);
@@ -671,6 +682,36 @@
       }
 
       document.addEventListener("DOMContentLoaded", function () {
+        // Détecter l'utilisation de la recherche/filtres
+        const searchForm = document.querySelector(".loc-filters form");
+        const searchInput = document.querySelector("input[name='search']");
+        const categorySelect = document.querySelector("select[name='category']");
+        const sportSelect = document.querySelector("select[name='sport']");
+
+        // Quand l'utilisateur utilise la recherche ou les filtres
+        if (searchForm) {
+          searchForm.addEventListener("submit", function() {
+            navigationContext.lastSource = "recherche";
+            console.log("[TRACKING] Context mis à jour: recherche");
+          });
+        }
+
+        [searchInput, categorySelect, sportSelect].forEach(element => {
+          if (element) {
+            element.addEventListener("change", function() {
+              navigationContext.lastSource = "recherche";
+              console.log("[TRACKING] Context mis à jour: recherche");
+            });
+          }
+        });
+
+        // Écouter les clics sur les zones de la carte
+        document.addEventListener("map-zone-clicked", function(e) {
+          navigationContext.lastSource = "carte";
+          navigationContext.lastZoneClick = e.detail;
+          console.log("[TRACKING] Context mis à jour: carte", e.detail);
+        });
+
         const list = document.querySelector(".loc-products-list");
         if (list) {
           list.addEventListener("click", async function (e) {

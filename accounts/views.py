@@ -21,6 +21,7 @@ from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.http import require_http_methods
 
 from accounts.models import Role
+from dashboard.models import Notification
 
 
 # =====================================================
@@ -70,6 +71,18 @@ def login_view(request):
             if getattr(user, "must_change_password", False):
                 messages.info(request, "Veuillez définir un nouveau mot de passe avant de continuer.")
                 return redirect("force_change_password")
+
+            # Créer une notification de connexion
+            from datetime import datetime
+            Notification.create_notification(
+                user=user,
+                title="Connexion réussie",
+                message=f"Connexion à votre compte le {datetime.now().strftime('%d/%m/%Y à %H:%M')}.",
+                notification_type='info',
+                priority='low',
+                icon='bi-box-arrow-in-right'
+            )
+
             messages.success(request, f"Bienvenue {user.first_name or user.email} 👋")
             return redirect("dashboard_home")
 
@@ -110,6 +123,19 @@ def force_change_password(request):
                 user.save(update_fields=["password", "must_change_password"])
                 messages.success(request, "Mot de passe mis à jour avec succès ✅")
                 login(request, user)
+
+                # Créer une notification de sécurité
+                Notification.create_notification(
+                    user=user,
+                    title="Mot de passe modifié",
+                    message="Votre mot de passe a été changé avec succès. Si ce n'était pas vous, contactez un administrateur immédiatement.",
+                    notification_type='success',
+                    priority='high',
+                    action_url='/dashboard/settings/',
+                    action_label='Voir les paramètres',
+                    icon='bi-shield-lock-fill'
+                )
+
                 return redirect("dashboard_home")
 
     return render(request, "accounts/reset_password_confirm.html")
@@ -182,6 +208,19 @@ def reset_password_confirm(request, uidb64, token):
             user.set_password(p1)
             user.save(update_fields=["password"])
             messages.success(request, "Mot de passe modifié. Vous pouvez vous connecter.")
+
+            # Créer une notification de sécurité
+            Notification.create_notification(
+                user=user,
+                title="Mot de passe réinitialisé",
+                message="Votre mot de passe a été réinitialisé avec succès via le lien email. Si ce n'était pas vous, contactez un administrateur.",
+                notification_type='success',
+                priority='high',
+                action_url='/dashboard/settings/',
+                action_label='Voir les paramètres',
+                icon='bi-shield-lock-fill'
+            )
+
             return redirect("login")
 
     return render(request, "accounts/reset_password_confirm.html", {"uidb64": uidb64, "token": token})
@@ -260,6 +299,19 @@ def users_list_create(request):
     msg.content_subtype = "html"
     msg.send(fail_silently=False)
 
+    # Créer une notification pour l'admin qui a créé le compte
+    if request.user.is_authenticated:
+        Notification.create_notification(
+            user=request.user,
+            title="Nouveau compte créé",
+            message=f"Le compte utilisateur pour {first_name} {last_name} ({email}) a été créé avec succès.",
+            notification_type='success',
+            priority='normal',
+            action_url='/dashboard/users/',
+            action_label='Voir les utilisateurs',
+            icon='bi-person-plus-fill'
+        )
+
     return JsonResponse(_user_dict(user), status=201)
 
 
@@ -282,7 +334,22 @@ def user_detail(request, user_id):
 
     # === DELETE ===
     if request.method == "DELETE":
+        user_name = f"{user.first_name} {user.last_name}".strip() or user.email
         user.delete()
+
+        # Créer une notification pour l'admin qui a supprimé le compte
+        if request.user.is_authenticated:
+            Notification.create_notification(
+                user=request.user,
+                title="Compte utilisateur supprimé",
+                message=f"Le compte de {user_name} a été supprimé définitivement.",
+                notification_type='warning',
+                priority='normal',
+                action_url='/dashboard/users/',
+                action_label='Voir les utilisateurs',
+                icon='bi-person-x-fill'
+            )
+
         return JsonResponse({}, status=204)
 
     # === PATCH ===
@@ -297,6 +364,9 @@ def user_detail(request, user_id):
         changed = True
     if "role" in data:
         user.role = data["role"]
+        changed = True
+    if "is_active" in data:
+        user.is_active = data["is_active"]
         changed = True
 
     # Reset mot de passe
@@ -321,5 +391,44 @@ def user_detail(request, user_id):
 
     if changed:
         user.save()
+
+        # Créer une notification pour l'admin qui a modifié le compte
+        if request.user.is_authenticated:
+            user_name = f"{user.first_name} {user.last_name}".strip() or user.email
+            if data.get("reset_password"):
+                Notification.create_notification(
+                    user=request.user,
+                    title="Mot de passe réinitialisé",
+                    message=f"Le mot de passe de {user_name} a été réinitialisé. Un email a été envoyé.",
+                    notification_type='info',
+                    priority='normal',
+                    action_url='/dashboard/users/',
+                    action_label='Voir les utilisateurs',
+                    icon='bi-key-fill'
+                )
+            elif "is_active" in data and len(data) == 1:
+                # Changement de statut uniquement
+                status = "activé" if data["is_active"] else "désactivé"
+                Notification.create_notification(
+                    user=request.user,
+                    title=f"Compte {status}",
+                    message=f"Le compte de {user_name} a été {status}.",
+                    notification_type='warning' if not data["is_active"] else 'success',
+                    priority='normal',
+                    action_url='/dashboard/users/',
+                    action_label='Voir les utilisateurs',
+                    icon='bi-person-check-fill' if data["is_active"] else 'bi-person-x-fill'
+                )
+            else:
+                Notification.create_notification(
+                    user=request.user,
+                    title="Compte utilisateur modifié",
+                    message=f"Les informations du compte de {user_name} ont été mises à jour.",
+                    notification_type='info',
+                    priority='low',
+                    action_url='/dashboard/users/',
+                    action_label='Voir les utilisateurs',
+                    icon='bi-person-check-fill'
+                )
 
     return JsonResponse(_user_dict(user))

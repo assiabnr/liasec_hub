@@ -1,35 +1,241 @@
-<nav class="navbar-main d-flex justify-content-between align-items-center px-3 py-2 bg-white shadow-sm">
-  <div class="d-flex align-items-center">
-    <h6 class="fw-semibold mb-0 text-primary">
-      <i class="bi bi-speedometer2 me-2"></i> Liasec Dashboard
-    </h6>
+<!-- Navbar professionnelle -->
+<div class="d-flex align-items-center gap-3 w-100">
+
+  <!-- Section gauche - Page actuelle -->
+  <div class="d-flex align-items-center flex-grow-1">
+    <div class="d-flex align-items-center gap-2">
+      <div class="navbar-page-indicator">
+        <i class="bi bi-circle-fill text-primary" style="font-size: 6px;"></i>
+      </div>
+      <div>
+        <h6 class="mb-0 fw-semibold text-dark" style="font-size: 0.95rem;">
+          {% if request.resolver_match.url_name == 'dashboard_home' %}
+            <i class="bi bi-speedometer2 me-1"></i> Tableau de bord
+          {% elif request.resolver_match.url_name == 'sessions' %}
+            <i class="bi bi-people-fill me-1"></i> Sessions
+          {% elif request.resolver_match.url_name == 'clicks' %}
+            <i class="bi bi-mouse-fill me-1"></i> Clics
+          {% elif request.resolver_match.url_name == 'produits' %}
+            <i class="bi bi-box-seam-fill me-1"></i> Produits
+          {% elif request.resolver_match.url_name == 'chatbot' %}
+            <i class="bi bi-robot me-1"></i> Chatbot
+          {% elif request.resolver_match.url_name == 'exports' %}
+            <i class="bi bi-download me-1"></i> Exports
+          {% elif request.resolver_match.url_name == 'users_management' %}
+            <i class="bi bi-people me-1"></i> Utilisateurs
+          {% else %}
+            <i class="bi bi-app me-1"></i> Dashboard
+          {% endif %}
+        </h6>
+        <p class="mb-0 text-muted" style="font-size: 0.75rem;">
+          {{ request.user.first_name }} {{ request.user.last_name }}
+        </p>
+      </div>
+    </div>
   </div>
 
-  <!-- Menu utilisateur -->
-  <ul class="navbar-nav d-flex align-items-center mb-0 position-relative">
-    <li class="nav-item dropdown">
-      <a href="#" class="nav-link p-0 text-body dropdown-toggle d-flex align-items-center"
-         id="userMenu" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-        <i class="material-icons fs-3 text-secondary">account_circle</i>
-      </a>
-      <ul class="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2" aria-labelledby="userMenu">
-        <li class="dropdown-header small text-muted px-3">
-          Connecté en tant que<br>
-          <strong>{{ request.user.first_name }} {{ request.user.last_name }}</strong><br>
-          <small>{{ request.user.email }}</small>
+  <!-- Section droite - Actions rapides et Menu utilisateur -->
+  <div class="d-flex align-items-center gap-2">
+
+    <!-- Raccourci Exports -->
+    <a href="{% url 'exports' %}"
+       class="btn btn-sm btn-light d-none d-md-flex align-items-center gap-1"
+       style="border-radius: 10px; padding: 0.5rem 0.875rem;"
+       title="Exports & Rapports">
+      <i class="bi bi-download" style="font-size: 0.9rem;"></i>
+      <span style="font-size: 0.875rem;">Exports</span>
+    </a>
+
+    <!-- Notifications avec dropdown -->
+    <div class="dropdown position-relative d-none d-lg-block">
+      <button class="btn btn-sm btn-light btn-notification position-relative dropdown-toggle-no-arrow"
+              type="button"
+              id="notificationsDropdown"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+              style="border-radius: 10px; padding: 0.5rem 0.75rem;"
+              title="Notifications">
+        <i class="bi bi-bell" style="font-size: 1.1rem;"></i>
+        <span id="notificationBadge" class="position-absolute badge rounded-pill bg-danger"
+              style="top: -5px; right: -8px; font-size: 0.65rem; padding: 0.25em 0.5em; display: none; min-width: 20px;">
+          0
+        </span>
+      </button>
+
+      <!-- Dropdown notifications -->
+      <div class="dropdown-menu dropdown-menu-end shadow-lg border-0 notifications-dropdown"
+           aria-labelledby="notificationsDropdown"
+           style="min-width: 380px; max-width: 400px; border-radius: 12px; padding: 0;">
+
+        <!-- Header -->
+        <div class="notifications-header p-3 border-bottom">
+          <div class="d-flex justify-content-between align-items-center">
+            <h6 class="mb-0 fw-semibold">Notifications</h6>
+            <button id="markAllReadBtn" class="btn btn-sm btn-link text-primary p-0" style="font-size: 0.8rem; text-decoration: none;">
+              Tout marquer comme lu
+            </button>
+          </div>
+        </div>
+
+        <!-- Liste des notifications -->
+        <div id="notificationsList" class="notifications-list" style="max-height: 400px; overflow-y: auto;">
+          <!-- Chargement -->
+          <div class="text-center py-4">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+              <span class="visually-hidden">Chargement...</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="notifications-footer p-2 border-top text-center">
+          <a href="{% url 'notifications' %}" class="btn btn-sm btn-link text-decoration-none" style="font-size: 0.875rem;">
+            Voir toutes les notifications
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Séparateur -->
+    <div class="vr d-none d-md-block" style="height: 30px; opacity: 0.2;"></div>
+
+    <!-- Menu utilisateur amélioré -->
+    <div class="dropdown">
+      <button class="btn btn-sm btn-light dropdown-toggle d-flex align-items-center gap-2"
+              type="button"
+              id="userMenuDropdown"
+              data-bs-toggle="dropdown"
+              aria-expanded="false"
+              style="border-radius: 10px; padding: 0.5rem 0.875rem;">
+
+        <!-- Avatar avec initiales -->
+        <div class="user-avatar d-flex align-items-center justify-content-center rounded-circle bg-primary text-white fw-semibold"
+             style="width: 32px; height: 32px; font-size: 0.75rem;">
+          {% if request.user.first_name and request.user.last_name %}
+            {{ request.user.first_name.0 }}{{ request.user.last_name.0 }}
+          {% else %}
+            <i class="bi bi-person"></i>
+          {% endif %}
+        </div>
+
+        <!-- Nom utilisateur (desktop uniquement) -->
+        <div class="d-none d-lg-flex flex-column align-items-start" style="line-height: 1.2;">
+          <span class="fw-semibold text-dark" style="font-size: 0.875rem;">
+            {{ request.user.first_name }} {{ request.user.last_name }}
+          </span>
+          <span class="text-muted" style="font-size: 0.7rem;">
+            {% if request.user.role == 'ADMIN' %}
+              Administrateur
+            {% else %}
+              Utilisateur
+            {% endif %}
+          </span>
+        </div>
+      </button>
+
+      <!-- Dropdown menu amélioré -->
+      <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0"
+          aria-labelledby="userMenuDropdown"
+          style="min-width: 280px; border-radius: 12px; padding: 0.5rem;">
+
+        <!-- Header avec info utilisateur -->
+        <li class="dropdown-header" style="padding: 0.875rem 1rem;">
+          <div class="d-flex align-items-center gap-3">
+            <div class="user-avatar-large d-flex align-items-center justify-content-center rounded-circle bg-primary text-white fw-bold"
+                 style="width: 48px; height: 48px; font-size: 1.25rem; flex-shrink: 0;">
+              {% if request.user.first_name and request.user.last_name %}
+                {{ request.user.first_name.0 }}{{ request.user.last_name.0 }}
+              {% else %}
+                <i class="bi bi-person"></i>
+              {% endif %}
+            </div>
+            <div class="flex-grow-1" style="min-width: 0;">
+              <div class="fw-semibold text-dark" style="font-size: 0.9rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                {{ request.user.first_name }} {{ request.user.last_name }}
+              </div>
+              <div class="text-muted" style="font-size: 0.8rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                {{ request.user.email }}
+              </div>
+              <span class="badge bg-primary mt-1" style="font-size: 0.7rem;">
+                {% if request.user.role == 'ADMIN' %}
+                  Administrateur
+                {% else %}
+                  Utilisateur
+                {% endif %}
+              </span>
+            </div>
+          </div>
         </li>
-        <li><hr class="dropdown-divider"></li>
+
+        <li><hr class="dropdown-divider my-2"></li>
+
+        <!-- Section - Raccourcis -->
+        <li class="px-2 mb-1">
+          <small class="text-muted text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.5px; padding-left: 0.5rem;">
+            Raccourcis
+          </small>
+        </li>
+
         <li>
-          <a class="dropdown-item d-flex align-items-center" href="{% url 'settings' %}">
-            <i class="material-icons me-2 text-primary">settings</i> Paramètres
+          <a class="dropdown-item d-flex align-items-center gap-2 rounded"
+             href="{% url 'dashboard_home' %}"
+             style="padding: 0.625rem 1rem;">
+            <i class="bi bi-speedometer2 text-primary" style="font-size: 1.1rem; width: 20px;"></i>
+            <span style="font-size: 0.875rem;">Tableau de bord</span>
           </a>
         </li>
+
         <li>
-          <a class="dropdown-item d-flex align-items-center text-danger" href="{% url 'logout' %}">
-            <i class="material-icons me-2">logout</i> Se déconnecter
+          <a class="dropdown-item d-flex align-items-center gap-2 rounded"
+             href="{% url 'exports' %}"
+             style="padding: 0.625rem 1rem;">
+            <i class="bi bi-download text-success" style="font-size: 1.1rem; width: 20px;"></i>
+            <span style="font-size: 0.875rem;">Mes exports</span>
+          </a>
+        </li>
+
+        {% if request.user.role == "ADMIN" %}
+        <li>
+          <a class="dropdown-item d-flex align-items-center gap-2 rounded"
+             href="{% url 'users_management' %}"
+             style="padding: 0.625rem 1rem;">
+            <i class="bi bi-people text-info" style="font-size: 1.1rem; width: 20px;"></i>
+            <span style="font-size: 0.875rem;">Gestion des comptes</span>
+          </a>
+        </li>
+        {% endif %}
+
+        <li><hr class="dropdown-divider my-2"></li>
+
+        <!-- Section - Compte -->
+        <li class="px-2 mb-1">
+          <small class="text-muted text-uppercase fw-semibold" style="font-size: 0.7rem; letter-spacing: 0.5px; padding-left: 0.5rem;">
+            Mon compte
+          </small>
+        </li>
+
+        <li>
+          <a class="dropdown-item d-flex align-items-center gap-2 rounded"
+             href="{% url 'settings' %}"
+             style="padding: 0.625rem 1rem;">
+            <i class="bi bi-gear text-secondary" style="font-size: 1.1rem; width: 20px;"></i>
+            <span style="font-size: 0.875rem;">Paramètres</span>
+          </a>
+        </li>
+
+        <li><hr class="dropdown-divider my-2"></li>
+
+        <!-- Déconnexion -->
+        <li>
+          <a class="dropdown-item d-flex align-items-center gap-2 rounded text-danger"
+             href="{% url 'logout' %}"
+             style="padding: 0.625rem 1rem; font-weight: 500;">
+            <i class="bi bi-box-arrow-right" style="font-size: 1.1rem; width: 20px;"></i>
+            <span style="font-size: 0.875rem;">Se déconnecter</span>
           </a>
         </li>
       </ul>
-    </li>
-  </ul>
-</nav>
+    </div>
+
+  </div>
+</div>

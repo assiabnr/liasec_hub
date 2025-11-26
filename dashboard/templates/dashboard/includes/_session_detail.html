@@ -495,11 +495,11 @@
                       <p class="mb-1"><strong>{{ event.data.product.name|default:"Produit inconnu" }}</strong></p>
                       <div class="d-flex gap-2 flex-wrap">
                         {% if event.data.source == "chatbot" %}
-                          <span class="badge bg-primary"><i class="bi bi-chat me-1"></i>Chatbot</span>
+                          <span class="badge bg-info"><i class="bi bi-chat me-1"></i>Chatbot</span>
                         {% elif event.data.source == "carte" %}
                           <span class="badge bg-warning text-dark"><i class="bi bi-map me-1"></i>Carte</span>
                         {% elif event.data.source == "recherche" %}
-                          <span class="badge bg-info"><i class="bi bi-search me-1"></i>Recherche</span>
+                          <span class="badge bg-success"><i class="bi bi-search me-1"></i>Recherche</span>
                         {% endif %}
                         {% if event.data.zone %}
                           <span class="badge bg-secondary">{{ event.data.zone }}</span>

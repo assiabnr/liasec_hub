@@ -22,6 +22,7 @@ from dashboard.models import (
     ChatbotRecommendation,
     ExportHistory,
     Settings,
+    Notification,
 )
 from accounts.models import Role
 from accounts.decorators import role_required
@@ -169,9 +170,7 @@ def dashboard_home(request):
     ).order_by("-views")[:5]
 
     # ========== SOURCES DE CONSULTATION ==========
-    sources_data = ProductView.objects.exclude(
-        source="localisation"
-    ).values("source").annotate(
+    sources_data = ProductView.objects.values("source").annotate(
         count=Count("id")
     ).order_by("-count")
 
@@ -902,6 +901,7 @@ def clicks_view(request):
     from dashboard.models import ChatbotRecommendation
     total_recommendations = ChatbotRecommendation.objects.count()
     clicked_recommendations = ChatbotRecommendation.objects.filter(clicked=True).count()
+    not_clicked_recommendations = total_recommendations - clicked_recommendations
     conversion_rate = round((clicked_recommendations / total_recommendations * 100), 1) if total_recommendations > 0 else 0
 
     # Pagination
@@ -919,6 +919,7 @@ def clicks_view(request):
         "source_filter": source_filter,
         "total_recommendations": total_recommendations,
         "clicked_recommendations": clicked_recommendations,
+        "not_clicked_recommendations": not_clicked_recommendations,
         "conversion_rate": conversion_rate,
     }
 
@@ -1330,10 +1331,9 @@ def products_chart_data(request):
         count = ProductView.objects.filter(viewed_at__date=day.date()).count()
         views_7days_data.append(count)
 
-    # Sources de consultation des produits (en excluant "localisation")
+    # Sources de consultation des produits
     sources_distribution = (
-        ProductView.objects.exclude(source="localisation")
-        .values("source")
+        ProductView.objects.values("source")
         .annotate(count=Count("id"))
         .order_by("-count")
     )
@@ -1345,8 +1345,8 @@ def products_chart_data(request):
 
     source_mapping = {
         "chatbot": {"label": "Chatbot", "color": "#3B82F6"},
-        "carte": {"label": "Carte Interactive", "color": "#10B981"},
-        "recherche": {"label": "Recherche", "color": "#F59E0B"},
+        "carte": {"label": "Carte Interactive", "color": "#F59E0B"},
+        "recherche": {"label": "Recherche", "color": "#10B981"},
     }
 
     for source in sources_distribution:
@@ -2105,7 +2105,31 @@ def settings_view(request):
     if request.method == "POST":
         action = request.POST.get("action")
 
-        if action == "save":
+        if action == "update_profile":
+            # Mise à jour du profil utilisateur
+            user = request.user
+            user.first_name = request.POST.get("first_name", "").strip()
+            user.last_name = request.POST.get("last_name", "").strip()
+            user.email = request.POST.get("email", "").strip()
+            user.save()
+            messages.success(request, "Votre profil a été mis à jour avec succès.")
+
+            # Créer une notification pour l'utilisateur
+            if request.user.is_authenticated:
+                Notification.create_notification(
+                    user=request.user,
+                    title="Profil mis à jour",
+                    message="Vos informations personnelles ont été mises à jour avec succès.",
+                    notification_type='success',
+                    priority='low',
+                    action_url='/dashboard/settings/',
+                    action_label='Voir les paramètres',
+                    icon='bi-person-check-fill'
+                )
+
+            return redirect("settings")
+
+        elif action == "save":
             settings_obj.name = request.POST.get("name", settings_obj.name)
             settings_obj.location = request.POST.get("location", settings_obj.location)
             settings_obj.code = request.POST.get("code", settings_obj.code)
@@ -2114,6 +2138,20 @@ def settings_view(request):
             settings_obj.track_chatbot = request.POST.get("track_chatbot") == "on"
             settings_obj.save()
             messages.success(request, "Paramètres sauvegardés avec succès.")
+
+            # Créer une notification pour l'utilisateur
+            if request.user.is_authenticated:
+                Notification.create_notification(
+                    user=request.user,
+                    title="Paramètres mis à jour",
+                    message="Vos paramètres de la borne ont été sauvegardés avec succès.",
+                    notification_type='success',
+                    priority='low',
+                    action_url='/dashboard/settings/',
+                    action_label='Voir les paramètres',
+                    icon='bi-check-circle-fill'
+                )
+
             return redirect("settings")
 
         elif action == "reset":
@@ -2123,6 +2161,20 @@ def settings_view(request):
             ProductView.objects.all().delete()
             ChatbotRecommendation.objects.all().delete()
             messages.warning(request, "Toutes les données ont été réinitialisées.")
+
+            # Créer une notification d'avertissement pour l'utilisateur
+            if request.user.is_authenticated:
+                Notification.create_notification(
+                    user=request.user,
+                    title="Données réinitialisées",
+                    message="Toutes les données de sessions, clics, interactions chatbot et vues produits ont été supprimées.",
+                    notification_type='warning',
+                    priority='high',
+                    action_url='/dashboard/dashboard/',
+                    action_label='Voir le dashboard',
+                    icon='bi-exclamation-triangle-fill'
+                )
+
             return redirect("settings")
 
     return render(request, "dashboard/settings.html", {"settings": settings_obj})
@@ -2137,6 +2189,20 @@ def reset_data_view(request):
         ProductView.objects.all().delete()
         ChatbotRecommendation.objects.all().delete()
         ExportHistory.objects.all().delete()
+
+        # Créer une notification d'avertissement pour l'utilisateur
+        if request.user.is_authenticated:
+            Notification.create_notification(
+                user=request.user,
+                title="Réinitialisation complète effectuée",
+                message="Toutes les données incluant l'historique des exports ont été supprimées.",
+                notification_type='warning',
+                priority='high',
+                action_url='/dashboard/dashboard/',
+                action_label='Voir le dashboard',
+                icon='bi-exclamation-triangle-fill'
+            )
+
         return JsonResponse({"success": True, "message": "Toutes les données ont été réinitialisées."})
     return JsonResponse({"success": False, "error": "Méthode non autorisée."}, status=405)
 
@@ -2229,3 +2295,379 @@ def export_data_view(request):
 @login_required
 def users_management(request):
     return render(request, "dashboard/includes/users_management.html")
+
+
+# ==========================
+# EXPORTS PDF
+# ==========================
+
+from dashboard.pdf_exports import (
+    generate_dashboard_pdf,
+    generate_sessions_pdf,
+    generate_chatbot_pdf,
+    generate_products_pdf,
+    generate_clicks_pdf
+)
+
+
+@login_required
+def export_dashboard_pdf(request):
+    """Exporte le dashboard principal en PDF"""
+    try:
+        pdf_buffer = generate_dashboard_pdf()
+
+        filename = f"dashboard_general_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        # Enregistrer dans l'historique
+        export_dir = os.path.join(settings.MEDIA_ROOT, "exports")
+        os.makedirs(export_dir, exist_ok=True)
+        file_path = os.path.join(export_dir, filename)
+
+        with open(file_path, 'wb') as f:
+            f.write(pdf_buffer.read())
+
+        ExportHistory.objects.create(
+            export_type="dashboard_pdf",
+            file_path=f"/media/exports/{filename}",
+            exported_at=datetime.now(),
+            user=str(request.user) if request.user.is_authenticated else "Système"
+        )
+
+        #  Créer une notification pour l'utilisateur
+        if request.user.is_authenticated:
+            Notification.create_notification(
+                user=request.user,
+                title="Export PDF généré avec succès",
+                message=f"Votre rapport Dashboard général ({filename}) est prêt à être téléchargé.",
+                notification_type='export',
+                priority='normal',
+                action_url='/dashboard/exports/',
+                action_label='Voir les exports',
+                icon='bi-file-earmark-pdf-fill'
+            )
+
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+        pdf_buffer.seek(0)
+        response.write(pdf_buffer.read())
+
+        return response
+
+    except Exception as e:
+        return HttpResponse(f"Erreur lors de la génération du PDF: {str(e)}", status=500)
+
+
+@login_required
+def export_sessions_pdf(request):
+    """Exporte les sessions en PDF"""
+    try:
+        pdf_buffer = generate_sessions_pdf()
+
+        filename = f"sessions_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        # Enregistrer dans l'historique
+        export_dir = os.path.join(settings.MEDIA_ROOT, "exports")
+        os.makedirs(export_dir, exist_ok=True)
+        file_path = os.path.join(export_dir, filename)
+
+        with open(file_path, 'wb') as f:
+            f.write(pdf_buffer.read())
+
+        ExportHistory.objects.create(
+            export_type="sessions_pdf",
+            file_path=f"/media/exports/{filename}",
+            exported_at=datetime.now(),
+            user=str(request.user) if request.user.is_authenticated else "Système"
+        )
+
+        # 🔔 Notification
+        if request.user.is_authenticated:
+            Notification.create_notification(
+                user=request.user,
+                title="Rapport Sessions exporté",
+                message=f"Votre rapport d'analyse des sessions ({filename}) est disponible.",
+                notification_type='export',
+                priority='normal',
+                action_url='/dashboard/exports/',
+                action_label='Télécharger',
+                icon='bi-people-fill'
+            )
+
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+        pdf_buffer.seek(0)
+        response.write(pdf_buffer.read())
+
+        return response
+
+    except Exception as e:
+        return HttpResponse(f"Erreur lors de la génération du PDF: {str(e)}", status=500)
+
+
+@login_required
+def export_chatbot_pdf(request):
+    """Exporte les données chatbot en PDF"""
+    try:
+        pdf_buffer = generate_chatbot_pdf()
+
+        filename = f"chatbot_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        # Enregistrer dans l'historique
+        export_dir = os.path.join(settings.MEDIA_ROOT, "exports")
+        os.makedirs(export_dir, exist_ok=True)
+        file_path = os.path.join(export_dir, filename)
+
+        with open(file_path, 'wb') as f:
+            f.write(pdf_buffer.read())
+
+        ExportHistory.objects.create(
+            export_type="chatbot_pdf",
+            file_path=f"/media/exports/{filename}",
+            exported_at=datetime.now(),
+            user=str(request.user) if request.user.is_authenticated else "Système"
+        )
+
+        # Notification
+        if request.user.is_authenticated:
+            Notification.create_notification(
+                user=request.user,
+                title="Rapport Chatbot exporté",
+                message=f"Votre rapport d'analyse du chatbot ({filename}) est prêt.",
+                notification_type='export',
+                priority='normal',
+                action_url='/dashboard/exports/',
+                action_label='Télécharger',
+                icon='bi-robot'
+            )
+
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+        pdf_buffer.seek(0)
+        response.write(pdf_buffer.read())
+
+        return response
+
+    except Exception as e:
+        return HttpResponse(f"Erreur lors de la génération du PDF: {str(e)}", status=500)
+
+
+@login_required
+def export_products_pdf(request):
+    """Exporte les données produits en PDF"""
+    try:
+        pdf_buffer = generate_products_pdf()
+
+        filename = f"produits_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        # Enregistrer dans l'historique
+        export_dir = os.path.join(settings.MEDIA_ROOT, "exports")
+        os.makedirs(export_dir, exist_ok=True)
+        file_path = os.path.join(export_dir, filename)
+
+        with open(file_path, 'wb') as f:
+            f.write(pdf_buffer.read())
+
+        ExportHistory.objects.create(
+            export_type="products_pdf",
+            file_path=f"/media/exports/{filename}",
+            exported_at=datetime.now(),
+            user=str(request.user) if request.user.is_authenticated else "Système"
+        )
+
+        # Notification
+        if request.user.is_authenticated:
+            Notification.create_notification(
+                user=request.user,
+                title="Rapport Produits exporté",
+                message=f"Votre rapport d'analyse des produits ({filename}) est disponible.",
+                notification_type='export',
+                priority='normal',
+                action_url='/dashboard/exports/',
+                action_label='Télécharger',
+                icon='bi-box-seam-fill'
+            )
+
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+        pdf_buffer.seek(0)
+        response.write(pdf_buffer.read())
+
+        return response
+
+    except Exception as e:
+        return HttpResponse(f"Erreur lors de la génération du PDF: {str(e)}", status=500)
+
+
+@login_required
+def export_clicks_pdf(request):
+    """Exporte les données de consultations en PDF"""
+    try:
+        pdf_buffer = generate_clicks_pdf()
+
+        filename = f"consultations_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+
+        # Enregistrer dans l'historique
+        export_dir = os.path.join(settings.MEDIA_ROOT, "exports")
+        os.makedirs(export_dir, exist_ok=True)
+        file_path = os.path.join(export_dir, filename)
+
+        with open(file_path, 'wb') as f:
+            f.write(pdf_buffer.read())
+
+        ExportHistory.objects.create(
+            export_type="clicks_pdf",
+            file_path=f"/media/exports/{filename}",
+            exported_at=datetime.now(),
+            user=str(request.user) if request.user.is_authenticated else "Système"
+        )
+
+        #  Notification
+        if request.user.is_authenticated:
+            Notification.create_notification(
+                user=request.user,
+                title="Rapport Consultations exporté",
+                message=f"Votre rapport d'analyse des consultations ({filename}) est prêt.",
+                notification_type='export',
+                priority='normal',
+                action_url='/dashboard/exports/',
+                action_label='Télécharger',
+                icon='bi-mouse-fill'
+            )
+
+        response = HttpResponse(content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
+        pdf_buffer.seek(0)
+        response.write(pdf_buffer.read())
+
+        return response
+
+    except Exception as e:
+        return HttpResponse(f"Erreur lors de la génération du PDF: {str(e)}", status=500)
+# ==========================
+# NOTIFICATIONS SYST�ME
+# ==========================
+
+@login_required
+def get_notifications_api(request):
+    notifications = Notification.objects.filter(
+        user=request.user,
+        is_archived=False
+    )[:10]
+    
+    data = [{
+        'id': n.id,
+        'title': n.title,
+        'message': n.message,
+        'type': n.notification_type,
+        'priority': n.priority,
+        'is_read': n.is_read,
+        'created_at': n.created_at.isoformat(),
+        'action_url': n.action_url,
+        'action_label': n.action_label,
+        'icon': n.icon or get_notification_icon(n.notification_type),
+    } for n in notifications]
+    
+    unread_count = Notification.objects.filter(
+        user=request.user,
+        is_read=False,
+        is_archived=False
+    ).count()
+    
+    return JsonResponse({
+        'notifications': data,
+        'unread_count': unread_count,
+        'success': True
+    })
+
+
+@login_required
+def mark_notification_read(request, notification_id):
+    """Marquer une notification comme lue."""
+    try:
+        notification = get_object_or_404(Notification, id=notification_id, user=request.user)
+        notification.mark_as_read()
+        return JsonResponse({'success': True, 'message': 'Notification marqu�e comme lue'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+def mark_all_notifications_read(request):
+    """Marquer toutes les notifications comme lues."""
+    try:
+        Notification.objects.filter(user=request.user, is_read=False).update(
+            is_read=True,
+            read_at=timezone.now()
+        )
+        return JsonResponse({'success': True, 'message': 'Toutes les notifications ont �t� marqu�es comme lues'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+def delete_notification(request, notification_id):
+    """Supprimer (archiver) une notification."""
+    try:
+        notification = get_object_or_404(Notification, id=notification_id, user=request.user)
+        notification.archive()
+        return JsonResponse({'success': True, 'message': 'Notification supprim�e'})
+    except Exception as e:
+        return JsonResponse({'success': False, 'error': str(e)}, status=400)
+
+
+@login_required
+def notifications_page(request):
+    """Page de gestion des notifications."""
+    # Filtres
+    filter_type = request.GET.get('type', '')
+    filter_status = request.GET.get('status', '')
+    
+    notifications = Notification.objects.filter(user=request.user, is_archived=False)
+    
+    if filter_type:
+        notifications = notifications.filter(notification_type=filter_type)
+    
+    if filter_status == 'read':
+        notifications = notifications.filter(is_read=True)
+    elif filter_status == 'unread':
+        notifications = notifications.filter(is_read=False)
+    
+    # Pagination
+    paginator = Paginator(notifications, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Stats
+    total_notifications = Notification.objects.filter(user=request.user, is_archived=False).count()
+    unread_count = Notification.objects.filter(user=request.user, is_read=False, is_archived=False).count()
+    read_count = total_notifications - unread_count
+    
+    context = {
+        'page_obj': page_obj,
+        'total_notifications': total_notifications,
+        'unread_count': unread_count,
+        'read_count': read_count,
+        'filter_type': filter_type,
+        'filter_status': filter_status,
+    }
+    
+    return render(request, 'dashboard/notifications.html', context)
+
+
+def get_notification_icon(notification_type):
+    icons = {
+        'info': 'bi-info-circle-fill',
+        'success': 'bi-check-circle-fill',
+        'warning': 'bi-exclamation-triangle-fill',
+        'error': 'bi-x-circle-fill',
+        'system': 'bi-gear-fill',
+        'export': 'bi-download',
+        'analytics': 'bi-graph-up',
+        'user': 'bi-person-fill',
+    }
+    return icons.get(notification_type, 'bi-bell-fill')

@@ -387,6 +387,17 @@ function initMapClicks() {
           if (response.ok) {
             console.log("[MAP] Clic sur zone tracké:", zoneName);
 
+            // Émettre un événement pour signaler le clic sur une zone de la carte
+            const mapZoneEvent = new CustomEvent("map-zone-clicked", {
+              detail: {
+                zoneId: zoneId,
+                zoneName: zoneName,
+                timestamp: Date.now()
+              }
+            });
+            document.dispatchEvent(mapZoneEvent);
+            console.log("[MAP] Événement map-zone-clicked émis");
+
             // Highlight visuel de la zone cliquée
             applyTemporaryHighlight(svgDoc, zoneId);
           }

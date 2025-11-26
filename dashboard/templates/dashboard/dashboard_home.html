@@ -21,8 +21,11 @@
             </p>
           </div>
           <div>
+            <a href="{% url 'export_dashboard_pdf' %}" class="btn btn-primary fw-semibold shadow-sm me-2">
+              <i class="bi bi-file-earmark-pdf me-2"></i>Exporter en PDF
+            </a>
             <a href="{% url 'exports' %}" class="btn btn-light fw-semibold shadow-sm">
-              <i class="bi bi-download me-2"></i>Exporter les données
+              <i class="bi bi-folder2-open me-2"></i>Historique exports
             </a>
           </div>
         </div>
@@ -664,8 +667,8 @@ document.addEventListener("DOMContentLoaded", function () {
 
   const sourceMapping = {
     "chatbot": { label: "Chatbot", color: "#3B82F6" },
-    "carte": { label: "Carte Interactive", color: "#10B981" },
-    "recherche": { label: "Recherche", color: "#F59E0B" }
+    "carte": { label: "Carte Interactive", color: "#F59E0B" },
+    "recherche": { label: "Recherche", color: "#10B981" }
   };
 
   const sourcesLabels = [];

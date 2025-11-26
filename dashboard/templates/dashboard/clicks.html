@@ -8,13 +8,10 @@
     <h4 class="fw-bold mb-0">
       <i class="bi bi-mouse-fill me-2 text-primary"></i> Consultations produits
     </h4>
-    <button id="exportClicksBtn" class="btn btn-primary shadow-sm">
-      <i class="bi bi-download me-1"></i> Exporter les données
-    </button>
+    <a href="{% url 'export_clicks_pdf' %}" class="btn btn-primary shadow-sm">
+      <i class="bi bi-file-earmark-pdf me-1"></i> Exporter en PDF
+    </a>
   </div>
-
-  <!-- Zone de feedback export -->
-  <div id="exportAlert" class="alert d-none" role="alert"></div>
 
   <!-- Statistiques globales -->
   <div class="row g-3 mb-4">
@@ -63,26 +60,52 @@
   <!-- Taux de conversion chatbot -->
   {% if total_recommendations > 0 %}
   <div class="card p-3 mb-4">
-    <div class="d-flex justify-content-between align-items-center">
-      <div>
-        <h6 class="fw-bold text-primary mb-1">Taux de conversion des recommandations chatbot</h6>
-        <p class="text-muted mb-0">
-          {{ clicked_recommendations }} recommandations cliquées sur {{ total_recommendations }} recommandations
-        </p>
+    <h6 class="fw-bold text-primary mb-3">
+      <i class="bi bi-graph-up-arrow me-2"></i>Taux de conversion des recommandations chatbot
+    </h6>
+
+    <div class="row g-3">
+      <!-- Taux de conversion global -->
+      <div class="col-md-4">
+        <div class="card bg-light border-0 p-3 text-center h-100">
+          <div class="d-flex flex-column justify-content-center h-100">
+            <h6 class="text-muted mb-2">Taux de conversion</h6>
+            <h2 class="fw-bold mb-2 {% if conversion_rate >= 50 %}text-success{% elif conversion_rate >= 25 %}text-warning{% else %}text-danger{% endif %}">
+              {{ conversion_rate }}%
+            </h2>
+            <div class="mt-1">
+              <i class="bi bi-{% if conversion_rate >= 50 %}emoji-smile{% elif conversion_rate >= 25 %}emoji-neutral{% else %}emoji-frown{% endif %} fs-4 {% if conversion_rate >= 50 %}text-success{% elif conversion_rate >= 25 %}text-warning{% else %}text-danger{% endif %}"></i>
+            </div>
+          </div>
+        </div>
       </div>
-      <div class="text-end">
-        <h2 class="fw-bold mb-0 {% if conversion_rate >= 50 %}text-success{% elif conversion_rate >= 25 %}text-warning{% else %}text-danger{% endif %}">
-          {{ conversion_rate }}%
-        </h2>
+
+      <!-- Recommandations cliquées -->
+      <div class="col-md-4">
+        <div class="card border-success p-3 text-center h-100">
+          <div class="d-flex flex-column justify-content-center h-100">
+            <div class="mb-2">
+              <i class="bi bi-cursor-fill text-success fs-3"></i>
+            </div>
+            <h6 class="text-muted mb-1">Cliquées</h6>
+            <h2 class="fw-bold mb-0 text-success">{{ clicked_recommendations }}</h2>
+            <small class="text-muted mt-1">recommandations</small>
+          </div>
+        </div>
       </div>
-    </div>
-    <div class="progress mt-2" style="height: 10px;">
-      <div class="progress-bar {% if conversion_rate >= 50 %}bg-success{% elif conversion_rate >= 25 %}bg-warning{% else %}bg-danger{% endif %}"
-           role="progressbar"
-           style="width: {{ conversion_rate }}%;"
-           aria-valuenow="{{ conversion_rate }}"
-           aria-valuemin="0"
-           aria-valuemax="100">
+
+      <!-- Recommandations non cliquées -->
+      <div class="col-md-4">
+        <div class="card border-secondary p-3 text-center h-100">
+          <div class="d-flex flex-column justify-content-center h-100">
+            <div class="mb-2">
+              <i class="bi bi-x-circle text-secondary fs-3"></i>
+            </div>
+            <h6 class="text-muted mb-1">Non cliquées</h6>
+            <h2 class="fw-bold mb-0 text-secondary">{{ not_clicked_recommendations }}</h2>
+            <small class="text-muted mt-1">recommandations</small>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -101,7 +124,7 @@
       <a href="?source=carte" class="btn {% if source_filter == 'carte' %}btn-warning{% else %}btn-outline-warning{% endif %}">
         <i class="bi bi-map-fill me-1"></i> Carte
       </a>
-      <a href="?source=recherche" class="btn {% if source_filter == 'recherche' %}btn-primary{% else %}btn-outline-primary{% endif %}">
+      <a href="?source=recherche" class="btn {% if source_filter == 'recherche' %}btn-success{% else %}btn-outline-success{% endif %}">
         <i class="bi bi-search me-1"></i> Recherche
       </a>
     </div>
@@ -184,7 +207,7 @@
                   <i class="bi bi-map-fill me-1"></i>Carte
                 </span>
               {% elif click.source == "recherche" %}
-                <span class="badge bg-primary">
+                <span class="badge bg-success">
                   <i class="bi bi-search me-1"></i>Recherche
                 </span>
               {% else %}
@@ -224,7 +247,7 @@
               <i class="bi bi-map-fill me-1"></i>Carte
             </span>
           {% elif click.source == "recherche" %}
-            <span class="badge bg-primary">
+            <span class="badge bg-success">
               <i class="bi bi-search me-1"></i>Recherche
             </span>
           {% else %}

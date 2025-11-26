@@ -58,13 +58,10 @@
       </h4>
       <p class="text-muted mb-0 small">Analysez le comportement et l'engagement de vos utilisateurs</p>
     </div>
-    <button id="exportSessionsBtn" class="btn btn-primary shadow-sm d-flex align-items-center">
-      <i class="bi bi-download me-2"></i> Exporter
-    </button>
+    <a href="{% url 'export_sessions_pdf' %}" class="btn btn-primary shadow-sm d-flex align-items-center">
+      <i class="bi bi-file-earmark-pdf me-2"></i> Exporter en PDF
+    </a>
   </div>
-
-  <!-- Zone de feedback export -->
-  <div id="exportAlert" class="alert d-none" role="alert"></div>
 
   <!-- ========== FILTRES ========== -->
   <div class="card p-3 mb-4 shadow-sm border-0">

@@ -9,13 +9,10 @@
     <h4 class="fw-bold mb-0">
       <i class="bi bi-box-seam-fill me-2 text-primary"></i> Analyse des Produits
     </h4>
-    <button id="exportProductsBtn" class="btn btn-primary shadow-sm">
-      <i class="bi bi-download me-1"></i> Exporter les données
-    </button>
+    <a href="{% url 'export_products_pdf' %}" class="btn btn-primary shadow-sm">
+      <i class="bi bi-file-earmark-pdf me-1"></i> Exporter en PDF
+    </a>
   </div>
-
-  <!-- Zone de feedback export -->
-  <div id="exportAlert" class="alert d-none" role="alert"></div>
 
   <!-- KPIs principaux -->
   <div class="row g-3 mb-4">

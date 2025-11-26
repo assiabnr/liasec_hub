@@ -113,6 +113,12 @@
               <option value="MANAGER">Manager</option>
             </select>
           </div>
+          <div class="col-md-12">
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="editIsActive">
+              <label class="form-check-label" for="editIsActive">Compte actif</label>
+            </div>
+          </div>
         </form>
       </div>
       <div class="modal-footer">
@@ -141,8 +147,13 @@ document.addEventListener("DOMContentLoaded", function() {
           <td>${user.first_name || '-'}</td>
           <td>${user.email}</td>
           <td><span class="badge bg-${roleColor(user.role)}">${user.role}</span></td>
-          <td>${user.is_active ? '<span class="text-success">Actif</span>' : '<span class="text-danger">Inactif</span>'}</td>
+          <td>${user.is_active ? '<span class="badge bg-success">Actif</span>' : '<span class="badge bg-danger">Inactif</span>'}</td>
           <td class="text-end">
+            <button class="btn btn-sm btn-outline-${user.is_active ? 'warning' : 'success'} me-2"
+                    onclick="event.stopPropagation(); toggleActiveStatus(${user.id}, ${user.is_active});"
+                    title="${user.is_active ? 'Désactiver' : 'Activer'}">
+              <span class="material-icons" style="font-size: 18px;">${user.is_active ? 'block' : 'check_circle'}</span>
+            </button>
             <button class="btn btn-sm btn-outline-secondary me-2" onclick="event.stopPropagation(); resetPassword(${user.id});">
               <span class="material-icons" style="font-size: 18px;">lock_reset</span>
             </button>
@@ -183,7 +194,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
   });
 
-  // Modale d’édition
+  // Modale d'édition
   async function openEditModal(userId) {
     const res = await fetch(`/accounts/api/users/${userId}/`);
     const user = await res.json();
@@ -191,6 +202,7 @@ document.addEventListener("DOMContentLoaded", function() {
     document.getElementById("editFirstName").value = user.first_name || "";
     document.getElementById("editLastName").value = user.last_name || "";
     document.getElementById("editRole").value = user.role;
+    document.getElementById("editIsActive").checked = user.is_active;
     new bootstrap.Modal(document.getElementById("editUserModal")).show();
   }
 
@@ -201,6 +213,7 @@ document.addEventListener("DOMContentLoaded", function() {
       first_name: document.getElementById("editFirstName").value,
       last_name: document.getElementById("editLastName").value,
       role: document.getElementById("editRole").value,
+      is_active: document.getElementById("editIsActive").checked,
     };
     const res = await fetch(`/accounts/api/users/${id}/`, {
       method: "PATCH",
@@ -215,6 +228,23 @@ document.addEventListener("DOMContentLoaded", function() {
       alert("Erreur lors de la mise à jour.");
     }
   });
+
+  // Toggle Active Status
+  window.toggleActiveStatus = async (id, currentStatus) => {
+    const action = currentStatus ? "désactiver" : "activer";
+    if (!confirm(`Voulez-vous vraiment ${action} ce compte ?`)) return;
+    const res = await fetch(`/accounts/api/users/${id}/`, {
+      method: "PATCH",
+      headers: {"Content-Type": "application/json", "X-CSRFToken": "{{ csrf_token }}"},
+      body: JSON.stringify({is_active: !currentStatus}),
+    });
+    if (res.ok) {
+      alert(`Compte ${currentStatus ? 'désactivé' : 'activé'} avec succès !`);
+      loadUsers();
+    } else {
+      alert("Erreur lors du changement de statut.");
+    }
+  };
 
   // Reset / Delete
   window.resetPassword = async (id) => {

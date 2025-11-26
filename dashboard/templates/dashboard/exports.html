@@ -6,87 +6,252 @@
 
   <!-- En-tête -->
   <div class="d-flex justify-content-between align-items-center mb-4">
-    <h4 class="fw-bold mb-0">
-      <i class="bi bi-cloud-arrow-down-fill text-primary me-2"></i> Exports / Rapports
-    </h4>
+    <div>
+      <h4 class="fw-bold mb-1">
+        <i class="bi bi-cloud-arrow-down-fill text-primary me-2"></i> Exports & Rapports
+      </h4>
+      <p class="text-muted mb-0 small">Exportez vos données en CSV ou générez des rapports PDF</p>
+    </div>
   </div>
 
-  <!-- Carte principale -->
+  <!-- ============================
+       EXPORTS PDF RAPIDES
+  ============================ -->
   <div class="card p-4 shadow-sm border-0 mb-4">
     <h5 class="fw-semibold text-primary mb-3">
-      <i class="bi bi-funnel-fill me-2"></i> Sélection des données à exporter
+      <i class="bi bi-file-earmark-pdf-fill me-2"></i> Rapports PDF
     </h5>
+    <p class="text-muted small mb-3">Générez instantanément des rapports PDF professionnels avec toutes les statistiques</p>
+
+    <div class="row g-3">
+      <!-- Dashboard général -->
+      <div class="col-md-6 col-lg-4">
+        <div class="card h-100 border export-card">
+          <div class="card-body d-flex flex-column">
+            <div class="d-flex align-items-center mb-3">
+              <div class="icon-box bg-primary bg-opacity-10 text-primary me-3">
+                <i class="bi bi-speedometer2 fs-4"></i>
+              </div>
+              <div>
+                <h6 class="mb-0 fw-semibold">Dashboard Général</h6>
+                <small class="text-muted">Vue d'ensemble complète</small>
+              </div>
+            </div>
+            <p class="text-muted small mb-3 flex-grow-1">Sessions, interactions chatbot, consultations produits, KPIs globaux</p>
+            <a href="{% url 'export_dashboard_pdf' %}" class="btn btn-primary w-100">
+              <i class="bi bi-download me-2"></i>Télécharger PDF
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sessions -->
+      <div class="col-md-6 col-lg-4">
+        <div class="card h-100 border export-card">
+          <div class="card-body d-flex flex-column">
+            <div class="d-flex align-items-center mb-3">
+              <div class="icon-box bg-info bg-opacity-10 text-info me-3">
+                <i class="bi bi-people-fill fs-4"></i>
+              </div>
+              <div>
+                <h6 class="mb-0 fw-semibold">Sessions</h6>
+                <small class="text-muted">Analyse du comportement</small>
+              </div>
+            </div>
+            <p class="text-muted small mb-3 flex-grow-1">Durées, engagement, sessions avec chatbot, dernières sessions</p>
+            <a href="{% url 'export_sessions_pdf' %}" class="btn btn-primary w-100">
+              <i class="bi bi-download me-2"></i>Télécharger PDF
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chatbot -->
+      <div class="col-md-6 col-lg-4">
+        <div class="card h-100 border export-card">
+          <div class="card-body d-flex flex-column">
+            <div class="d-flex align-items-center mb-3">
+              <div class="icon-box bg-success bg-opacity-10 text-success me-3">
+                <i class="bi bi-robot fs-4"></i>
+              </div>
+              <div>
+                <h6 class="mb-0 fw-semibold">Chatbot</h6>
+                <small class="text-muted">Interactions & performances</small>
+              </div>
+            </div>
+            <p class="text-muted small mb-3 flex-grow-1">Taux de succès, satisfaction, top intents, recommandations</p>
+            <a href="{% url 'export_chatbot_pdf' %}" class="btn btn-primary w-100">
+              <i class="bi bi-download me-2"></i>Télécharger PDF
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Produits -->
+      <div class="col-md-6 col-lg-4">
+        <div class="card h-100 border export-card">
+          <div class="card-body d-flex flex-column">
+            <div class="d-flex align-items-center mb-3">
+              <div class="icon-box bg-warning bg-opacity-10 text-warning me-3">
+                <i class="bi bi-box-seam-fill fs-4"></i>
+              </div>
+              <div>
+                <h6 class="mb-0 fw-semibold">Produits</h6>
+                <small class="text-muted">Consultations & statistiques</small>
+              </div>
+            </div>
+            <p class="text-muted small mb-3 flex-grow-1">Répartition par source, top produits consultés, disponibilité</p>
+            <a href="{% url 'export_products_pdf' %}" class="btn btn-primary w-100">
+              <i class="bi bi-download me-2"></i>Télécharger PDF
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Consultations -->
+      <div class="col-md-6 col-lg-4">
+        <div class="card h-100 border export-card">
+          <div class="card-body d-flex flex-column">
+            <div class="d-flex align-items-center mb-3">
+              <div class="icon-box bg-danger bg-opacity-10 text-danger me-3">
+                <i class="bi bi-mouse-fill fs-4"></i>
+              </div>
+              <div>
+                <h6 class="mb-0 fw-semibold">Consultations</h6>
+                <small class="text-muted">Clics & conversions</small>
+              </div>
+            </div>
+            <p class="text-muted small mb-3 flex-grow-1">Par source, conversion recommandations, produits les plus vus</p>
+            <a href="{% url 'export_clicks_pdf' %}" class="btn btn-primary w-100">
+              <i class="bi bi-download me-2"></i>Télécharger PDF
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============================
+       EXPORTS CSV PERSONNALISÉS
+  ============================ -->
+  <div class="card p-4 shadow-sm border-0 mb-4">
+    <h5 class="fw-semibold text-primary mb-3">
+      <i class="bi bi-file-earmark-spreadsheet-fill me-2"></i> Exports CSV Personnalisés
+    </h5>
+    <p class="text-muted small mb-3">Exportez des données brutes avec filtres personnalisés pour vos analyses</p>
 
     <form id="exportForm" method="POST" action="{% url 'export_data' %}">
       {% csrf_token %}
 
-      <!-- Type de données -->
-      <div class="mb-3">
-        <label class="form-label fw-semibold">Type de données</label>
-        <select class="form-select form-select-lg" name="data_type" required>
-          <option value="" selected disabled>Choisissez un type...</option>
-          <option value="sessions">Sessions</option>
-          <option value="clicks">Clics</option>
-          <option value="products">Produits consultés</option>
-          <option value="chatbot">Interactions chatbot</option>
-        </select>
-      </div>
-
-      <!-- Filtres -->
       <div class="row g-3">
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Date de début</label>
+        <!-- Type de données -->
+        <div class="col-md-6">
+          <label class="form-label fw-semibold">
+            <i class="bi bi-collection me-1"></i> Type de données
+          </label>
+          <select class="form-select" name="data_type" required>
+            <option value="" selected disabled>Choisissez un type...</option>
+            <option value="sessions">📊 Sessions</option>
+            <option value="clicks">👆 Clics produits</option>
+            <option value="products">📦 Produits consultés</option>
+            <option value="chatbot">🤖 Interactions chatbot</option>
+          </select>
+        </div>
+
+        <!-- Date de début -->
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">
+            <i class="bi bi-calendar-event me-1"></i> Date de début
+          </label>
           <input type="date" class="form-control" name="start_date">
         </div>
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Date de fin</label>
+
+        <!-- Date de fin -->
+        <div class="col-md-3">
+          <label class="form-label fw-semibold">
+            <i class="bi bi-calendar-check me-1"></i> Date de fin
+          </label>
           <input type="date" class="form-control" name="end_date">
         </div>
-        <div class="col-md-4">
-          <label class="form-label fw-semibold">Nom du produit (optionnel)</label>
+
+        <!-- Nom du produit -->
+        <div class="col-12">
+          <label class="form-label fw-semibold">
+            <i class="bi bi-search me-1"></i> Filtre produit (optionnel)
+          </label>
           <input type="text" class="form-control" name="product_name" placeholder="Ex : Chaussures de running">
+          <small class="text-muted">Laissez vide pour exporter tous les produits</small>
         </div>
       </div>
 
-      <!-- Boutons -->
-      <div class="mt-4 d-flex gap-3">
-        <button type="submit" name="format" value="csv" class="btn btn-primary d-flex align-items-center">
-          <i class="bi bi-file-earmark-spreadsheet me-2"></i> Exporter en CSV
-        </button>
-
-        <button type="button" class="btn btn-outline-secondary d-flex align-items-center" disabled>
-          <i class="bi bi-filetype-pdf me-2"></i> Exporter en PDF (bientôt)
+      <!-- Bouton export -->
+      <div class="mt-4">
+        <button type="submit" name="format" value="csv" class="btn btn-success btn-lg">
+          <i class="bi bi-file-earmark-spreadsheet me-2"></i> Générer l'export CSV
         </button>
       </div>
     </form>
   </div>
 
-  <!-- 🔹 Historique des exports -->
+  <!-- ============================
+       HISTORIQUE DES EXPORTS
+  ============================ -->
   <div class="card p-4 shadow-sm border-0">
-    <h5 class="fw-semibold text-primary mb-3">
-      <i class="bi bi-clock-history me-2"></i> Historique des exports récents
-    </h5>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h5 class="fw-semibold text-primary mb-0">
+        <i class="bi bi-clock-history me-2"></i> Historique des exports
+      </h5>
+      <span class="badge bg-secondary">{{ exports|length }} export(s)</span>
+    </div>
 
     {% if exports %}
       <div class="table-responsive">
-        <table class="table align-middle">
+        <table class="table table-hover align-middle">
           <thead class="table-light">
             <tr>
-              <th scope="col">Type</th>
-              <th scope="col">Date</th>
-              <th scope="col">Utilisateur</th>
-              <th scope="col">Fichier</th>
+              <th scope="col"><i class="bi bi-tag me-1"></i> Type</th>
+              <th scope="col"><i class="bi bi-file-earmark me-1"></i> Format</th>
+              <th scope="col"><i class="bi bi-calendar3 me-1"></i> Date</th>
+              <th scope="col"><i class="bi bi-person me-1"></i> Utilisateur</th>
+              <th scope="col" class="text-center"><i class="bi bi-download me-1"></i> Action</th>
             </tr>
           </thead>
           <tbody>
             {% for exp in exports %}
               <tr>
-                <td>{{ exp.export_type }}</td>
-                <td>{{ exp.exported_at|date:"d/m/Y H:i" }}</td>
-                <td>{{ exp.user|default:"-" }}</td>
                 <td>
-                  <a href="{{ exp.file_path }}" class="text-decoration-none">
-                    <i class="bi bi-download text-primary me-1"></i> Télécharger
+                  {% if 'dashboard' in exp.export_type %}
+                    <span class="badge bg-primary">Dashboard</span>
+                  {% elif 'session' in exp.export_type %}
+                    <span class="badge bg-info">Sessions</span>
+                  {% elif 'chatbot' in exp.export_type %}
+                    <span class="badge bg-success">Chatbot</span>
+                  {% elif 'product' in exp.export_type %}
+                    <span class="badge bg-warning text-dark">Produits</span>
+                  {% elif 'click' in exp.export_type %}
+                    <span class="badge bg-danger">Consultations</span>
+                  {% else %}
+                    <span class="badge bg-secondary">{{ exp.export_type }}</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if 'pdf' in exp.export_type %}
+                    <i class="bi bi-file-earmark-pdf-fill text-danger me-1"></i> PDF
+                  {% else %}
+                    <i class="bi bi-file-earmark-spreadsheet-fill text-success me-1"></i> CSV
+                  {% endif %}
+                </td>
+                <td>
+                  <small>{{ exp.exported_at|date:"d/m/Y" }}</small><br>
+                  <small class="text-muted">{{ exp.exported_at|date:"H:i" }}</small>
+                </td>
+                <td>
+                  <i class="bi bi-person-circle text-muted me-1"></i>
+                  {{ exp.user|default:"Système" }}
+                </td>
+                <td class="text-center">
+                  <a href="{{ exp.file_path }}" class="btn btn-sm btn-outline-primary" download>
+                    <i class="bi bi-download me-1"></i> Télécharger
                   </a>
                 </td>
               </tr>
@@ -95,7 +260,11 @@
         </table>
       </div>
     {% else %}
-      <p class="text-muted mb-0">Aucun export enregistré pour le moment.</p>
+      <div class="text-center py-5">
+        <i class="bi bi-inbox fs-1 text-muted mb-3 d-block"></i>
+        <p class="text-muted mb-0">Aucun export enregistré pour le moment.</p>
+        <p class="text-muted small">Commencez par générer un rapport PDF ou un export CSV ci-dessus.</p>
+      </div>
     {% endif %}
   </div>
 
@@ -105,6 +274,27 @@
      STYLES
 ============================ -->
 <style>
+  .export-card {
+    transition: all 0.3s ease;
+    border-color: #e5e7eb !important;
+  }
+
+  .export-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1) !important;
+    border-color: #3b82f6 !important;
+  }
+
+  .icon-box {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
   .form-select:focus, .form-control:focus {
     border-color: #3b82f6;
     box-shadow: 0 0 0 0.2rem rgba(59, 130, 246, 0.25);
@@ -117,6 +307,26 @@
 
   .btn-primary:hover {
     background-color: #2563eb;
+    border-color: #2563eb;
+  }
+
+  .btn-success {
+    background-color: #10B981;
+    border-color: #10B981;
+  }
+
+  .btn-success:hover {
+    background-color: #059669;
+    border-color: #059669;
+  }
+
+  .table-hover tbody tr:hover {
+    background-color: rgba(59, 130, 246, 0.05);
+  }
+
+  .badge {
+    font-weight: 500;
+    padding: 0.35em 0.65em;
   }
 </style>
 
@@ -134,9 +344,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const exportType = formData.get("data_type");
 
     if (!exportType) {
-      showToast("Veuillez choisir un type de données avant d’exporter.", "danger", "bi-exclamation-triangle-fill");
+      showToast("Veuillez choisir un type de données avant d'exporter.", "warning", "bi-exclamation-triangle-fill");
       return;
     }
+
+    // Désactiver le bouton pendant l'export
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const originalHtml = submitBtn.innerHTML;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Génération en cours...';
 
     fetch(form.action, {
       method: "POST",
@@ -145,15 +361,23 @@ document.addEventListener("DOMContentLoaded", () => {
     })
     .then(response => response.json())
     .then(data => {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalHtml;
+
       if (data.success) {
-        showToast("Export réussi ! Le fichier CSV a été généré.", "success", "bi-check-circle-fill");
+        showToast("Export CSV réussi ! Le fichier a été généré.", "success", "bi-check-circle-fill");
+
+        // Recharger la page après 2 secondes pour afficher le nouvel export dans l'historique
+        setTimeout(() => location.reload(), 2000);
       } else {
-        showToast("Erreur : " + (data.error || "échec de l’export."), "danger", "bi-x-circle-fill");
+        showToast("Erreur : " + (data.error || "échec de l'export."), "danger", "bi-x-circle-fill");
       }
     })
     .catch(err => {
       console.error(err);
-      showToast("Une erreur est survenue pendant l’export.", "danger", "bi-exclamation-triangle-fill");
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalHtml;
+      showToast("Une erreur est survenue pendant l'export.", "danger", "bi-exclamation-triangle-fill");
     });
   });
 
@@ -164,7 +388,7 @@ document.addEventListener("DOMContentLoaded", () => {
     toastContainer.style.zIndex = "2000";
 
     const toast = document.createElement("div");
-    toast.className = `alert alert-${type} alert-dismissible fade show d-flex align-items-center`;
+    toast.className = `alert alert-${type} alert-dismissible fade show d-flex align-items-center shadow-lg`;
     toast.innerHTML = `
       <i class="bi ${icon} me-2 fs-5"></i>
       <div>${message}</div>
@@ -174,7 +398,10 @@ document.addEventListener("DOMContentLoaded", () => {
     toastContainer.appendChild(toast);
     document.body.appendChild(toastContainer);
 
-    setTimeout(() => toast.remove(), 4000);
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toastContainer.remove(), 300);
+    }, 4000);
   }
 
   // CSRF helper

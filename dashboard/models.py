@@ -1,6 +1,9 @@
 from django.db import models
 from django.db.models import Q
 from django.utils import timezone
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 
 # ==========================
@@ -197,3 +200,99 @@ class Settings(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.code})"
+
+
+# ==========================
+# NOTIFICATIONS SYSTÈME
+# ==========================
+class Notification(models.Model):
+    """
+    Système de notifications pour les utilisateurs du dashboard.
+    """
+
+    # Types de notifications
+    TYPE_CHOICES = [
+        ('info', 'Information'),
+        ('success', 'Succès'),
+        ('warning', 'Avertissement'),
+        ('error', 'Erreur'),
+        ('system', 'Système'),
+        ('export', 'Export'),
+        ('analytics', 'Analytiques'),
+        ('user', 'Utilisateur'),
+    ]
+
+    # Priorités
+    PRIORITY_CHOICES = [
+        ('low', 'Basse'),
+        ('normal', 'Normale'),
+        ('high', 'Haute'),
+        ('urgent', 'Urgente'),
+    ]
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    title = models.CharField(max_length=200)
+    message = models.TextField()
+    notification_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default='info')
+    priority = models.CharField(max_length=20, choices=PRIORITY_CHOICES, default='normal')
+
+    # Statut
+    is_read = models.BooleanField(default=False)
+    is_archived = models.BooleanField(default=False)
+
+    # Métadonnées
+    created_at = models.DateTimeField(default=timezone.now)
+    read_at = models.DateTimeField(blank=True, null=True)
+
+    # Action liée (optionnel)
+    action_url = models.CharField(max_length=255, blank=True, null=True, help_text="URL vers laquelle rediriger")
+    action_label = models.CharField(max_length=100, blank=True, null=True, help_text="Libellé du bouton d'action")
+
+    # Icône personnalisée (optionnel)
+    icon = models.CharField(max_length=50, blank=True, null=True, help_text="Classe d'icône Bootstrap Icons")
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['user', 'is_read']),
+            models.Index(fields=['user', 'created_at']),
+            models.Index(fields=['notification_type']),
+        ]
+
+    def __str__(self):
+        return f"{self.title} - {self.user.email}"
+
+    def mark_as_read(self):
+        """Marquer la notification comme lue."""
+        if not self.is_read:
+            self.is_read = True
+            self.read_at = timezone.now()
+            self.save()
+
+    def mark_as_unread(self):
+        """Marquer la notification comme non lue."""
+        if self.is_read:
+            self.is_read = False
+            self.read_at = None
+            self.save()
+
+    def archive(self):
+        """Archiver la notification."""
+        self.is_archived = True
+        self.save()
+
+    @staticmethod
+    def create_notification(user, title, message, notification_type='info', priority='normal', action_url=None, action_label=None, icon=None):
+        """
+        Méthode helper pour créer une notification.
+        """
+        return Notification.objects.create(
+            user=user,
+            title=title,
+            message=message,
+            notification_type=notification_type,
+            priority=priority,
+            action_url=action_url,
+            action_label=action_label,
+            icon=icon
+        )
