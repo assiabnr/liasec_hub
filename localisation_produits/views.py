@@ -54,9 +54,11 @@ def home(request):
     price_key = (request.GET.get("price") or "").strip()
     sport_filter = (request.GET.get("sport") or "").strip()
     category_filter = (request.GET.get("category") or "").strip()
+    brand_filter = (request.GET.get("brand") or "").strip()
+    sort_by = (request.GET.get("sort") or "").strip()
     page_number = request.GET.get("page") or 1
 
-    products = Product.objects.all()
+    products = Product.objects.filter(available=True)
 
     # Recherche texte : nom, marque, sport, catégorie, référence
     if query:
@@ -77,6 +79,10 @@ def home(request):
         # si aucun sport, on ignore la catégorie
         category_filter = ""
 
+    # Filtre marque
+    if brand_filter:
+        products = products.filter(brand__iexact=brand_filter)
+
     # Filtre prix
     if price_key in PRICE_RANGES:
         min_p, max_p = PRICE_RANGES[price_key]
@@ -85,7 +91,16 @@ def home(request):
         if max_p is not None:
             products = products.filter(price__lte=max_p)
 
-    products = products.order_by("name")
+    # Tri
+    if sort_by == "price_asc":
+        products = products.order_by("price", "name")
+    elif sort_by == "price_desc":
+        products = products.order_by("-price", "name")
+    elif sort_by == "name_desc":
+        products = products.order_by("-name")
+    else:
+        # Par défaut : nom A-Z
+        products = products.order_by("name")
 
     paginator = Paginator(products, 5)
     page_obj = paginator.get_page(page_number)
@@ -118,7 +133,8 @@ def home(request):
 
     # sports disponibles
     sports = (
-        Product.objects.exclude(sport__isnull=True)
+        Product.objects.filter(available=True)
+        .exclude(sport__isnull=True)
         .exclude(sport__exact="")
         .values_list("sport", flat=True)
         .distinct()
@@ -128,7 +144,7 @@ def home(request):
     # catégories uniquement pour le sport sélectionné
     if sport_filter:
         categories = (
-            Product.objects.filter(sport__iexact=sport_filter)
+            Product.objects.filter(sport__iexact=sport_filter, available=True)
             .exclude(category__isnull=True)
             .exclude(category__exact="")
             .values_list("category", flat=True)
@@ -137,6 +153,16 @@ def home(request):
         )
     else:
         categories = []
+
+    # marques disponibles
+    brands = (
+        Product.objects.filter(available=True)
+        .exclude(brand__isnull=True)
+        .exclude(brand__exact="")
+        .values_list("brand", flat=True)
+        .distinct()
+        .order_by("brand")
+    )
 
     return render(
         request,
@@ -148,8 +174,11 @@ def home(request):
             "price_key": price_key,
             "sports": sports,
             "categories": categories,
+            "brands": brands,
             "selected_sport": sport_filter,
             "selected_category": category_filter,
+            "selected_brand": brand_filter,
+            "selected_sort": sort_by,
             "pagination_items": pagination_items,
         },
     )

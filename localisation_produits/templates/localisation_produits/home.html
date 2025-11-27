@@ -40,7 +40,7 @@
 
       <!-- Colonne droite : recherche + produits -->
       <section class="loc-right-panel">
-        <!-- Barre de recherche + filtres texte/sport/catégorie -->
+        <!-- Barre de recherche + filtres -->
         <form id="loc-search-form" method="get" class="loc-search-bar">
           <input
             type="text"
@@ -50,13 +50,16 @@
             value="{{ query }}"
           />
 
+          <!-- Filtres principaux -->
           <div class="loc-filters-row">
             <select
               name="sport"
               class="loc-select"
               onchange="this.form.submit();"
             >
-              <option value="">Sélectionnez un sport</option>
+              <option value="">
+                <i class="bi bi-trophy"></i> Tous les sports
+              </option>
               {% for s in sports %}
                 <option value="{{ s }}" {% if selected_sport == s %}selected{% endif %}>
                   {{ s }}
@@ -74,7 +77,7 @@
                 {% if selected_sport %}
                   Toutes les catégories
                 {% else %}
-                  Choisissez un sport d'abord
+                  Sélectionnez un sport
                 {% endif %}
               </option>
               {% if selected_sport %}
@@ -86,7 +89,63 @@
               {% endif %}
             </select>
           </div>
+
+          <!-- Filtres secondaires: Marque + Tri -->
+          <div class="loc-filters-row">
+            <select
+              name="brand"
+              class="loc-select"
+              onchange="this.form.submit();"
+            >
+              <option value="">Toutes les marques</option>
+              {% for b in brands %}
+                <option value="{{ b }}" {% if selected_brand == b %}selected{% endif %}>
+                  {{ b }}
+                </option>
+              {% endfor %}
+            </select>
+
+            <select
+              name="sort"
+              class="loc-select loc-select-sort"
+              onchange="this.form.submit();"
+            >
+              <option value="" {% if not selected_sort %}selected{% endif %}>
+                Trier par : Nom (A-Z)
+              </option>
+              <option value="name_desc" {% if selected_sort == 'name_desc' %}selected{% endif %}>
+                Nom (Z-A)
+              </option>
+              <option value="price_asc" {% if selected_sort == 'price_asc' %}selected{% endif %}>
+                Prix croissant
+              </option>
+              <option value="price_desc" {% if selected_sort == 'price_desc' %}selected{% endif %}>
+                Prix décroissant
+              </option>
+            </select>
+          </div>
+
+          <!-- Bouton reset des filtres -->
+          {% if query or selected_sport or selected_category or selected_brand or price_key or selected_sort %}
+            <a href="/chatbot/localisation/" class="loc-reset-btn">
+              <i class="bi bi-x-circle"></i>
+              Réinitialiser les filtres
+            </a>
+          {% endif %}
         </form>
+
+        <!-- En-tête filtres prix avec compteur de résultats -->
+        <div class="loc-results-header">
+          <h3 class="loc-results-title">
+            <i class="bi bi-funnel"></i>
+            Filtrer par prix
+          </h3>
+          {% if page_obj %}
+            <span class="loc-results-count">
+              {{ page_obj.paginator.count }} résultat{{ page_obj.paginator.count|pluralize }}
+            </span>
+          {% endif %}
+        </div>
 
         <!-- Filtres prix -->
         <div class="loc-price-filters">
@@ -225,7 +284,7 @@
           <nav class="loc-pagination" aria-label="Pagination produits">
             {% if page_obj.number > 1 %}
               <a
-                href="?{% if query %}q={{ query|urlencode }}&{% endif %}{% if price_key %}price={{ price_key }}&{% endif %}{% if selected_sport %}sport={{ selected_sport|urlencode }}&{% endif %}{% if selected_category %}category={{ selected_category|urlencode }}&{% endif %}page=1"
+                href="?{% if query %}q={{ query|urlencode }}&{% endif %}{% if price_key %}price={{ price_key }}&{% endif %}{% if selected_sport %}sport={{ selected_sport|urlencode }}&{% endif %}{% if selected_category %}category={{ selected_category|urlencode }}&{% endif %}{% if selected_brand %}brand={{ selected_brand|urlencode }}&{% endif %}{% if selected_sort %}sort={{ selected_sort }}&{% endif %}page=1"
                 class="loc-page-btn"
               >&laquo;&laquo;</a>
             {% else %}
@@ -240,7 +299,7 @@
                   <span class="loc-page-btn active">{{ item }}</span>
                 {% else %}
                   <a
-                    href="?{% if query %}q={{ query|urlencode }}&{% endif %}{% if price_key %}price={{ price_key }}&{% endif %}{% if selected_sport %}sport={{ selected_sport|urlencode }}&{% endif %}{% if selected_category %}category={{ selected_category|urlencode }}&{% endif %}page={{ item }}"
+                    href="?{% if query %}q={{ query|urlencode }}&{% endif %}{% if price_key %}price={{ price_key }}&{% endif %}{% if selected_sport %}sport={{ selected_sport|urlencode }}&{% endif %}{% if selected_category %}category={{ selected_category|urlencode }}&{% endif %}{% if selected_brand %}brand={{ selected_brand|urlencode }}&{% endif %}{% if selected_sort %}sort={{ selected_sort }}&{% endif %}page={{ item }}"
                     class="loc-page-btn"
                   >{{ item }}</a>
                 {% endif %}
@@ -249,7 +308,7 @@
 
             {% if page_obj.number < page_obj.paginator.num_pages %}
               <a
-                href="?{% if query %}q={{ query|urlencode }}&{% endif %}{% if price_key %}price={{ price_key }}&{% endif %}{% if selected_sport %}sport={{ selected_sport|urlencode }}&{% endif %}{% if selected_category %}category={{ selected_category|urlencode }}&{% endif %}page={{ page_obj.paginator.num_pages }}"
+                href="?{% if query %}q={{ query|urlencode }}&{% endif %}{% if price_key %}price={{ price_key }}&{% endif %}{% if selected_sport %}sport={{ selected_sport|urlencode }}&{% endif %}{% if selected_category %}category={{ selected_category|urlencode }}&{% endif %}{% if selected_brand %}brand={{ selected_brand|urlencode }}&{% endif %}{% if selected_sort %}sort={{ selected_sort }}&{% endif %}page={{ page_obj.paginator.num_pages }}"
                 class="loc-page-btn"
               >&raquo;&raquo;</a>
             {% else %}
@@ -355,20 +414,31 @@
 
       .loc-search-bar {
         margin-top: 16px;
-        margin-bottom: 20px;
+        margin-bottom: 16px;
         flex-shrink: 0;
+        background: #ffffff;
+        padding: 20px;
+        border-radius: 20px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
       }
 
       .loc-search-input {
         width: 100%;
         box-sizing: border-box;
-        border-radius: 999px;
-        border: 2px solid #cbd5f5;
-        padding: 18px 28px;
-        background: #f3f4ff;
-        font-size: 18px;
+        border-radius: 12px;
+        border: 2px solid #e2e8f0;
+        padding: 14px 20px;
+        background: #f8fafc;
+        font-size: 15px;
         font-weight: 500;
-        box-shadow: 0 8px 20px rgba(148, 163, 184, 0.35);
+        transition: all 0.2s ease;
+      }
+
+      .loc-search-input:focus {
+        outline: none;
+        border-color: #2563eb;
+        background: #ffffff;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
       }
 
       .loc-filters-row {
@@ -382,39 +452,154 @@
         min-width: 0;
         box-sizing: border-box;
         max-width: 100%;
-        border-radius: 999px;
-        border: none;
-        padding: 12px 16px;
-        background: #ffffff;
-        box-shadow: 0 0 0 1px #e5e7eb;
+        border-radius: 10px;
+        border: 2px solid #e2e8f0;
+        padding: 11px 14px;
+        background: #f8fafc;
         font-size: 14px;
+        font-weight: 500;
         outline: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        color: #334155;
+      }
+
+      .loc-select:hover {
+        border-color: #cbd5e1;
+        background: #ffffff;
       }
 
       .loc-select:focus {
-        box-shadow: 0 0 0 2px #2563eb33;
+        border-color: #2563eb;
+        background: #ffffff;
+        box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+      }
+
+      .loc-select:disabled {
+        background: #f1f5f9;
+        color: #94a3b8;
+        cursor: not-allowed;
+        opacity: 0.6;
+      }
+
+      .loc-select-sort {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: #ffffff;
+        border-color: transparent;
+        font-weight: 600;
+      }
+
+      .loc-select-sort:hover {
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        transform: translateY(-1px);
+      }
+
+      .loc-select-sort:focus {
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.3);
+      }
+
+      .loc-select-sort option {
+        background: #ffffff;
+        color: #1e293b;
+        font-weight: 500;
+        padding: 10px;
+      }
+
+      .loc-reset-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 18px;
+        margin-top: 12px;
+        border-radius: 10px;
+        background: #fee2e2;
+        color: #dc2626;
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.2s ease;
+        border: 2px solid #fecaca;
+      }
+
+      .loc-reset-btn:hover {
+        background: #fecaca;
+        border-color: #fca5a5;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+      }
+
+      .loc-reset-btn i {
+        font-size: 16px;
+      }
+
+      .loc-results-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 12px;
+        padding: 0 4px;
+      }
+
+      .loc-results-title {
+        font-size: 15px;
+        font-weight: 700;
+        color: #1e293b;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .loc-results-title i {
+        color: #2563eb;
+        font-size: 16px;
+      }
+
+      .loc-results-count {
+        font-size: 13px;
+        font-weight: 600;
+        color: #64748b;
+        background: #f1f5f9;
+        padding: 6px 12px;
+        border-radius: 8px;
       }
 
       .loc-price-filters {
         display: flex;
         flex-wrap: wrap;
-        gap: 10px;
-        margin-bottom: 20px;
+        gap: 8px;
+        margin-bottom: 16px;
         flex-shrink: 0;
+        background: #ffffff;
+        padding: 16px;
+        border-radius: 16px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
       }
 
       .loc-price-pill {
-        border-radius: 999px;
-        border: none;
-        padding: 10px 16px;
-        font-size: 13px;
-        background: #f5f5f7;
+        border-radius: 8px;
+        border: 2px solid #e2e8f0;
+        padding: 8px 14px;
+        font-size: 12px;
+        font-weight: 600;
+        background: #ffffff;
+        color: #475569;
         cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+      }
+
+      .loc-price-pill:hover {
+        border-color: #cbd5e1;
+        background: #f8fafc;
+        transform: translateY(-1px);
       }
 
       .loc-price-pill.active {
-        background: #2563eb;
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
         color: #ffffff;
+        border-color: transparent;
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
       }
 
       .loc-products-list {
