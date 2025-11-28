@@ -22,24 +22,24 @@
         position: fixed;
         top: 16px;
         right: 16px;
-        width: 72px;
-        height: 72px;
+        width: 90px;
+        height: 90px;
         border-radius: 999px;
         border: none;
-        background: #2563eb;
+        background: linear-gradient(135deg, var(--decathlon-blue) 0%, var(--decathlon-purple) 100%);
         color: #ffffff;
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 10px 25px rgba(37, 99, 235, 0.45);
+        box-shadow: 0 12px 35px rgba(37, 99, 235, 0.5);
         cursor: pointer;
-        z-index: 50;
-        font-size: 32px;
+        z-index: 1000;
+        font-size: 40px;
       }
 
       .chat-home-btn img {
-        width: 36px;
-        height: 36px;
+        width: 44px;
+        height: 44px;
       }
     </style>
   </head>
@@ -286,7 +286,6 @@
         const closeVoiceSettings = document.getElementById("closeVoiceSettings");
         const soundToggle = document.getElementById("soundToggle");
         const soundIcon = document.getElementById("soundIcon");
-        const soundLabel = document.getElementById("soundLabel");
         const testVoiceBtn = document.getElementById("testVoiceBtn");
 
         // Ouvrir le panneau
@@ -326,16 +325,14 @@
         }
 
         function updateSoundButton() {
-          if (!soundToggle) return;
+          if (!soundToggle || !soundIcon) return;
 
           if (STATE.soundEnabled) {
             soundToggle.classList.remove("disabled");
             soundIcon.className = "bi bi-volume-up-fill";
-            soundLabel.textContent = "SON ACTIVÉ";
           } else {
             soundToggle.classList.add("disabled");
             soundIcon.className = "bi bi-volume-mute-fill";
-            soundLabel.textContent = "SON DÉSACTIVÉ";
           }
         }
 

@@ -540,13 +540,13 @@ body {
 }
 
 
-/* Bouton Home (retour à l'accueil) */
+/* Bouton Home (retour à l'accueil) - PLUS GRAND pour se différencier */
 .chat-home-btn {
   position: fixed;
   top: 20px;
-  right: 20px;   /* en haut à droite */
-  width: 56px;
-  height: 56px;
+  right: 20px;
+  width: 90px;
+  height: 90px;
   border-radius: 50%;
   border: none;
   display: grid;
@@ -557,20 +557,90 @@ body {
     var(--decathlon-blue) 0%,
     var(--decathlon-purple) 100%
   );
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-  transition: all 0.25s ease;
+  box-shadow: 0 8px 20px rgba(68, 91, 232, 0.4);
+  transition: all 0.3s ease;
   z-index: 1000;  /* au-dessus du bouton son */
 }
 
 .chat-home-btn img {
-  width: 26px;
-  height: 26px;
+  width: 44px;
+  height: 44px;
   filter: brightness(0) invert(1);
 }
 
+.chat-home-btn i {
+  font-size: 40px;
+  color: white;
+}
+
 .chat-home-btn:hover {
+  transform: scale(1.08);
+  box-shadow: 0 12px 30px rgba(68, 91, 232, 0.5);
+}
+
+/* Bouton Son ON/OFF */
+.chat-sound-btn {
+  position: fixed;
+  top: 20px;
+  right: 90px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
+  box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+  transition: all 0.25s ease;
+  z-index: 1000;
+}
+
+.chat-sound-btn i {
+  font-size: 24px;
+  color: white;
+}
+
+.chat-sound-btn:hover {
   transform: scale(1.05);
-  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 6px 14px rgba(16, 185, 129, 0.4);
+}
+
+.chat-sound-btn.disabled {
+  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
+  box-shadow: 0 4px 10px rgba(239, 68, 68, 0.3);
+}
+
+.chat-sound-btn.disabled:hover {
+  box-shadow: 0 6px 14px rgba(239, 68, 68, 0.4);
+}
+
+/* Bouton Paramètres Vocaux */
+.chat-settings-btn {
+  position: fixed;
+  top: 20px;
+  right: 160px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
+  box-shadow: 0 4px 10px rgba(59, 130, 246, 0.3);
+  transition: all 0.25s ease;
+  z-index: 1000;
+}
+
+.chat-settings-btn i {
+  font-size: 24px;
+  color: white;
+}
+
+.chat-settings-btn:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 14px rgba(59, 130, 246, 0.4);
 }
 
 
@@ -1451,88 +1521,6 @@ input[type="range"]::-moz-range-thumb:hover {
    INTERFACE VOCALE SIMPLIFIÉE
 ========================= */
 
-/* Bouton Son ON/OFF amélioré */
-.voice-control-btn {
-  position: fixed;
-  bottom: 120px;
-  right: 20px;
-  width: 90px;
-  height: 90px;
-  border-radius: 50%;
-  border: none;
-  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-  color: white;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 4px;
-  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
-  cursor: pointer;
-  z-index: 50;
-  transition: all 0.3s ease;
-  font-family: 'Poppins', sans-serif;
-}
-
-.voice-control-btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 12px 32px rgba(16, 185, 129, 0.5);
-}
-
-.voice-control-btn:active {
-  transform: scale(0.95);
-}
-
-.voice-control-btn i {
-  font-size: 36px;
-}
-
-.voice-control-btn span {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-}
-
-/* État désactivé */
-.voice-control-btn.disabled {
-  background: linear-gradient(135deg, #EF4444 0%, #DC2626 100%);
-  box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
-}
-
-/* Bouton Paramètres Vocaux */
-.voice-settings-btn {
-  position: fixed;
-  bottom: 230px;
-  right: 20px;
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
-  border: none;
-  background: linear-gradient(135deg, #3B82F6 0%, #2563EB 100%);
-  color: white;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.4);
-  cursor: pointer;
-  z-index: 50;
-  transition: all 0.3s ease;
-}
-
-.voice-settings-btn:hover {
-  transform: scale(1.05);
-  box-shadow: 0 10px 28px rgba(59, 130, 246, 0.5);
-}
-
-.voice-settings-btn:active {
-  transform: scale(0.95);
-}
-
-.voice-settings-btn i {
-  font-size: 28px;
-}
-
-/* Panneau de paramètres */
 .voice-settings-panel {
   position: fixed;
   top: 50%;
@@ -1794,28 +1782,25 @@ input[type="range"]::-moz-range-thumb:hover {
 
 /* Responsive */
 @media (max-width: 768px) {
-  .voice-control-btn {
-    width: 75px;
-    height: 75px;
-    bottom: 100px;
+  .chat-sound-btn,
+  .chat-settings-btn,
+  .chat-home-btn {
+    width: 48px;
+    height: 48px;
   }
 
-  .voice-control-btn i {
-    font-size: 28px;
+  .chat-sound-btn {
+    right: 75px;
   }
 
-  .voice-control-btn span {
-    font-size: 9px;
+  .chat-settings-btn {
+    right: 135px;
   }
 
-  .voice-settings-btn {
-    width: 60px;
-    height: 60px;
-    bottom: 190px;
-  }
-
-  .voice-settings-btn i {
-    font-size: 24px;
+  .chat-sound-btn i,
+  .chat-settings-btn i,
+  .chat-home-btn i {
+    font-size: 20px;
   }
 
   .voice-settings-panel {
