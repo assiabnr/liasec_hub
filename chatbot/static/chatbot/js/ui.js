@@ -6,7 +6,16 @@ import { STATE } from "./config.js";
 export function bubble(chatMessages, role, html) {
   const wrap = document.createElement("div");
   wrap.className = `message ${role === "user" ? "user" : "bot"}`;
-  wrap.innerHTML = `<div class="bubble">${html}</div>`;
+
+  if (role === "bot") {
+    wrap.innerHTML = `
+      <img src="/static/chatbot/images/bot.png" alt="Bot" class="bot-avatar">
+      <div class="bubble">${html}</div>
+    `;
+  } else {
+    wrap.innerHTML = `<div class="bubble">${html}</div>`;
+  }
+
   chatMessages.appendChild(wrap);
   scrollBottom(chatMessages);
   return wrap;
@@ -15,8 +24,10 @@ export function bubble(chatMessages, role, html) {
 export function loaderBubble(chatMessages) {
   const el = document.createElement("div");
   el.className = "message bot";
-  el.innerHTML =
-    '<div class="bubble"><span class="bouncing-dots"><span></span><span></span><span></span></span></div>';
+  el.innerHTML = `
+    <img src="/static/chatbot/images/bot.png" alt="Bot" class="bot-avatar">
+    <div class="bubble"><span class="bouncing-dots"><span></span><span></span><span></span></span></div>
+  `;
   chatMessages.appendChild(el);
   scrollBottom(chatMessages);
   return el;
@@ -26,6 +37,14 @@ export function loaderBubble(chatMessages) {
 export function typingBubble(chatMessages, html, speakText, callback) {
   const wrap = document.createElement("div");
   wrap.className = "message bot";
+
+  // Ajouter l'avatar du bot
+  const avatarImg = document.createElement("img");
+  avatarImg.src = "/static/chatbot/images/bot.png";
+  avatarImg.alt = "Bot";
+  avatarImg.className = "bot-avatar";
+  wrap.appendChild(avatarImg);
+
   const bubbleDiv = document.createElement("div");
   bubbleDiv.className = "bubble typing"; // Ajouter la classe typing pour le curseur
   wrap.appendChild(bubbleDiv);

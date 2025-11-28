@@ -3,7 +3,7 @@
 import { DOM_SELECTORS } from "./config.js";
 import { typingBubble } from "./ui.js";
 import { toggleVoice, speak, initializeDefaultVoice } from "./speech.js";
-import { setupSTT, toggleRecognition } from "./recognition.js";
+import { setupSTT, setupLongPressRecognition } from "./recognition.js";
 import { resetInactivity, initInactivityListener } from "./inactivity.js";
 import { sendMessage, hardResetChat } from "./chat.js";
 import { initMapModal, initMapHighlight } from "./map.js";
@@ -25,7 +25,7 @@ function initEventListeners() {
     DOM_SELECTORS.soundBtn.classList.toggle("muted", !enabled);
   });
 
-  DOM_SELECTORS.micBtn?.addEventListener("click", toggleRecognition);
+  setupLongPressRecognition();
 
   document.addEventListener("triggerSendMessage", sendMessage);
 }

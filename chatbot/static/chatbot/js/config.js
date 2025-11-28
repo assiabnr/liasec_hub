@@ -25,6 +25,7 @@ export const INACTIVITY_CONFIG = {
 export const STATE = {
   lastInteractionId: null,
   voiceEnabled: true,
+  soundEnabled: true,
   isSending: false,
   isTyping: false,
   recognizing: false,

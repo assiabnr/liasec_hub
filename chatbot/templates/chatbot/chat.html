@@ -45,28 +45,6 @@
   </head>
 
   <body class="chatbody">
-    <!-- Son ON/OFF -->
-    <button
-      type="button"
-      class="btn icon chat-sound"
-      id="soundToggle"
-      title="Activer/Désactiver la voix"
-    >
-      <img src="{% static 'chatbot/images/icons/volume.svg' %}"
-           alt="Activer/Désactiver la voix" />
-    </button>
-
-    <!-- Bouton Paramètres Voix -->
-    <button
-      type="button"
-      class="btn icon chat-voice-settings"
-      id="voiceSettingsBtn"
-      title="Paramètres de la voix"
-      style="position: fixed; top: 110px; right: 16px; width: 72px; height: 72px; border-radius: 999px; border: none; background: #2563eb; color: #ffffff; display: flex; align-items: center; justify-content: center; box-shadow: 0 10px 25px rgba(37, 99, 235, 0.45); cursor: pointer; z-index: 50; font-size: 32px;"
-    >
-      <i class="bi bi-sliders" aria-hidden="true"></i>
-    </button>
-
     <!-- Bouton Home -->
     <button
       type="button"
@@ -77,56 +55,85 @@
       <i class="bi bi-house-fill" aria-hidden="true"></i>
     </button>
 
-    <!-- Panneau des paramètres vocaux -->
-    <div id="voiceSettingsPanel" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: white; border-radius: 20px; padding: 30px; box-shadow: 0 20px 60px rgba(0,0,0,0.3); z-index: 100; width: 90%; max-width: 500px;">
-      <h3 style="margin: 0 0 20px 0; font-size: 24px; color: #1e293b;">Paramètres de la voix</h3>
+    <!-- Bouton Son ON/OFF -->
+    <button
+      type="button"
+      class="btn icon chat-sound-btn"
+      id="soundToggle"
+      title="Activer/Désactiver la voix"
+    >
+      <i class="bi bi-volume-up-fill" id="soundIcon"></i>
+    </button>
 
-      <!-- Volume -->
-      <div style="margin-bottom: 20px;">
-        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #475569;">
-          <i class="bi bi-volume-up"></i> Volume: <span id="volumeValue">100</span>%
-        </label>
-        <input type="range" id="volumeSlider" min="0" max="100" value="100" style="width: 100%; cursor: pointer;">
-      </div>
+    <!-- Bouton Paramètres Vocaux -->
+    <button
+      type="button"
+      class="btn icon chat-settings-btn"
+      id="voiceSettingsBtn"
+      title="Paramètres vocaux"
+    >
+      <i class="bi bi-sliders2"></i>
+    </button>
 
-      <!-- Vitesse -->
-      <div style="margin-bottom: 20px;">
-        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #475569;">
-          <i class="bi bi-speedometer2"></i> Vitesse: <span id="rateValue">1.0</span>x
-        </label>
-        <input type="range" id="rateSlider" min="0.5" max="2" step="0.1" value="1" style="width: 100%; cursor: pointer;">
-      </div>
-
-      <!-- Tonalité -->
-      <div style="margin-bottom: 20px;">
-        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #475569;">
-          <i class="bi bi-music-note-beamed"></i> Tonalité: <span id="pitchValue">1.0</span>
-        </label>
-        <input type="range" id="pitchSlider" min="0.5" max="2" step="0.1" value="1" style="width: 100%; cursor: pointer;">
-      </div>
-
-      <!-- Choix de la voix -->
-      <div style="margin-bottom: 25px;">
-        <label style="display: block; margin-bottom: 8px; font-weight: 600; color: #475569;">
-          <i class="bi bi-person-voice"></i> Voix
-        </label>
-        <select id="voiceSelect" style="width: 100%; padding: 10px; border-radius: 8px; border: 2px solid #e2e8f0; font-size: 16px; cursor: pointer;">
-          <option value="">Voix par défaut</option>
-        </select>
-      </div>
-
-      <div style="display: flex; gap: 10px;">
-        <button type="button" id="testVoiceBtn" style="flex: 1; padding: 12px; background: #2563eb; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 16px;">
-          <i class="bi bi-play-fill"></i> Tester
-        </button>
-        <button type="button" id="closeVoiceSettings" style="flex: 1; padding: 12px; background: #64748b; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 16px;">
-          Fermer
+    <!-- Panneau simplifié de paramètres vocaux -->
+    <div id="voiceSettingsPanel" class="voice-settings-panel">
+      <div class="voice-settings-header">
+        <h2><i class="bi bi-sliders2"></i> Paramètres Vocaux</h2>
+        <button type="button" id="closeVoiceSettings" class="close-settings-btn">
+          <i class="bi bi-x-lg"></i>
         </button>
       </div>
+
+      <!-- Présets de vitesse (gros boutons tactiles) -->
+      <div class="voice-presets">
+        <h3><i class="bi bi-speedometer2"></i> Vitesse de lecture</h3>
+        <div class="preset-buttons">
+          <button type="button" class="preset-btn" data-speed="slow">
+            <i class="bi bi-hourglass"></i>
+            <span>LENT</span>
+            <small>0.7x</small>
+          </button>
+          <button type="button" class="preset-btn active" data-speed="normal">
+            <i class="bi bi-check-circle-fill"></i>
+            <span>NORMAL</span>
+            <small>1.0x</small>
+          </button>
+          <button type="button" class="preset-btn" data-speed="fast">
+            <i class="bi bi-lightning-fill"></i>
+            <span>RAPIDE</span>
+            <small>1.3x</small>
+          </button>
+        </div>
+      </div>
+
+      <!-- Volume simple -->
+      <div class="volume-control">
+        <h3><i class="bi bi-volume-up-fill"></i> Volume</h3>
+        <div class="volume-buttons">
+          <button type="button" class="volume-btn" data-volume="low">
+            <i class="bi bi-volume-down"></i>
+            <span>Faible</span>
+          </button>
+          <button type="button" class="volume-btn active" data-volume="medium">
+            <i class="bi bi-volume-up"></i>
+            <span>Moyen</span>
+          </button>
+          <button type="button" class="volume-btn" data-volume="high">
+            <i class="bi bi-volume-up-fill"></i>
+            <span>Fort</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Test vocal -->
+      <button type="button" id="testVoiceBtn" class="test-voice-btn">
+        <i class="bi bi-play-circle-fill"></i>
+        TESTER LA VOIX
+      </button>
     </div>
 
     <!-- Overlay sombre -->
-    <div id="voiceSettingsOverlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 99;"></div>
+    <div id="voiceSettingsOverlay" class="voice-settings-overlay"></div>
 
     <main class="chat-container">
       <section id="messages" class="messages"></section>
@@ -150,7 +157,7 @@
               <button
                 type="button"
                 class="btn icon chat-mic"
-                title="Appuyer pour parler"
+                title="Maintenez appuyé pour parler"
               >
                 <img src="{% static 'chatbot/images/icons/mic.svg' %}" alt="Micro" />
               </button>
@@ -229,6 +236,7 @@
 
     <script type="module">
       import { setVolume, setRate, setPitch, setVoice, getAvailableVoices, speak, initializeDefaultVoice } from "{% static 'chatbot/js/speech.js' %}";
+      import { STATE } from "{% static 'chatbot/js/config.js' %}";
 
       document.addEventListener("DOMContentLoaded", function () {
         // Reset si F5 / actualisation
@@ -276,206 +284,110 @@
         const voiceSettingsPanel = document.getElementById("voiceSettingsPanel");
         const voiceSettingsOverlay = document.getElementById("voiceSettingsOverlay");
         const closeVoiceSettings = document.getElementById("closeVoiceSettings");
-
-        const volumeSlider = document.getElementById("volumeSlider");
-        const volumeValue = document.getElementById("volumeValue");
-        const rateSlider = document.getElementById("rateSlider");
-        const rateValue = document.getElementById("rateValue");
-        const pitchSlider = document.getElementById("pitchSlider");
-        const pitchValue = document.getElementById("pitchValue");
-        const voiceSelect = document.getElementById("voiceSelect");
+        const soundToggle = document.getElementById("soundToggle");
+        const soundIcon = document.getElementById("soundIcon");
+        const soundLabel = document.getElementById("soundLabel");
         const testVoiceBtn = document.getElementById("testVoiceBtn");
 
         // Ouvrir le panneau
-        voiceSettingsBtn.addEventListener("click", () => {
-          voiceSettingsPanel.style.display = "block";
-          voiceSettingsOverlay.style.display = "block";
-          loadVoices();
-        });
+        if (voiceSettingsBtn) {
+          voiceSettingsBtn.addEventListener("click", () => {
+            voiceSettingsPanel.classList.add("active");
+            voiceSettingsOverlay.classList.add("active");
+          });
+        }
 
         // Fermer le panneau
         function closePanel() {
-          voiceSettingsPanel.style.display = "none";
-          voiceSettingsOverlay.style.display = "none";
+          voiceSettingsPanel.classList.remove("active");
+          voiceSettingsOverlay.classList.remove("active");
         }
-        closeVoiceSettings.addEventListener("click", closePanel);
-        voiceSettingsOverlay.addEventListener("click", closePanel);
 
-        // Charger les voix disponibles
-        function loadVoices() {
-          const voices = window.speechSynthesis.getVoices();
-          const frenchVoices = voices.filter(v => v.lang.startsWith('fr'));
+        if (closeVoiceSettings) {
+          closeVoiceSettings.addEventListener("click", closePanel);
+        }
 
-          // Noms féminins à exclure pour prioriser les voix masculines
-          const feminineNames = ['hortense', 'julie', 'denise', 'marie', 'celine', 'amelie', 'lea', 'pauline'];
+        if (voiceSettingsOverlay) {
+          voiceSettingsOverlay.addEventListener("click", closePanel);
+        }
 
-          // Trier : voix masculines en premier, puis féminines
-          const sortedVoices = frenchVoices.sort((a, b) => {
-            const aName = a.name.toLowerCase();
-            const bName = b.name.toLowerCase();
-            const aIsFeminine = feminineNames.some(name => aName.includes(name));
-            const bIsFeminine = feminineNames.some(name => bName.includes(name));
+        // Bouton Sound ON/OFF
+        if (soundToggle) {
+          soundToggle.addEventListener("click", () => {
+            STATE.soundEnabled = !STATE.soundEnabled;
+            STATE.voiceEnabled = STATE.soundEnabled;
+            updateSoundButton();
 
-            if (aIsFeminine && !bIsFeminine) return 1;
-            if (!aIsFeminine && bIsFeminine) return -1;
-
-            // Prioriser Gerard Online en premier
-            const aIsGerardOnline = aName.includes('gerard') && aName.includes('online');
-            const bIsGerardOnline = bName.includes('gerard') && bName.includes('online');
-            if (aIsGerardOnline && !bIsGerardOnline) return -1;
-            if (!aIsGerardOnline && bIsGerardOnline) return 1;
-
-            // Puis prioriser les autres voix Online
-            const aIsOnline = aName.includes('online');
-            const bIsOnline = bName.includes('online');
-            if (aIsOnline && !bIsOnline) return -1;
-            if (!aIsOnline && bIsOnline) return 1;
-
-            return 0;
-          });
-
-          voiceSelect.innerHTML = '<option value="">Voix par défaut</option>';
-          let gerardIndex = -1;
-
-          sortedVoices.forEach((voice, index) => {
-            // Extraire le prénom et la région
-            let displayName = voice.name;
-
-            // Extraire le prénom (généralement après "Microsoft" ou "Google" etc.)
-            const parts = voice.name.split(' ');
-            let firstName = '';
-            let region = '';
-
-            // Chercher le prénom (généralement le dernier mot avant "Online" ou le dernier mot)
-            if (voice.name.includes('Online')) {
-              const beforeOnline = voice.name.split('Online')[0].trim();
-              const words = beforeOnline.split(' ');
-              firstName = words[words.length - 1];
-              region = 'Online';
-            } else {
-              // Prendre le dernier mot comme prénom
-              firstName = parts[parts.length - 1];
-              // Extraire la région du lang (ex: fr-FR -> France, fr-CA -> Canada)
-              const langParts = voice.lang.split('-');
-              if (langParts.length > 1) {
-                const countryCode = langParts[1];
-                const regions = {
-                  'FR': 'France',
-                  'CA': 'Canada',
-                  'BE': 'Belgique',
-                  'CH': 'Suisse'
-                };
-                region = regions[countryCode] || countryCode;
-              }
-            }
-
-            displayName = `${firstName}${region ? ' (' + region + ')' : ''}`;
-
-            const option = document.createElement('option');
-            option.value = index;
-            option.textContent = displayName;
-            voiceSelect.appendChild(option);
-
-            // Chercher Gerard (Online ou autre voix masculine Gerard)
-            const voiceLower = voice.name.toLowerCase();
-            if (voiceLower.includes('gerard')) {
-              // Priorité à Gerard Online
-              if (voiceLower.includes('online') && gerardIndex === -1) {
-                gerardIndex = index;
-              } else if (gerardIndex === -1) {
-                gerardIndex = index;
-              }
+            // Arrêter toute synthèse en cours si on désactive
+            if (!STATE.soundEnabled && window.speechSynthesis) {
+              window.speechSynthesis.cancel();
             }
           });
+        }
 
-          // Définir Gerard par défaut s'il existe
-          if (gerardIndex !== -1) {
-            voiceSelect.value = gerardIndex;
-            setVoiceByIndex(sortedVoices, gerardIndex);
-            console.log('Voix Gerard définie par défaut:', sortedVoices[gerardIndex].name);
+        function updateSoundButton() {
+          if (!soundToggle) return;
+
+          if (STATE.soundEnabled) {
+            soundToggle.classList.remove("disabled");
+            soundIcon.className = "bi bi-volume-up-fill";
+            soundLabel.textContent = "SON ACTIVÉ";
+          } else {
+            soundToggle.classList.add("disabled");
+            soundIcon.className = "bi bi-volume-mute-fill";
+            soundLabel.textContent = "SON DÉSACTIVÉ";
           }
         }
 
-        // Fonction helper pour définir la voix par index
-        function setVoiceByIndex(sortedVoices, index) {
-          if (index >= 0 && index < sortedVoices.length) {
-            setVoice(sortedVoices[index]);
-          }
-        }
+        // Preset Vitesse
+        const speedPresets = {
+          slow: 0.7,
+          normal: 1.0,
+          fast: 1.3
+        };
 
-        // Charger les voix dans le sélecteur quand elles sont disponibles
-        function loadVoicesIntoSelector() {
-          loadVoices();
-        }
+        document.querySelectorAll(".preset-btn").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const speed = btn.getAttribute("data-speed");
+            if (speedPresets[speed]) {
+              setRate(speedPresets[speed]);
 
-        // Si les voix ne sont pas chargées, attendre
-        if (window.speechSynthesis.getVoices().length === 0) {
-          window.speechSynthesis.addEventListener('voiceschanged', loadVoicesIntoSelector, { once: true });
-        } else {
-          // Charger les voix au démarrage
-          loadVoicesIntoSelector();
-        }
-
-        // Volume
-        volumeSlider.addEventListener("input", (e) => {
-          const val = e.target.value;
-          volumeValue.textContent = val;
-          setVolume(val / 100);
-        });
-
-        // Vitesse
-        rateSlider.addEventListener("input", (e) => {
-          const val = parseFloat(e.target.value);
-          rateValue.textContent = val.toFixed(1);
-          setRate(val);
-        });
-
-        // Tonalité
-        pitchSlider.addEventListener("input", (e) => {
-          const val = parseFloat(e.target.value);
-          pitchValue.textContent = val.toFixed(1);
-          setPitch(val);
-        });
-
-        // Voix
-        voiceSelect.addEventListener("change", (e) => {
-          const voices = window.speechSynthesis.getVoices();
-          const frenchVoices = voices.filter(v => v.lang.startsWith('fr'));
-
-          // Noms féminins à exclure pour prioriser les voix masculines
-          const feminineNames = ['hortense', 'julie', 'denise', 'marie', 'celine', 'amelie', 'lea', 'pauline'];
-
-          // Trier comme dans loadVoices
-          const sortedVoices = frenchVoices.sort((a, b) => {
-            const aName = a.name.toLowerCase();
-            const bName = b.name.toLowerCase();
-            const aIsFeminine = feminineNames.some(name => aName.includes(name));
-            const bIsFeminine = feminineNames.some(name => bName.includes(name));
-
-            if (aIsFeminine && !bIsFeminine) return 1;
-            if (!aIsFeminine && bIsFeminine) return -1;
-
-            const aIsGerardOnline = aName.includes('gerard') && aName.includes('online');
-            const bIsGerardOnline = bName.includes('gerard') && bName.includes('online');
-            if (aIsGerardOnline && !bIsGerardOnline) return -1;
-            if (!aIsGerardOnline && bIsGerardOnline) return 1;
-
-            const aIsOnline = aName.includes('online');
-            const bIsOnline = bName.includes('online');
-            if (aIsOnline && !bIsOnline) return -1;
-            if (!aIsOnline && bIsOnline) return 1;
-
-            return 0;
+              // Update active state
+              document.querySelectorAll(".preset-btn").forEach(b => b.classList.remove("active"));
+              btn.classList.add("active");
+            }
           });
+        });
 
-          const selectedVoice = e.target.value ? sortedVoices[parseInt(e.target.value)] : null;
-          setVoice(selectedVoice);
+        // Preset Volume
+        const volumePresets = {
+          low: 0.5,
+          medium: 0.8,
+          high: 1.0
+        };
+
+        document.querySelectorAll(".volume-btn").forEach(btn => {
+          btn.addEventListener("click", () => {
+            const volume = btn.getAttribute("data-volume");
+            if (volumePresets[volume]) {
+              setVolume(volumePresets[volume]);
+
+              // Update active state
+              document.querySelectorAll(".volume-btn").forEach(b => b.classList.remove("active"));
+              btn.classList.add("active");
+            }
+          });
         });
 
         // Tester la voix
-        testVoiceBtn.addEventListener("click", () => {
-          speak("Bonjour, ceci est un test de la voix du chatbot.");
-        });
+        if (testVoiceBtn) {
+          testVoiceBtn.addEventListener("click", () => {
+            speak("Bonjour, ceci est un test de la voix du chatbot.");
+          });
+        }
+
+        // Initialiser le bouton sound au chargement
+        updateSoundButton();
       });
     </script>
   </body>
