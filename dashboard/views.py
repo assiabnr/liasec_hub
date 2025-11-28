@@ -2381,7 +2381,7 @@ def export_sessions_pdf(request):
             user=str(request.user) if request.user.is_authenticated else "Système"
         )
 
-        # 🔔 Notification
+        # Notification
         if request.user.is_authenticated:
             Notification.create_notification(
                 user=request.user,

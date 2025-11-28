@@ -1061,19 +1061,22 @@ window.mergedData = {
 };
 
 
-window.getPathIdFromCategory = function (categoryLabel) {
-  if (!categoryLabel || typeof categoryLabel !== "string") return null;
+window.getPathIdFromCategory = function (categoryLabel, sportLabel) {
   if (!window.mergedData) {
     console.error("mergedData non défini");
     return null;
   }
 
+  // Si ni catégorie ni sport fourni, retourner null
+  if (!categoryLabel && !sportLabel) return null;
+
   const normalize = (str) => {
+    if (!str || typeof str !== "string") return "";
     return str
       .toLowerCase()
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "") // supprime les accents
-      .replace(/['’]/g, "")            // supprime apostrophes
+      .replace(/['']/g, "")            // supprime apostrophes
       .replace(/\b(d|du|de|la|le|les|des|l|a|au|aux)\b/g, "") // articles
       .replace(/[^\w\s]/g, "")         // ponctuation
       .replace(/\s+/g, " ")            // espaces
@@ -1081,10 +1084,136 @@ window.getPathIdFromCategory = function (categoryLabel) {
   };
 
   const normalized = normalize(categoryLabel);
+  const normalizedWords = normalized.split(" ").filter(w => w.length > 0);
+  const sportNormalized = normalize(sportLabel);
+
+  // ÉTAPE 0 : Si un sport est fourni, chercher d'abord dans CE sport spécifique
+  if (sportNormalized) {
+    for (const sport in window.mergedData) {
+      const currentSportNormalized = normalize(sport);
+
+      // Vérifier si c'est le bon sport (exact ou contient tous les mots)
+      const sportWords = currentSportNormalized.split(" ").filter(w => w.length > 0);
+      const inputSportWords = sportNormalized.split(" ").filter(w => w.length > 0);
+
+      const isMatchingSport =
+        currentSportNormalized === sportNormalized ||
+        inputSportWords.every(word => sportWords.some(sw => sw.includes(word) || word.includes(sw)));
+
+      if (isMatchingSport) {
+        const categories = window.mergedData[sport].categories || [];
+
+        // Si on a une catégorie, chercher dans ce sport
+        if (normalized) {
+          for (const cat of categories) {
+            const catNormalized = normalize(cat.name);
+            let pathId = cat.pathId;
+
+            if (!pathId || pathId.length === 0) continue;
+
+            if (typeof pathId === "string" && !pathId.startsWith("area")) {
+              pathId = "area" + pathId;
+            }
+
+            // Match exact de catégorie dans le bon sport
+            if (catNormalized === normalized) {
+              console.log(`Match exact dans sport "${sport}": ${categoryLabel} → ${cat.name} → ${pathId}`);
+              return pathId;
+            }
+
+            // Match partiel de catégorie dans le bon sport
+            if (catNormalized.includes(normalized) || normalized.includes(catNormalized)) {
+              console.log(`Match partiel dans sport "${sport}": ${categoryLabel} → ${cat.name} → ${pathId}`);
+              return pathId;
+            }
+          }
+        }
+
+        // Si pas de match de catégorie mais sport trouvé, prendre la première catégorie du sport
+        if (categories.length > 0) {
+          let pathId = categories[0].pathId;
+          if (typeof pathId === "string" && !pathId.startsWith("area")) {
+            pathId = "area" + pathId;
+          }
+          console.log(`Match sport sans catégorie spécifique "${sport}": ${pathId}`);
+          return pathId;
+        }
+      }
+    }
+  }
+
+  // Si pas de sport fourni ou pas trouvé dans le sport, faire recherche globale
+
+  // ÉTAPE 1 : Vérifier si categoryLabel correspond exactement à un nom de sport
+  for (const sport in window.mergedData) {
+    const sportNormalized = normalize(sport);
+    if (sportNormalized === normalized) {
+      // Prendre le premier pathId disponible pour ce sport
+      const categories = window.mergedData[sport].categories || [];
+      if (categories.length > 0) {
+        let pathId = categories[0].pathId;
+        if (typeof pathId === "string" && !pathId.startsWith("area")) {
+          pathId = "area" + pathId;
+        }
+        console.log(`Match exact sport: ${categoryLabel} → ${sport} → ${pathId}`);
+        return pathId;
+      }
+    }
+  }
+
+  // ÉTAPE 2 : Vérifier si categoryLabel correspond exactement à une catégorie
+  for (const sport in window.mergedData) {
+    const categories = window.mergedData[sport].categories || [];
+    for (const cat of categories) {
+      const catNormalized = normalize(cat.name);
+      let pathId = cat.pathId;
+
+      if (!pathId || pathId.length === 0) continue;
+
+      if (typeof pathId === "string" && !pathId.startsWith("area")) {
+        pathId = "area" + pathId;
+      }
+
+      if (catNormalized === normalized) {
+        console.log(`Match exact catégorie: ${categoryLabel} → ${cat.name} → ${pathId}`);
+        return pathId;
+      }
+    }
+  }
+
+  // ÉTAPE 3 : Vérifier si tous les mots de categoryLabel apparaissent dans un nom de sport
+  for (const sport in window.mergedData) {
+    const sportNormalized = normalize(sport);
+    const sportWords = sportNormalized.split(" ").filter(w => w.length > 0);
+
+    // Vérifier si tous les mots de categoryLabel sont dans le sport
+    const allWordsInSport = normalizedWords.every(word =>
+      sportWords.some(sportWord =>
+        sportWord.includes(word) || word.includes(sportWord)
+      )
+    );
+
+    if (allWordsInSport && normalizedWords.length > 0) {
+      const categories = window.mergedData[sport].categories || [];
+      if (categories.length > 0) {
+        let pathId = categories[0].pathId;
+        if (typeof pathId === "string" && !pathId.startsWith("area")) {
+          pathId = "area" + pathId;
+        }
+        console.log(`Match mots sport: ${categoryLabel} → ${sport} → ${pathId}`);
+        return pathId;
+      }
+    }
+  }
+
+  // ÉTAPE 4 : Correspondance partielle par mots avec score amélioré
   let bestMatch = null;
   let bestScore = 0;
+  let bestMatchInfo = "";
 
   for (const sport in window.mergedData) {
+    const sportNormalized = normalize(sport);
+    const sportWords = sportNormalized.split(" ").filter(w => w.length > 0);
     const categories = window.mergedData[sport].categories || [];
 
     for (const cat of categories) {
@@ -1097,37 +1226,51 @@ window.getPathIdFromCategory = function (categoryLabel) {
         pathId = "area" + pathId;
       }
 
-      // Correspondance exacte
-      if (catNormalized === normalized) return pathId;
+      // Correspondance partielle stricte
+      const catWords = catNormalized.split(" ").filter(w => w.length > 0);
 
-      // Correspondance proche
-      if (
-        catNormalized.includes(normalized) ||
-        normalized.includes(catNormalized) ||
-        normalized.startsWith(catNormalized) ||
-        normalized.endsWith(catNormalized)
-      ) {
-        return pathId;
+      // Compter les mots communs (avec correspondance partielle)
+      let commonWordsCount = 0;
+      for (const word of normalizedWords) {
+        for (const catWord of catWords) {
+          if (word.length > 2 && catWord.length > 2) {
+            if (word.includes(catWord) || catWord.includes(word)) {
+              commonWordsCount++;
+              break;
+            }
+          }
+        }
       }
 
-      // Correspondance partielle
-      const normalizedWords = normalized.split(" ");
-      const catWords = catNormalized.split(" ");
-      const commonWords = normalizedWords.filter(w => catWords.includes(w));
+      // Score basé sur le nombre de mots communs
+      let score = commonWordsCount;
 
-      if (commonWords.length > bestScore) {
-        bestScore = commonWords.length;
+      // Bonus si c'est une inclusion complète
+      if (catNormalized.includes(normalized) || normalized.includes(catNormalized)) {
+        score += 2;
+      }
+
+      // Seulement accepter si au moins 2 mots communs OU 1 mot significatif (>3 lettres)
+      const hasSignificantMatch = normalizedWords.some(word =>
+        word.length > 3 && catWords.some(catWord =>
+          catWord.length > 3 && (word.includes(catWord) || catWord.includes(word))
+        )
+      );
+
+      if ((commonWordsCount >= 2 || hasSignificantMatch) && score > bestScore) {
+        bestScore = score;
         bestMatch = pathId;
+        bestMatchInfo = `${cat.name} (${sport})`;
       }
     }
   }
 
   if (bestMatch) {
-    console.warn("Correspondance approximative utilisée pour :", categoryLabel);
+    console.warn(`Correspondance approximative: ${categoryLabel} → ${bestMatchInfo} → ${bestMatch} (score: ${bestScore})`);
     return bestMatch;
   }
 
-  console.warn(" Aucune correspondance trouvée pour :", categoryLabel, "(normalisé : " + normalized + ")");
+  console.warn(`Aucune correspondance trouvée pour: ${categoryLabel} (normalisé: ${normalized})`);
   return null;
 };
 

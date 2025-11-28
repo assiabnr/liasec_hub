@@ -7,6 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <link rel="stylesheet" href="{% static 'chatbot/css/chat.css' %}" />
+    <link rel="stylesheet" href="{% static 'chatbot/css/keyboard.css' %}" />
 
     <link
       rel="stylesheet"
@@ -45,9 +46,11 @@
           <input
             type="text"
             name="q"
+            id="locSearchInput"
             class="loc-search-input"
             placeholder="Rechercher un produit par nom, marque, sport…"
             value="{{ query }}"
+            autocomplete="off"
           />
 
           <!-- Filtres principaux -->
@@ -333,6 +336,9 @@
         </div>
       </div>
     </div>
+
+    <!-- Clavier virtuel -->
+    <div class="keyboard"></div>
 
     <style>
       .loc-home-btn {
@@ -753,11 +759,48 @@
         cursor: default;
         color: #9ca3af;
       }
+
+      /* Bouton Entrée du clavier - déjà stylé dans keyboard.css */
+
+      /* Clavier virtuel au-dessus de tout */
+      .keyboard {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 9999 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        margin: 0 !important;
+        transform: translateY(100%) !important;
+        box-sizing: border-box;
+      }
+
+      .keyboard.active {
+        transform: translateY(0) !important;
+        display: block !important;
+      }
+
+      /* Overlay sombre derrière le clavier */
+      .keyboard.active::before {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.3);
+        z-index: -1;
+        pointer-events: none;
+      }
     </style>
 
     <!-- scripts carte -->
     <script src="{% static 'chatbot/js/sport.js' %}"></script>
     <script src="{% static 'chatbot/js/map-standalone.js' %}"></script>
+
+    <!-- Script clavier virtuel pour page de localisation -->
+    <script src="{% static 'chatbot/js/keyboard-localisation.js' %}"></script>
 
     <script>
       // Contexte pour inactivity.js
@@ -867,9 +910,47 @@
       }
 
       document.addEventListener("DOMContentLoaded", function () {
-        // Détecter l'utilisation de la recherche/filtres
-        const searchForm = document.querySelector(".loc-filters form");
-        const searchInput = document.querySelector("input[name='search']");
+        // ====================================
+        // RECHERCHE SUR ENTRÉE UNIQUEMENT
+        // ====================================
+
+        const searchInput = document.getElementById("locSearchInput");
+        const searchForm = document.getElementById("loc-search-form");
+
+        // Activer la recherche sur submit (Entrée)
+        if (searchForm) {
+          searchForm.addEventListener("submit", function(e) {
+            e.preventDefault();
+
+            // Fermer le clavier si ouvert
+            const keyboardElement = document.querySelector(".keyboard");
+            if (keyboardElement) {
+              keyboardElement.classList.remove("active");
+            }
+
+            // Récupérer tous les paramètres du formulaire
+            const formData = new FormData(searchForm);
+            const params = new URLSearchParams(formData);
+
+            // Recharger la page avec les nouveaux paramètres
+            window.location.href = "?" + params.toString();
+          });
+        }
+
+        // Recherche sur Entrée du clavier physique
+        if (searchInput) {
+          searchInput.addEventListener("keydown", function(e) {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              searchForm.dispatchEvent(new Event("submit"));
+            }
+          });
+        }
+
+        // ====================================
+        // TRACKING DE LA NAVIGATION
+        // ====================================
+
         const categorySelect = document.querySelector("select[name='category']");
         const sportSelect = document.querySelector("select[name='sport']");
 

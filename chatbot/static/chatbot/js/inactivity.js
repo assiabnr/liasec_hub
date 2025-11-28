@@ -86,13 +86,14 @@ function ensureInactivityPopup() {
     });
 
   overlay.querySelector("#ia-reset").addEventListener("click", async () => {
-    // Chatbot : reset complet (backend + UI)
-    if (!IS_LOCALISATION_PAGE) {
-      await hardResetChat();
-    } else {
-      // Page localisation : seulement reset backend
-      await resetBackendSession();
+    // Arrêter toute synthèse vocale en cours
+    if (window.speechSynthesis) {
+      window.speechSynthesis.cancel();
     }
+
+    // Reset backend uniquement (pas besoin de reset UI si on redirige)
+    await resetBackendSession();
+
     hideInactivityPopup();
     window.location.href = INDEX_URL; // retour à l'accueil dans tous les cas
   });
@@ -114,13 +115,15 @@ function showInactivityPopup() {
     label.textContent = left;
     if (left <= 0) {
       clearInterval(STATE.inactivityCountdownTimer);
-      if (!IS_LOCALISATION_PAGE) {
-        // Chatbot : reset complet
-        await hardResetChat();
-      } else {
-        // Page localisation : reset backend uniquement
-        await resetBackendSession();
+
+      // Arrêter toute synthèse vocale en cours
+      if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
       }
+
+      // Reset backend uniquement (pas besoin de reset UI si on redirige)
+      await resetBackendSession();
+
       hideInactivityPopup();
       window.location.href = INDEX_URL;
     }

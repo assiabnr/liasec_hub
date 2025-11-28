@@ -138,7 +138,11 @@
         <div class="d-flex justify-content-between align-items-center mb-2">
           <h6 class="fw-bold text-primary mb-0">Consultations par jour</h6>
         </div>
-        <canvas id="clicksPerDayChart"></canvas>
+        <div style="height: 300px; overflow-x: auto; overflow-y: hidden;">
+          <div style="min-width: 400px; height: 100%; position: relative;">
+            <canvas id="clicksPerDayChart"></canvas>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -148,7 +152,11 @@
         <div class="d-flex justify-content-between align-items-center mb-2">
           <h6 class="fw-bold text-primary mb-0">Top 5 produits consultés</h6>
         </div>
-        <canvas id="clicksByLabelChart"></canvas>
+        <div style="height: 300px; overflow-x: auto; overflow-y: hidden;">
+          <div style="min-width: 400px; height: 100%; position: relative;">
+            <canvas id="clicksByLabelChart"></canvas>
+          </div>
+        </div>
       </div>
     </div>
 

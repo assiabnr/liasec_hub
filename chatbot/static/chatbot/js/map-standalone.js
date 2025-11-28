@@ -107,38 +107,37 @@ function initMapHighlight() {
     const { product, category, sport } = e.detail || {};
 
     if (!product) {
-      console.warn("[MAP] ⚠️ Événement localize-product sans produit");
+      console.warn("[MAP] Événement localize-product sans produit");
       return;
     }
 
-    const categoryLabel =
-      category ||
-      product.category ||
-      sport ||
-      product.sport ||
-      "";
+    const categoryLabel = category || product.category || "";
+    const sportLabel = sport || product.sport || "";
 
     console.log("[MAP] Catégorie extraite:", categoryLabel);
+    console.log("[MAP] Sport extrait:", sportLabel);
 
-    if (!categoryLabel) {
-      console.warn("[MAP] ⚠️ Aucune catégorie pour localiser le produit");
+    if (!categoryLabel && !sportLabel) {
+      console.warn("[MAP] Aucune catégorie ni sport pour localiser le produit");
       return;
     }
 
     // Vérifier que sport.js est chargé
     if (typeof window.getPathIdFromCategory !== "function") {
-      console.error("[MAP] ❌ getPathIdFromCategory n'est pas disponible");
+      console.error("[MAP] getPathIdFromCategory n'est pas disponible");
       console.error("[MAP] Vérifiez que sport.js est chargé AVANT map.js");
       return;
     }
 
-    const pathId = window.getPathIdFromCategory(categoryLabel);
+    const pathId = window.getPathIdFromCategory(categoryLabel, sportLabel);
 
-    console.log("[MAP] Catégorie recherchée:", categoryLabel);
+    console.log("[MAP] Sport :", sportLabel);
+    console.log("[MAP] Catégorie :", categoryLabel);
+    console.log("[MAP] Recherche de pathId pour :", categoryLabel, "dans sport:", sportLabel);
     console.log("[MAP] PathId retourné:", pathId);
 
     if (!pathId || (Array.isArray(pathId) && pathId.length === 0)) {
-      console.warn("[MAP] ⚠️ Aucune zone trouvée pour cette catégorie:", categoryLabel);
+      console.warn("[MAP] Aucune zone trouvée pour cette catégorie:", categoryLabel);
 
       // IMPORTANT : Ouvrir la modale même sans zone (si contexte chatbot)
       if (isModalContext && modal) {
@@ -152,9 +151,9 @@ function initMapHighlight() {
 
     // Si le SVG n'est pas encore chargé, attendre et réessayer
     if (!svgDoc && !svgLoaded) {
-      console.warn("[MAP] ⏳ SVG pas encore chargé, attente...");
+      console.warn("[MAP] SVG pas encore chargé, attente...");
       svgObject.addEventListener("load", () => {
-        console.log("[MAP] ✅ SVG maintenant chargé, retry du highlight");
+        console.log("[MAP] SVG maintenant chargé, retry du highlight");
         const evt = new CustomEvent("localize-product", { detail: e.detail });
         document.dispatchEvent(evt);
       }, { once: true });
@@ -162,7 +161,7 @@ function initMapHighlight() {
     }
 
     if (!svgDoc) {
-      console.warn("[MAP] ⚠️ SVG contentDocument indisponible");
+      console.warn("[MAP] SVG contentDocument indisponible");
 
       // Ouvrir la modale quand même (si contexte chatbot)
       if (isModalContext && modal) {
@@ -172,7 +171,7 @@ function initMapHighlight() {
       return;
     }
 
-    console.log("[MAP] ✅ SVG Document disponible");
+    console.log("[MAP] SVG Document disponible");
 
     // Ouvrir la modale AVANT le highlight (si contexte chatbot)
     if (isModalContext && modal) {
@@ -234,11 +233,11 @@ function initMapHighlight() {
       // Trouver l'élément à highlighter
       const targetPath = svgDoc.getElementById(pathId);
       if (!targetPath) {
-        console.warn("[MAP] ⚠️ Path non trouvé dans le SVG:", pathId);
+        console.warn("[MAP] Path non trouvé dans le SVG:", pathId);
         return null;
       }
 
-      console.log("[MAP] ✅ Path trouvé, application du highlight sur:", pathId);
+      console.log("[MAP] Path trouvé, application du highlight sur:", pathId);
 
       // Appliquer le highlight
       targetPath.classList.add("selected");
@@ -267,7 +266,7 @@ function initMapHighlight() {
     // APPLICATION DU HIGHLIGHT
     // ==========================================
 
-    console.log("[MAP] ✅ Début du highlight");
+    console.log("[MAP] Début du highlight");
 
     let zones = [];
 
@@ -292,7 +291,7 @@ function initMapHighlight() {
     // ==========================================
 
     if (zones.length > 0) {
-      console.log("[MAP] ✅ Highlight appliqué sur", zones.length, "zone(s)");
+      console.log("[MAP] Highlight appliqué sur", zones.length, "zone(s)");
 
       const localizationEvent = new CustomEvent("product-localized", {
         detail: {
@@ -307,10 +306,10 @@ function initMapHighlight() {
       });
 
       document.dispatchEvent(localizationEvent);
-      console.log("[MAP] ✅ Événement product-localized dispatché");
+      console.log("[MAP] Événement product-localized dispatché");
       console.log("[MAP] Détails:", localizationEvent.detail);
     } else {
-      console.warn("[MAP] ⚠️ Aucune zone n'a pu être highlightée");
+      console.warn("[MAP] Aucune zone n'a pu être highlightée");
     }
   });
 
@@ -407,7 +406,7 @@ function initMapClicks() {
       });
     });
 
-    console.log("[MAP] ✅ Clics directs configurés sur", clickableZones.length, "zones");
+    console.log("[MAP] Clics directs configurés sur", clickableZones.length, "zones");
   };
 
   // Helper pour highlight temporaire
@@ -462,7 +461,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initMapModal();
   initMapHighlight();
   initMapClicks();
-  console.log("[MAP] ✅ Initialisation terminée");
+  console.log("[MAP] Initialisation terminée");
 });
 
 // Exposer les fonctions globalement si nécessaire

@@ -454,7 +454,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   if (resetButton) {
     resetButton.addEventListener("click", function () {
-      if (confirm("⚠️ Voulez-vous vraiment réinitialiser toutes les données ?\n\nCette action est irréversible !")) {
+      if (confirm("Voulez-vous vraiment réinitialiser toutes les données ?\n\nCette action est irréversible !")) {
         fetch("{% url 'reset_data' %}", {
           method: "POST",
           headers: {

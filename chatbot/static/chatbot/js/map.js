@@ -110,15 +110,11 @@ export function initMapHighlight() {
       return;
     }
 
-    const categoryLabel =
-      category ||
-      product.category ||
-      sport ||
-      product.sport ||
-      "";
+    const categoryLabel = category || product.category || "";
+    const sportLabel = sport || product.sport || "";
 
-    if (!categoryLabel) {
-      console.warn("[MAP] Aucune catégorie pour localiser le produit");
+    if (!categoryLabel && !sportLabel) {
+      console.warn("[MAP] Aucune catégorie ni sport pour localiser le produit");
       return;
     }
 
@@ -128,10 +124,11 @@ export function initMapHighlight() {
       return;
     }
 
-    const pathId = window.getPathIdFromCategory(categoryLabel);
+    const pathId = window.getPathIdFromCategory(categoryLabel, sportLabel);
 
-    console.log("[MAP] Catégorie brute :", categoryLabel);
-    console.log("[MAP] Recherche de pathId pour :", categoryLabel);
+    console.log("[MAP] Sport :", sportLabel);
+    console.log("[MAP] Catégorie :", categoryLabel);
+    console.log("[MAP] Recherche de pathId pour :", categoryLabel, "dans sport:", sportLabel);
     console.log("[MAP] Résultat pathId :", pathId);
 
     if (!pathId || (Array.isArray(pathId) && pathId.length === 0)) {
@@ -151,7 +148,7 @@ export function initMapHighlight() {
     if (!svgDoc && !svgLoaded) {
       console.warn("[MAP] SVG pas encore chargé, attente...");
       svgObject.addEventListener("load", () => {
-        console.log("[MAP] ✅ SVG maintenant chargé, retry du highlight");
+        console.log("[MAP] SVG maintenant chargé, retry du highlight");
         const evt = new CustomEvent("localize-product", { detail: e.detail });
         document.dispatchEvent(evt);
       }, { once: true });
@@ -159,7 +156,7 @@ export function initMapHighlight() {
     }
 
     if (!svgDoc) {
-      console.warn("[MAP] ⚠️ SVG contentDocument indisponible");
+      console.warn("[MAP] SVG contentDocument indisponible");
 
       // Ouvrir la modale quand même (si contexte chatbot)
       if (isModalContext && modal) {
@@ -169,7 +166,7 @@ export function initMapHighlight() {
       return;
     }
 
-    console.log("[MAP] ✅ SVG Document disponible");
+    console.log("[MAP] SVG Document disponible");
 
     // Ouvrir la modale AVANT le highlight (si contexte chatbot)
     if (isModalContext && modal) {
@@ -231,11 +228,11 @@ export function initMapHighlight() {
       // Trouver l'élément à highlighter
       const targetPath = svgDoc.getElementById(pathId);
       if (!targetPath) {
-        console.warn("[MAP] ⚠️ Path non trouvé dans le SVG :", pathId);
+        console.warn("[MAP] Path non trouvé dans le SVG :", pathId);
         return null;
       }
 
-      console.log("[MAP] ✅ Path trouvé, application du highlight sur:", pathId);
+      console.log("[MAP] Path trouvé, application du highlight sur:", pathId);
 
       // Appliquer le highlight
       targetPath.classList.add("selected");
@@ -264,7 +261,7 @@ export function initMapHighlight() {
     // APPLICATION DU HIGHLIGHT
     // ==========================================
 
-    console.log("[MAP] ✅ Début du highlight");
+    console.log("[MAP] Début du highlight");
 
     let zones = [];
 
@@ -300,7 +297,7 @@ export function initMapHighlight() {
       });
 
       document.dispatchEvent(localizationEvent);
-      console.log("[MAP] ✅ Événement product-localized dispatché", localizationEvent.detail);
+      console.log("[MAP] Événement product-localized dispatché", localizationEvent.detail);
     } else {
       console.warn("[MAP] Aucune zone n'a pu être highlightée");
     }

@@ -236,8 +236,10 @@
           <h5 class="fw-bold text-primary mb-3">
             <i class="bi bi-graph-up-arrow me-2"></i>Évolution de l'activité (7 derniers jours)
           </h5>
-          <div style="height: 350px; position: relative;">
-            <canvas id="evolutionChart"></canvas>
+          <div style="height: 350px; overflow-x: auto; overflow-y: hidden;">
+            <div style="min-width: 600px; height: 100%; position: relative;">
+              <canvas id="evolutionChart"></canvas>
+            </div>
           </div>
         </div>
       </div>
