@@ -65,7 +65,7 @@ export async function sendMessage() {
                 const feedbackElement = createFeedbackElement();
                 feedbackWrapper.appendChild(feedbackElement);
                 DOM_SELECTORS.chatMessages.appendChild(feedbackWrapper);
-                scrollBottom(DOM_SELECTORS.chatMessages);
+                // Ne pas scroller après le feedback pour que l'utilisateur voie les produits
               }
             }
             // Masquer le clavier quand les produits sont affichés
@@ -87,7 +87,7 @@ export async function sendMessage() {
             const feedbackElement = createFeedbackElement();
             feedbackWrapper.appendChild(feedbackElement);
             DOM_SELECTORS.chatMessages.appendChild(feedbackWrapper);
-            scrollBottom(DOM_SELECTORS.chatMessages);
+            // Ne pas scroller après le feedback pour que l'utilisateur voie les produits
           }
         }
         // Masquer le clavier quand les produits sont affichés
