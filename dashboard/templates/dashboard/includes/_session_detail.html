@@ -224,11 +224,12 @@
     <div class="col-md-3">
       <div class="session-stat-box">
         <div class="label">Satisfaction</div>
-        {% if satisfaction_rate %}
+        {% if total_with_ask_feedback %}
           <h3 class="{% if satisfaction_rate >= 70 %}text-success{% elif satisfaction_rate >= 50 %}text-warning{% else %}text-danger{% endif %}">
             {{ satisfaction_rate }}%
           </h3>
-          <small>{{ satisfied }}/{{ total_feedbacks }} positifs</small>
+          <small class="d-block">{{ satisfied }} satisfaits / {{ unsatisfied }} insatisfaits</small>
+          <small class="text-muted d-block">{{ no_feedback }} sans retour</small>
         {% else %}
           <h3 class="text-muted">—</h3>
           <small>Aucun feedback</small>

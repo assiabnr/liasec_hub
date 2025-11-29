@@ -85,15 +85,16 @@ def dashboard_home(request):
     if interactions_previous_7 > 0:
         interactions_variation = round(((interactions_last_7 - interactions_previous_7) / interactions_previous_7) * 100, 1)
 
-    # Taux de satisfaction (incluant les conversations sans retour)
-    # On compte toutes les interactions où un feedback a été demandé
-    satisfaction_data = ChatbotInteraction.objects.filter(
-        ask_feedback=True
-    ).aggregate(
+    # Taux de satisfaction et répartition des feedbacks (incluant les conversations sans retour)
+    feedback_qs = ChatbotInteraction.objects.filter(ask_feedback=True)
+    satisfaction_agg = feedback_qs.aggregate(
         positive=Count("id", filter=Q(satisfaction=True)),
-        total=Count("id")
+        negative=Count("id", filter=Q(satisfaction=False)),
+        no_return=Count("id", filter=Q(satisfaction__isnull=True)),
+        answered=Count("id", filter=Q(satisfaction__isnull=False)),
     )
-    satisfaction_rate = round((satisfaction_data["positive"] / satisfaction_data["total"] * 100), 1) if satisfaction_data["total"] > 0 else 0
+    total_with_feedback_option = feedback_qs.count()
+    satisfaction_rate = round((satisfaction_agg["positive"] / total_with_feedback_option * 100), 1) if total_with_feedback_option else 0
 
     # Taux de succès
     success_data = ChatbotInteraction.objects.aggregate(
@@ -201,6 +202,11 @@ def dashboard_home(request):
         "interactions_last_7": interactions_last_7,
         "interactions_variation": interactions_variation,
         "satisfaction_rate": satisfaction_rate,
+        "satisfied_feedbacks": satisfaction_agg["positive"],
+        "unsatisfied_feedbacks": satisfaction_agg["negative"],
+        "no_feedbacks": satisfaction_agg["no_return"],
+        "total_feedbacks": satisfaction_agg["answered"],
+        "total_feedback_requests": total_with_feedback_option,
         "success_rate": success_rate,
         "avg_response_time": avg_response_time,
 
@@ -813,6 +819,7 @@ def session_detail_view(request, session_id):
     unsatisfied = feedbacks.filter(satisfaction=False).count()
     total_feedbacks = feedbacks.count()
     total_with_ask_feedback = chats_with_ask_feedback.count()
+    no_feedback = total_with_ask_feedback - total_feedbacks
     satisfaction_rate = round((satisfied / total_with_ask_feedback * 100), 1) if total_with_ask_feedback else None
 
     # Temps de réponse moyen du chatbot
@@ -849,7 +856,9 @@ def session_detail_view(request, session_id):
         "satisfaction_rate": satisfaction_rate,
         "satisfied": satisfied,
         "unsatisfied": unsatisfied,
+        "no_feedback": no_feedback,
         "total_feedbacks": total_feedbacks,
+        "total_with_ask_feedback": total_with_ask_feedback,
 
         # Stats chatbot
         "avg_response_time": avg_response_time,

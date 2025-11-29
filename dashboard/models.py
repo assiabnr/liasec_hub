@@ -188,7 +188,7 @@ class Settings(models.Model):
     Configuration générale de la borne / dashboard.
     """
     name = models.CharField(max_length=100, default="Borne tactile v2.1")
-    location = models.CharField(max_length=150, default="Decathlon Lille Centre")
+    location = models.CharField(max_length=150, default="Decathlon Le Mans")
     code = models.CharField(max_length=50, default="BNL-021")
 
     # Options de tracking

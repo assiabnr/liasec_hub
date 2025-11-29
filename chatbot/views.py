@@ -230,7 +230,7 @@ def chat_api(request):
             user_id=user_id,
             start_time=timezone.now(),
             device=device,
-            location="Decathlon Lille Centre",
+            location="Decathlon Le Mans",
         )
         request.session["session_id"] = session.id
         request.session["user_id"] = user_id

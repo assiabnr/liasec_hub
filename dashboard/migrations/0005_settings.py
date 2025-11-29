@@ -15,7 +15,7 @@ class Migration(migrations.Migration):
             fields=[
                 ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
                 ('name', models.CharField(default='Borne tactile v2.1', max_length=100)),
-                ('location', models.CharField(default='Decathlon Lille Centre', max_length=150)),
+                ('location', models.CharField(default='Decathlon Le Mans', max_length=150)),
                 ('code', models.CharField(default='BNL-021', max_length=50)),
                 ('track_sessions', models.BooleanField(default=True)),
                 ('track_clicks', models.BooleanField(default=True)),

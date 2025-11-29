@@ -17,7 +17,7 @@ Settings.objects.all().delete()
 # ======================
 Settings.objects.create(
     name="Borne tactile v2.1",
-    location="Decathlon Lille Centre",
+    location="Decathlon Le Mans",
     code="BNL-021",
     track_sessions=True,
     track_clicks=True,
@@ -65,7 +65,7 @@ for i in range(10):
         end_time=end,
         duration=end - start,
         device=random.choice(["iPad Pro", "Surface Go", "PC borne tactile"]),
-        location="Decathlon Lille Centre",
+        location="Decathlon Le Mans",
     )
     sessions.append(s)
 print(f"✅ {len(sessions)} sessions créées.")
