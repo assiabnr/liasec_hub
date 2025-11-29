@@ -126,6 +126,7 @@ export async function hardResetChat() {
   }
   DOM_SELECTORS.chatMessages.innerHTML = "";
   STATE.lastInteractionId = null;
+  STATE.negativeFeedbackCount = 0;
 
   // Attendre que la voix masculine par défaut soit initialisée
   await initializeDefaultVoice();

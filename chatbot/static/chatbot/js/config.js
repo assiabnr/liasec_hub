@@ -34,6 +34,7 @@ export const STATE = {
   inactivityCountdownTimer: null,
   inactivityPopup: null,
   micLabelEl: null,
+  negativeFeedbackCount: 0,
   voiceSettings: {
     volume: 1,
     rate: 1,
