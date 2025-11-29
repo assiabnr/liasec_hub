@@ -1,9 +1,22 @@
 from pathlib import Path
+import os                  
+from dotenv import load_dotenv
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'django-insecure-wv#3+1*m-mrw!a5sdr(6@vbrrvhz(x1urhg*$3j^%$vve8ufbz'
+load_dotenv(BASE_DIR / ".env")
 
+# === CONFIG DEEPSEEK ===
+DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
+# =======================
+
+print("[DEBUG] BASE_DIR :", BASE_DIR)
+print("[DEBUG] .env existe :", (BASE_DIR / ".env").exists())
+print("[DEBUG] DEEPSEEK_API_KEY :", repr(DEEPSEEK_API_KEY))
+
+SECRET_KEY = 'django-insecure-wv#3+1*m-mrw!a5sdr(6@vbrrvhz(x1urhg*$3j^%$vve8ufbz'
 DEBUG = True
 
 ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
@@ -110,9 +123,3 @@ DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
 
 
-import os
-from dotenv import load_dotenv
-load_dotenv()
-
-DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
-DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")

@@ -29,7 +29,7 @@ def get_or_create_session(request):
         user_id=user_id,
         start_time=timezone.now(),
         device=request.META.get("HTTP_USER_AGENT", "inconnu"),
-        location="Decathlon Lille Centre",
+        location="Decathlon Le Mans",
     )
     request.session["session_id"] = session.id
     return session

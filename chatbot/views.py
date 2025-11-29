@@ -1,9 +1,10 @@
 import json
-from django.shortcuts import render, redirect
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.utils import timezone
 import uuid
+
+from django.http import JsonResponse
+from django.shortcuts import render, redirect
+from django.utils import timezone
+from django.views.decorators.csrf import csrf_exempt
 
 from chatbot.utils.scoring import compute_score
 from chatbot.utils.vector_search import search_products
@@ -43,7 +44,6 @@ def chat_view(request):
 
 
 
-@csrf_exempt
 def check_session(request):
     try:
         session_id = request.session.get("session_id")
@@ -205,7 +205,6 @@ def infer_intent(question, conversation_history, filtered_products):
     return "Autre"
 
 
-@csrf_exempt
 def chat_api(request):
     if request.method != "POST":
         return JsonResponse({"error": "Méthode non autorisée"}, status=405)
@@ -441,7 +440,6 @@ def chat_api(request):
     })
 
 
-@csrf_exempt
 def feedback_api(request):
     if request.method != "POST":
         return JsonResponse({"error": "Méthode non autorisée"}, status=405)
@@ -483,7 +481,6 @@ def feedback_api(request):
         return JsonResponse({"error": "Interaction non trouvée"}, status=404)
 
 
-@csrf_exempt
 def track_recommendation_click(request):
     """
     Enregistre qu'un utilisateur a cliqué sur une recommandation du chatbot.
@@ -547,7 +544,6 @@ def track_recommendation_click(request):
         return JsonResponse({"error": str(e)}, status=500)
 
 
-@csrf_exempt
 def reset_chat(request):
     try:
         session_id = request.session.get("session_id")

@@ -20,15 +20,7 @@ from django.views.generic import RedirectView
 from django.conf import settings
 from django.conf.urls.static import static
 urlpatterns = [
-    path(
-        "",
-        lambda request: (
-            RedirectView.as_view(pattern_name="dashboard_home", permanent=False)(request)
-            if request.user.is_authenticated
-            else RedirectView.as_view(pattern_name="login", permanent=False)(request)
-        ),
-        name="home_redirect"
-    ),
+    path("", RedirectView.as_view(pattern_name="chatbot:chatbot_index", permanent=False), name="home_redirect"),
 
     # Applications
     path("dashboard/", include("dashboard.urls")),

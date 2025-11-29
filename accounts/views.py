@@ -59,7 +59,7 @@ def login_view(request):
     Si must_change_password=True → page de changement forcé.
     """
     if request.user.is_authenticated:
-        return redirect("dashboard_home")
+        return redirect(settings.LOGIN_REDIRECT_URL)
 
     if request.method == "POST":
         email = (request.POST.get("email") or "").strip().lower()
@@ -84,7 +84,7 @@ def login_view(request):
             )
 
             messages.success(request, f"Bienvenue {user.first_name or user.email} 👋")
-            return redirect("dashboard_home")
+            return redirect(settings.LOGIN_REDIRECT_URL)
 
         messages.error(request, "Email ou mot de passe incorrect.")
     return render(request, "accounts/login.html")
@@ -105,7 +105,7 @@ def force_change_password(request):
     """
     user = request.user
     if not getattr(user, "must_change_password", False):
-        return redirect("dashboard_home")
+        return redirect(settings.LOGIN_REDIRECT_URL)
 
     if request.method == "POST":
         p1 = request.POST.get("password1") or ""
@@ -136,7 +136,7 @@ def force_change_password(request):
                     icon='bi-shield-lock-fill'
                 )
 
-                return redirect("dashboard_home")
+                return redirect(settings.LOGIN_REDIRECT_URL)
 
     return render(request, "accounts/reset_password_confirm.html")
 

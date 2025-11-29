@@ -1,0 +1,27 @@
+# Core framework
+django==5.2.8
+python-dotenv==1.2.1
+
+# LLM / IA
+openai
+sentence-transformers
+faiss-cpu
+
+# Data et fichiers
+pandas
+pyarrow
+
+# PDF / export
+reportlab
+
+# Fuzzy matching
+fuzzywuzzy
+python-Levenshtein   # optionnel mais recommandé (accélère fuzzywuzzy)
+
+# Divers (souvent déjà installés comme dépendances)
+numpy
+torch
+scikit-learn
+scipy
+tqdm
+pillow
