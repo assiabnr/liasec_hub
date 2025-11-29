@@ -4,12 +4,12 @@ from datetime import timedelta
 import random
 
 # Nettoyage de la base pour repartir propre
-Session.objects.all().delete()
+Session.all_objects.all().delete()
 Product.objects.all().delete()
-ProductView.objects.all().delete()
-Click.objects.all().delete()
-ChatbotInteraction.objects.all().delete()
-ChatbotRecommendation.objects.all().delete()
+ProductView.all_objects.all().delete()
+Click.all_objects.all().delete()
+ChatbotInteraction.all_objects.all().delete()
+ChatbotRecommendation.all_objects.all().delete()
 Settings.objects.all().delete()
 
 # ======================

@@ -3,6 +3,21 @@ from django.db.models import Q
 from django.utils import timezone
 from django.contrib.auth import get_user_model
 
+
+class SessionQuerySet(models.QuerySet):
+    def active(self):
+        return self.filter(is_deleted=False)
+
+
+class ActiveSessionManager(models.Manager):
+    def get_queryset(self):
+        return SessionQuerySet(self.model, using=self._db).filter(is_deleted=False)
+
+
+class ActiveBySessionManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().filter(session__is_deleted=False)
+
 User = get_user_model()
 
 
@@ -19,9 +34,20 @@ class Session(models.Model):
     duration = models.DurationField(blank=True, null=True)
     device = models.CharField(max_length=100, blank=True, null=True)
     location = models.CharField(max_length=150, blank=True, null=True)
+    is_deleted = models.BooleanField(default=False, db_index=True)
+    deleted_at = models.DateTimeField(blank=True, null=True)
+
+    objects = ActiveSessionManager()
+    all_objects = SessionQuerySet.as_manager()
 
     def __str__(self):
         return f"Session {self.id} - {self.user_id or 'visiteur'}"
+
+    def soft_delete(self):
+        if not self.is_deleted:
+            self.is_deleted = True
+            self.deleted_at = timezone.now()
+            self.save(update_fields=["is_deleted", "deleted_at"])
 
 
 # ==========================
@@ -64,6 +90,9 @@ class Click(models.Model):
     page = models.CharField(max_length=200)
     timestamp = models.DateTimeField(default=timezone.now)
 
+    objects = ActiveBySessionManager()
+    all_objects = models.Manager()
+
     def __str__(self):
         return f"Clic sur {self.product_name or self.page}"
 
@@ -90,6 +119,9 @@ class ProductView(models.Model):
         null=True,
         help_text="Zone du magasin (ex: 'FIT HOMME', 'CHAUSSANT', etc.)",
     )
+
+    objects = ActiveBySessionManager()
+    all_objects = models.Manager()
 
     def __str__(self):
         return f"{self.product.name if self.product else 'Produit inconnu'} ({self.source or 'inconnu'})"
@@ -141,6 +173,9 @@ class ChatbotInteraction(models.Model):
         help_text="Indique si un feedback utilisateur doit être demandé pour cette interaction"
     )
 
+    objects = ActiveBySessionManager()
+    all_objects = models.Manager()
+
     def __str__(self):
         return f"Chatbot ({self.model_used}) - {self.intent or 'Sans intent'}"
 
@@ -159,6 +194,9 @@ class ChatbotRecommendation(models.Model):
 
     # === Nouveau champ : suivi de clics ===
     clicked = models.BooleanField(default=False, help_text="L'utilisateur a-t-il cliqué sur cette recommandation ?")
+
+    objects = ActiveBySessionManager()
+    all_objects = models.Manager()
 
     def __str__(self):
         return f"Reco: {self.product.name} (session {self.session.id})"

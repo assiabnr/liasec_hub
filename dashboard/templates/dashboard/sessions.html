@@ -443,6 +443,11 @@
               <button class="btn btn-sm btn-outline-primary" data-session-id="{{ session.id }}" onclick="openSessionDetail(this)">
                 <i class="bi bi-eye"></i> Détails
               </button>
+              {% if request.user.role == "ADMIN" %}
+              <button class="btn btn-sm btn-outline-danger" data-session-id="{{ session.id }}" onclick="deleteSession(this)">
+                <i class="bi bi-trash"></i>
+              </button>
+              {% endif %}
             </td>
           </tr>
           {% empty %}
@@ -717,11 +722,11 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
-  function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== "") {
-      const cookies = document.cookie.split(";");
-      for (let i = 0; i < cookies.length; i++) {
+function getCookie(name) {
+  let cookieValue = null;
+  if (document.cookie && document.cookie !== "") {
+    const cookies = document.cookie.split(";");
+    for (let i = 0; i < cookies.length; i++) {
         const cookie = cookies[i].trim();
         if (cookie.substring(0, name.length + 1) === (name + "=")) {
           cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
@@ -762,6 +767,35 @@ function openSessionDetail(button) {
     .catch(() => content.innerHTML = "<p class='text-danger'>Erreur de chargement des détails.</p>");
 
   modal.show();
+}
+
+// Suppression d'une session (admins)
+function deleteSession(button) {
+  const sessionId = button.getAttribute("data-session-id");
+  if (!confirm(`Supprimer la session #${sessionId} ?`)) return;
+
+  button.disabled = true;
+  button.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+  fetch(`/dashboard/session/${sessionId}/delete/`, {
+    method: "POST",
+    headers: { "X-CSRFToken": getCookie("csrftoken"), "X-Requested-With": "XMLHttpRequest" },
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        button.closest("tr").remove();
+      } else {
+        alert(data.error || "Erreur lors de la suppression.");
+        button.disabled = false;
+        button.innerHTML = '<i class="bi bi-trash"></i>';
+      }
+    })
+    .catch(() => {
+      alert("Erreur lors de la suppression.");
+      button.disabled = false;
+      button.innerHTML = '<i class="bi bi-trash"></i>';
+    });
 }
 </script>
 {% endblock %}

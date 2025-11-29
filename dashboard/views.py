@@ -10,6 +10,7 @@ from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 
@@ -2164,11 +2165,11 @@ def settings_view(request):
             return redirect("settings")
 
         elif action == "reset":
-            Session.objects.all().delete()
-            Click.objects.all().delete()
-            ChatbotInteraction.objects.all().delete()
-            ProductView.objects.all().delete()
-            ChatbotRecommendation.objects.all().delete()
+            Session.all_objects.all().delete()
+            Click.all_objects.all().delete()
+            ChatbotInteraction.all_objects.all().delete()
+            ProductView.all_objects.all().delete()
+            ChatbotRecommendation.all_objects.all().delete()
             messages.warning(request, "Toutes les données ont été réinitialisées.")
 
             # Créer une notification d'avertissement pour l'utilisateur
@@ -2192,11 +2193,11 @@ def settings_view(request):
 @csrf_exempt
 def reset_data_view(request):
     if request.method == "POST":
-        Session.objects.all().delete()
-        Click.objects.all().delete()
-        ChatbotInteraction.objects.all().delete()
-        ProductView.objects.all().delete()
-        ChatbotRecommendation.objects.all().delete()
+        Session.all_objects.all().delete()
+        Click.all_objects.all().delete()
+        ChatbotInteraction.all_objects.all().delete()
+        ProductView.all_objects.all().delete()
+        ChatbotRecommendation.all_objects.all().delete()
         ExportHistory.objects.all().delete()
 
         # Créer une notification d'avertissement pour l'utilisateur
@@ -2680,3 +2681,23 @@ def get_notification_icon(notification_type):
         'user': 'bi-person-fill',
     }
     return icons.get(notification_type, 'bi-bell-fill')
+
+
+@require_POST
+@login_required
+def delete_session_view(request, session_id):
+    """Suppression d'une session (admins uniquement)."""
+    user_role = getattr(request.user, 'role', None)
+    if user_role != 'ADMIN':
+        return JsonResponse({'success': False, 'error': 'Non autoris?'}, status=403)
+
+    session = get_object_or_404(Session, id=session_id)
+    session.soft_delete()
+
+    if request.headers.get('x-requested-with') == 'XMLHttpRequest':
+        return JsonResponse({'success': True})
+
+    messages.success(request, f"Session #{session_id} supprim?e.")
+    return redirect('sessions')
+
+

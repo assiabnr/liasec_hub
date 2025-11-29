@@ -42,11 +42,11 @@
         </div>
 
         <!-- Dates personnalisées -->
-        <div class="col-md-2" id="customStartDate" style="display: {% if period_filter == 'custom' %}block{% else %}none{% endif %};">
+        <div class="col-md-2 {% if period_filter != 'custom' %}d-none{% endif %}" id="customStartDate">
           <label class="form-label small fw-semibold">Du</label>
           <input type="date" name="start_date" class="form-control form-control-sm" value="{{ request.GET.start_date }}">
         </div>
-        <div class="col-md-2" id="customEndDate" style="display: {% if period_filter == 'custom' %}block{% else %}none{% endif %};">
+        <div class="col-md-2 {% if period_filter != 'custom' %}d-none{% endif %}" id="customEndDate">
           <label class="form-label small fw-semibold">Au</label>
           <input type="date" name="end_date" class="form-control form-control-sm" value="{{ request.GET.end_date }}">
         </div>
@@ -139,194 +139,102 @@
     <!-- Temps de réponse moyen -->
     <div class="col-xl-2 col-md-4 col-sm-6">
       <div class="card text-center p-3 shadow-sm border-0">
-        <h6 class="text-muted mb-1 small">Temps de réponse</h6>
-        <h3 class="fw-bold text-info mb-0">{{ avg_response_time }}s</h3>
-        <small class="text-muted">Médiane: {{ median_response_time }}s</small>
+        <h6 class="text-muted mb-1 small">Temps de réponse moyen</h6>
+        <h2 class="fw-bold text-warning mb-0">{{ avg_response_time }}s</h2>
+        <small class="text-muted">{{ total_with_response_time }} interactions mesurées</small>
       </div>
     </div>
 
     <!-- Taux de satisfaction -->
     <div class="col-xl-2 col-md-4 col-sm-6">
       <div class="card text-center p-3 shadow-sm border-0">
-        <h6 class="text-muted mb-1 small">Satisfaction</h6>
-        <h2 class="fw-bold {% if satisfaction_rate >= 70 %}text-success{% elif satisfaction_rate >= 50 %}text-warning{% else %}text-danger{% endif %} mb-0">
-          {{ satisfaction_rate }}%
-        </h2>
-        <small class="text-muted">{{ total_feedbacks }} retours</small>
+        <h6 class="text-muted mb-1 small">Taux de satisfaction</h6>
+        <h2 class="fw-bold text-info mb-0">{{ satisfaction_rate }}%</h2>
+        <small class="text-muted">{{ total_feedbacks }} feedbacks / {{ total_with_feedback_option }} demandes</small>
       </div>
     </div>
 
-    <!-- Taux de recommandations -->
+    <!-- Taux de succès top intent -->
     <div class="col-xl-2 col-md-4 col-sm-6">
       <div class="card text-center p-3 shadow-sm border-0">
-        <h6 class="text-muted mb-1 small">Taux de clic recos</h6>
-        <h2 class="fw-bold text-success mb-0">{{ click_rate }}%</h2>
-        <small class="text-muted">{{ clicked_recos }}/{{ total_recommendations }}</small>
+        <h6 class="text-muted mb-1 small">Intent le plus fréquent</h6>
+        <h2 class="fw-bold text-primary mb-0">{{ top_intent_name|default:"—" }}</h2>
+        <small class="text-muted">{{ top_intent_count|default:"0" }} interactions</small>
       </div>
     </div>
   </div>
 
-  <!-- ========== STATISTIQUES DÉTAILLÉES ========== -->
+  <!-- ========== GRAPHES PRINCIPAUX ========== -->
   <div class="row g-3 mb-4">
-    <!-- Temps de réponse détaillé -->
-    <div class="col-lg-3 col-md-6">
+    <div class="col-lg-8">
       <div class="card p-3 shadow-sm border-0">
-        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-speedometer2 me-2"></i>Temps de réponse</h6>
-        <div class="mb-2">
-          <small class="text-muted">Moyenne</small>
-          <h4 class="fw-bold text-info mb-0">{{ avg_response_time }}s</h4>
-        </div>
-        <div class="mb-2">
-          <small class="text-muted">Médiane</small>
-          <h4 class="fw-bold text-primary mb-0">{{ median_response_time }}s</h4>
-        </div>
-        <div class="d-flex justify-content-between small">
-          <span>Min: <strong>{{ min_response_time_val }}s</strong></span>
-          <span>Max: <strong>{{ max_response_time_val }}s</strong></span>
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-graph-up me-2"></i>Évolution 30 derniers jours</h6>
+        <div style="height: 320px;">
+          <canvas id="evolutionChart"></canvas>
         </div>
       </div>
     </div>
-
-    <!-- Satisfaction détaillée -->
-    <div class="col-lg-3 col-md-6">
+    <div class="col-lg-4">
       <div class="card p-3 shadow-sm border-0">
-        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-emoji-smile me-2"></i>Satisfaction détaillée</h6>
-        {% if total_feedbacks > 0 %}
-          <div class="mb-2">
-            <div class="d-flex justify-content-between small mb-1">
-              <span><i class="bi bi-hand-thumbs-up-fill text-success me-1"></i>Satisfaits</span>
-              <strong>{{ satisfied }}</strong>
-            </div>
-            <div class="d-flex justify-content-between small mb-1">
-              <span><i class="bi bi-hand-thumbs-down-fill text-danger me-1"></i>Insatisfaits</span>
-              <strong>{{ unsatisfied }}</strong>
-            </div>
-            <div class="d-flex justify-content-between small">
-              <span><i class="bi bi-question-circle me-1"></i>Sans retour</span>
-              <strong>{{ no_feedback }}</strong>
-            </div>
-          </div>
-        {% else %}
-          <p class="text-muted text-center mb-0">Aucun retour</p>
-        {% endif %}
-      </div>
-    </div>
-
-    <!-- Recommandations détaillées -->
-    <div class="col-lg-3 col-md-6">
-      <div class="card p-3 shadow-sm border-0">
-        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-stars me-2"></i>Recommandations</h6>
-        <div class="mb-2">
-          <small class="text-muted">Total recommandations</small>
-          <h4 class="fw-bold text-primary mb-0">{{ total_recommendations }}</h4>
-        </div>
-        <div class="mb-2">
-          <small class="text-muted">Taux de reco</small>
-          <h5 class="fw-bold text-info mb-0">{{ reco_rate }}%</h5>
-          <small class="text-muted">{{ interactions_with_reco }} interactions</small>
-        </div>
-      </div>
-    </div>
-
-    <!-- Comparaisons temporelles -->
-    <div class="col-lg-3 col-md-6">
-      <div class="card p-3 shadow-sm border-0">
-        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-calendar-week me-2"></i>Comparaisons</h6>
-        <div class="mb-2">
-          <div class="d-flex justify-content-between align-items-center">
-            <span class="small">Aujourd'hui vs Hier</span>
-            <span class="badge {% if today_vs_yesterday >= 0 %}bg-success{% else %}bg-danger{% endif %}">
-              {% if today_vs_yesterday >= 0 %}+{% endif %}{{ today_vs_yesterday }}
-            </span>
-          </div>
-          <small class="text-muted">{{ interactions_today }} vs {{ interactions_yesterday }}</small>
-        </div>
-        <hr class="my-2">
-        <div class="mb-0">
-          <div class="d-flex justify-content-between align-items-center">
-            <span class="small">Cette semaine vs Semaine dernière</span>
-            <span class="badge {% if week_vs_last_week >= 0 %}bg-success{% else %}bg-danger{% endif %}">
-              {% if week_vs_last_week >= 0 %}+{% endif %}{{ week_vs_last_week }}
-            </span>
-          </div>
-          <small class="text-muted">{{ interactions_this_week }} vs {{ interactions_last_week }}</small>
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-pie-chart me-2"></i>Répartition des intents</h6>
+        <div style="height: 320px;">
+          <canvas id="intentChart"></canvas>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ========== GRAPHIQUES ANALYTIQUES AVANCÉS ========== -->
+  <!-- ========== METRIQUES TEMPS / SATISFACTION ========== -->
   <div class="row g-3 mb-4">
-    <!-- Évolution (30 jours) -->
-    <div class="col-lg-12">
+    <div class="col-lg-6">
       <div class="card p-3 shadow-sm border-0">
-        <h6 class="fw-bold text-primary mb-3">
-          <i class="bi bi-graph-up me-2"></i>Évolution des interactions (30 derniers jours)
-          <small class="text-muted ms-2" style="font-size: 0.75rem;">
-            <i class="bi bi-arrow-left-right"></i> Défilez horizontalement
-          </small>
-        </h6>
-        <div class="chart-panel">
-          <div class="chart-scroll">
-            <div class="chart-inner">
-              <canvas id="evolutionChart" class="responsive-chart"></canvas>
-            </div>
-          </div>
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-stopwatch me-2"></i>Distribution du temps de réponse</h6>
+        <div style="height: 280px;">
+          <canvas id="responseTimeChart"></canvas>
         </div>
       </div>
     </div>
-
-    <!-- Distribution intents -->
     <div class="col-lg-6">
       <div class="card p-3 shadow-sm border-0">
-        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-pie-chart me-2"></i>Distribution des intents (Top 10)</h6>
-        <div class="chart-panel"><div class="chart-shell sm"><canvas id="intentChart" class="responsive-chart"></canvas></div></div>
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-emoji-smile me-2"></i>Évolution de la satisfaction</h6>
+        <div style="height: 280px;">
+          <canvas id="satisfactionEvolutionChart"></canvas>
+        </div>
       </div>
     </div>
+  </div>
 
-    <!-- Distribution temps de réponse -->
+  <!-- ========== TEMPS DE RÉPONSE PAR INTENT & FUNNEL ========== -->
+  <div class="row g-3 mb-4">
     <div class="col-lg-6">
       <div class="card p-3 shadow-sm border-0">
-        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-clock-history me-2"></i>Distribution des temps de réponse</h6>
-        <div class="chart-panel"><div class="chart-shell sm"><canvas id="responseTimeChart" class="responsive-chart"></canvas></div></div>
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-speedometer2 me-2"></i>Temps de réponse moyen par intent</h6>
+        <div style="height: 280px;">
+          <canvas id="responseTimeByIntentChart"></canvas>
+        </div>
       </div>
     </div>
-
-    <!-- Évolution de la satisfaction -->
-    <div class="col-lg-6">
-      <div class="card p-3 shadow-sm border-0">
-        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-heart-pulse me-2"></i>Évolution de la satisfaction (30 jours)</h6>
-        <div class="chart-panel"><div class="chart-shell sm"><canvas id="satisfactionEvolutionChart" class="responsive-chart"></canvas></div></div>
-      </div>
-    </div>
-
-    <!-- Temps de réponse par intent -->
-    <div class="col-lg-6">
-      <div class="card p-3 shadow-sm border-0">
-        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-speedometer me-2"></i>Top 10 Intents les plus lents</h6>
-        <div class="chart-panel"><div class="chart-shell sm"><canvas id="responseTimeByIntentChart" class="responsive-chart"></canvas></div></div>
-      </div>
-    </div>
-
-    <!-- Funnel d'engagement -->
     <div class="col-lg-6">
       <div class="card p-3 shadow-sm border-0">
         <h6 class="fw-bold text-primary mb-3"><i class="bi bi-funnel me-2"></i>Funnel d'engagement</h6>
-        <div class="chart-panel"><div class="chart-shell sm"><canvas id="funnelChart" class="responsive-chart"></canvas></div></div>
-      </div>
-    </div>
-
-    <!-- Activité par heure -->
-    <div class="col-lg-12">
-      <div class="card p-3 shadow-sm border-0">
-        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-hourglass-split me-2"></i>Activité par heure</h6>
-        <div class="chart-panel"><div class="chart-shell sm"><canvas id="activityChart" class="responsive-chart"></canvas></div></div>
+        <div style="height: 280px;">
+          <canvas id="funnelChart"></canvas>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- ========== ANALYSES DÉTAILLÉES ========== -->
+  <!-- ========== ACTIVITÉ PAR HEURE & INTENTS TABLES ========== -->
   <div class="row g-3 mb-4">
+    <div class="col-lg-6">
+      <div class="card p-3 shadow-sm border-0">
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-clock-history me-2"></i>Activité par heure</h6>
+        <div style="height: 280px;">
+          <canvas id="activityChart"></canvas>
+        </div>
+      </div>
+    </div>
+
     <!-- Top Intents -->
     <div class="col-lg-6">
       <div class="card p-3 shadow-sm border-0">
@@ -343,7 +251,7 @@
             </thead>
             <tbody>
               {% for intent in top_intents %}
-              <tr style="cursor: pointer;" onclick="showIntentDetail('{{ intent.intent_lower }}')">
+              <tr class="clickable-row intent-row" data-intent="{{ intent.intent_lower }}" style="cursor: pointer;">
                 <td class="fw-semibold">{{ intent.intent_lower }}</td>
                 <td class="text-center"><span class="badge bg-primary">{{ intent.total }}</span></td>
                 <td class="text-center">
@@ -352,7 +260,7 @@
                   </span>
                 </td>
                 <td class="text-center">
-                  <span class="badge {% if intent.satisfaction_rate >= 70 %}bg-success{% elif intent.satisfaction_rate >= 50 %}bg-warning{% else %}bg-secondary{% endif %}">
+                  <span class="badge {% if intent.satisfaction_rate >= 80 %}bg-success{% elif intent.satisfaction_rate >= 60 %}bg-warning{% else %}bg-secondary{% endif %}">
                     {{ intent.satisfaction_rate|floatformat:1 }}%
                   </span>
                 </td>
@@ -381,7 +289,7 @@
             </thead>
             <tbody>
               {% for intent in worst_intents %}
-              <tr style="cursor: pointer;" onclick="showIntentDetail('{{ intent.intent_lower }}')">
+              <tr class="clickable-row intent-row" data-intent="{{ intent.intent_lower }}" style="cursor: pointer;">
                 <td class="fw-semibold">{{ intent.intent_lower }}</td>
                 <td class="text-center"><span class="badge bg-secondary">{{ intent.total }}</span></td>
                 <td class="text-center"><span class="badge bg-danger">{{ intent.failure_rate|floatformat:1 }}%</span></td>
@@ -395,45 +303,46 @@
       </div>
     </div>
 
-    <!-- Top Questions -->
+  </div>
+
+  <!-- ========== TOP QUESTIONS & PRODUITS ========== -->
+  <div class="row g-3 mb-4">
     <div class="col-lg-6">
       <div class="card p-3 shadow-sm border-0">
-        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-chat-quote me-2"></i>Top 10 Questions</h6>
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-question-circle me-2"></i>Questions les plus posées</h6>
         <div style="max-height: 400px; overflow-y: auto;">
-          <ol class="list-group list-group-numbered list-group-flush">
+          <ol class="list-group list-group-numbered">
             {% for question, count in top_questions %}
-            <li class="list-group-item d-flex justify-content-between align-items-start" style="cursor: pointer;" onclick="showQuestionDetail('{{ question|escapejs }}')">
+            <li class="list-group-item d-flex justify-content-between align-items-start clickable-row question-row" data-question="{{ question|escape }}" style="cursor: pointer;">
               <div class="ms-2 me-auto">
                 <div class="fw-semibold">{{ question|truncatechars:80 }}</div>
               </div>
               <span class="badge bg-primary rounded-pill">{{ count }}</span>
             </li>
             {% empty %}
-            <li class="list-group-item text-center text-muted">Aucune question enregistrée</li>
+            <li class="list-group-item text-center text-muted">Aucune question</li>
             {% endfor %}
           </ol>
         </div>
       </div>
     </div>
 
-    <!-- Top Produits recommandés -->
     <div class="col-lg-6">
       <div class="card p-3 shadow-sm border-0">
-        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-box-seam me-2"></i>Top 10 Produits recommandés</h6>
+        <h6 class="fw-bold text-primary mb-3"><i class="bi bi-box-seam me-2"></i>Produits les plus recommandés</h6>
         <div style="max-height: 400px; overflow-y: auto;">
-          <div class="table-responsive">
-            <table class="table table-sm table-hover stacked-table">
-              <thead class="table-light">
-                <tr>
-                  <th>Produit</th>
-                  <th class="text-center">Recos</th>
-                  <th class="text-center">Clics</th>
-                  <th class="text-center">Taux</th>
-                </tr>
-              </thead>
-              <tbody>
+          <table class="table table-sm table-hover stacked-table">
+            <thead class="table-light">
+              <tr>
+                <th>Produit</th>
+                <th class="text-center">Reco</th>
+                <th class="text-center">Clics</th>
+                <th class="text-center">Taux</th>
+              </tr>
+            </thead>
+            <tbody>
                 {% for product in top_products %}
-                <tr style="cursor: pointer;" onclick="showProductDetail({{ product.product__id }})">
+                <tr class="clickable-row product-row" data-product-id="{{ product.product__id }}" style="cursor: pointer;">
                   <td class="fw-semibold">{{ product.product__name|truncatechars:40 }}</td>
                   <td class="text-center"><span class="badge bg-primary">{{ product.total }}</span></td>
                   <td class="text-center"><span class="badge bg-success">{{ product.clicks }}</span></td>
@@ -468,7 +377,7 @@
             </thead>
             <tbody>
               {% for session in most_active_sessions %}
-              <tr style="cursor: pointer;" onclick="showSessionDetail({{ session.session__id }})">
+              <tr class="clickable-row session-row" data-session-id="{{ session.session__id }}" style="cursor: pointer;">
                 <td class="fw-semibold">#{{ session.session__id }}</td>
                 <td class="text-center"><span class="badge bg-primary">{{ session.interaction_count }}</span></td>
                 <td class="text-center">
@@ -506,7 +415,7 @@
             </thead>
             <tbody>
               {% for interaction in failed_interactions %}
-              <tr style="cursor: pointer;" onclick="showInteractionDetail({{ interaction.id }})">
+              <tr class="clickable-row interaction-row" data-interaction-id="{{ interaction.id }}" style="cursor: pointer;">
                 <td class="small">{{ interaction.created_at|date:"d/m/Y H:i" }}</td>
                 <td class="small">#{{ interaction.session_id }}</td>
                 <td class="small">{{ interaction.question|truncatechars:50 }}</td>
@@ -773,6 +682,8 @@ document.addEventListener("DOMContentLoaded", function () {
           scales: { y: { beginAtZero: true } }
         }
       });
+
+      attachClickHandlers();
     });
 });
 
@@ -780,17 +691,35 @@ document.addEventListener("DOMContentLoaded", function () {
 function toggleCustomDates(select) {
   const customStart = document.getElementById("customStartDate");
   const customEnd = document.getElementById("customEndDate");
-  if (select.value === "custom") {
-    customStart.style.display = "block";
-    customEnd.style.display = "block";
-  } else {
-    customStart.style.display = "none";
-    customEnd.style.display = "none";
-  }
+  const showCustom = select.value === "custom";
+  customStart.classList.toggle("d-none", !showCustom);
+  customEnd.classList.toggle("d-none", !showCustom);
 }
 
 function resetFilters() {
   window.location.href = "{% url 'chatbot' %}";
+}
+
+function attachClickHandlers() {
+  document.querySelectorAll("[data-intent]").forEach((row) => {
+    row.addEventListener("click", () => showIntentDetail(row.dataset.intent));
+  });
+
+  document.querySelectorAll("[data-question]").forEach((row) => {
+    row.addEventListener("click", () => showQuestionDetail(row.dataset.question));
+  });
+
+  document.querySelectorAll("[data-product-id]").forEach((row) => {
+    row.addEventListener("click", () => showProductDetail(row.dataset.productId));
+  });
+
+  document.querySelectorAll("[data-session-id]").forEach((row) => {
+    row.addEventListener("click", () => showSessionDetail(row.dataset.sessionId));
+  });
+
+  document.querySelectorAll("[data-interaction-id]").forEach((row) => {
+    row.addEventListener("click", () => showInteractionDetail(row.dataset.interactionId));
+  });
 }
 
 // ========== FONCTIONS POUR AFFICHER LES DÉTAILS ==========
@@ -893,7 +822,7 @@ function showSessionDetail(sessionId) {
                   ${i.response_success ? '<span class="badge bg-success">Succès</span>' : '<span class="badge bg-danger">Échec</span>'}
                   ${i.intent ? '<span class="badge bg-secondary ms-1">' + i.intent + '</span>' : ''}
                   ${i.response_time ? '<span class="badge bg-info ms-1">' + i.response_time + 's</span>' : ''}
-                  ${i.satisfaction !== null ? (i.satisfaction ? '<span class="ms-1">👍</span>' : '<span class="ms-1">👎</span>') : ''}
+                  ${i.satisfaction !== null ? (i.satisfaction ? '<span class="ms-1 text-success"><i class="bi bi-hand-thumbs-up-fill"></i></span>' : '<span class="ms-1 text-danger"><i class="bi bi-hand-thumbs-down-fill"></i></span>') : ''}
                 </div>
               </div>
               <div class="card-body p-3">
@@ -975,7 +904,7 @@ function showIntentDetail(intent) {
                   <div>
                     ${i.response_success ? '<span class="badge bg-success">Succès</span>' : '<span class="badge bg-danger">Échec</span>'}
                     <span class="badge bg-secondary ms-1">${i.response_time || '—'}s</span>
-                    ${i.satisfaction !== null ? (i.satisfaction ? '<span class="ms-1">👍</span>' : '<span class="ms-1">👎</span>') : ''}
+                    ${i.satisfaction !== null ? (i.satisfaction ? '<span class="ms-1 text-success"><i class="bi bi-hand-thumbs-up-fill"></i></span>' : '<span class="ms-1 text-danger"><i class="bi bi-hand-thumbs-down-fill"></i></span>') : ''}
                   </div>
                 </div>
                 <p class="mb-1"><strong>Question:</strong> ${i.question || '—'}</p>
@@ -1057,7 +986,7 @@ function showInteractionDetail(interactionId) {
                   ${i.response_success ? '<span class="badge bg-success">Succès</span>' : '<span class="badge bg-danger">Échec</span>'}
                   ${i.intent ? '<span class="badge bg-secondary ms-1">' + i.intent + '</span>' : ''}
                   ${i.response_time ? '<span class="badge bg-info ms-1">' + i.response_time + 's</span>' : ''}
-                  ${i.satisfaction !== null ? (i.satisfaction ? '<span class="ms-1">👍</span>' : '<span class="ms-1">👎</span>') : ''}
+                  ${i.satisfaction !== null ? (i.satisfaction ? '<span class="ms-1 text-success"><i class="bi bi-hand-thumbs-up-fill"></i></span>' : '<span class="ms-1 text-danger"><i class="bi bi-hand-thumbs-down-fill"></i></span>') : ''}
                 </div>
               </div>
               <div class="card-body p-3">
@@ -1096,8 +1025,8 @@ function showInteractionDetail(interactionId) {
               ${data.similar_interactions.map(i => `
                 <tr>
                   <td class="small">${new Date(i.created_at).toLocaleString('fr-FR')}</td>
-                  <td class="small">${i.response_success ? '<span class="badge bg-success">✓</span>' : '<span class="badge bg-danger">✗</span>'}</td>
-                  <td class="small">${i.satisfaction === null ? '—' : i.satisfaction ? '👍' : '👎'}</td>
+                  <td class="small">${i.response_success ? '<span class="badge bg-success"><i class="bi bi-check-lg"></i></span>' : '<span class="badge bg-danger"><i class="bi bi-x-lg"></i></span>'}</td>
+                  <td class="small">${i.satisfaction === null ? '—' : (i.satisfaction ? '<i class="bi bi-hand-thumbs-up-fill text-success"></i>' : '<i class="bi bi-hand-thumbs-down-fill text-danger"></i>')}</td>
                   <td class="small">${i.response_time || '—'}s</td>
                 </tr>
               `).join('')}

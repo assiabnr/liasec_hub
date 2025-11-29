@@ -16,11 +16,15 @@
     </div>
   </div>
 
-  <!-- Messages -->
+  <!-- Messages (uniquement pour actions de cette page) -->
   {% if messages %}
   <div class="mb-3">
     {% for message in messages %}
-      <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+      {% with msg=message|stringformat:"s"|lower %}
+        {% if "bienvenue" not in msg %}
+          <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+        {% endif %}
+      {% endwith %}
     {% endfor %}
   </div>
   {% endif %}

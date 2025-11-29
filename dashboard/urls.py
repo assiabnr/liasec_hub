@@ -14,6 +14,7 @@ from .views import (
     chatbot_intent_detail,
     chatbot_product_detail_api,
     chatbot_interaction_detail_api,
+    delete_session_view,
 )
 
 urlpatterns = [
@@ -25,6 +26,7 @@ urlpatterns = [
     path("sessions/", login_required(views.sessions_view), name="sessions"),
     path("sessions/analytics-data/", login_required(sessions_analytics_data), name="sessions_analytics_data"),
     path("session/<int:session_id>/detail/", login_required(session_detail_view), name="session_detail"),
+    path("session/<int:session_id>/delete/", login_required(delete_session_view), name="delete_session"),
 
     # Clics
     path("clicks/", login_required(views.clicks_view), name="clicks"),

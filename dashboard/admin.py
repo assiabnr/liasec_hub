@@ -64,8 +64,15 @@ class ProductAdmin(admin.ModelAdmin):
 @admin.register(Session)
 class SessionAdmin(admin.ModelAdmin):
     list_display = ('id', 'user_id', 'start_time', 'duration', 'device')
-    list_filter = ('start_time', 'device')
+    list_filter = ('start_time', 'device', 'is_deleted')
     search_fields = ('user_id',)
+
+    def delete_model(self, request, obj):
+        obj.soft_delete()
+
+    def delete_queryset(self, request, queryset):
+        for session in queryset:
+            session.soft_delete()
 
 
 @admin.register(Settings)
