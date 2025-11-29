@@ -5,13 +5,15 @@
 <div class="container-fluid py-4">
 
   <!-- En-tête -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="page-header mb-4">
     <h4 class="fw-bold mb-0">
       <i class="bi bi-box-seam-fill me-2 text-primary"></i> Analyse des Produits
     </h4>
-    <a href="{% url 'export_products_pdf' %}" class="btn btn-primary shadow-sm">
-      <i class="bi bi-file-earmark-pdf me-1"></i> Exporter en PDF
-    </a>
+    <div class="page-actions">
+      <a href="{% url 'export_products_pdf' %}" class="btn btn-primary shadow-sm">
+        <i class="bi bi-file-earmark-pdf me-1"></i> Exporter en PDF
+      </a>
+    </div>
   </div>
 
   <!-- KPIs principaux -->
@@ -98,12 +100,16 @@
   <div class="row g-4 mb-4">
     <!-- Sources de consultation -->
     <div class="col-lg-8">
-      <div class="card p-3 chart-card">
+      <div class="card p-3 h-100">
         <h6 class="fw-bold text-primary mb-2">
           <i class="bi bi-arrow-down-up me-1"></i> Sources de Consultation des Produits
         </h6>
         <p class="text-muted small mb-3">D'où viennent les utilisateurs pour consulter les produits</p>
-        <canvas id="sourcesChart"></canvas>
+        <div class="chart-panel">
+          <div class="chart-shell lg">
+            <canvas id="sourcesChart" class="responsive-chart"></canvas>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -141,13 +147,15 @@
 
     <!-- Vues par catégorie -->
     <div class="col-lg-6">
-      <div class="card p-3 chart-card">
+      <div class="card p-3 h-100">
         <h6 class="fw-bold text-primary mb-2">
           <i class="bi bi-tag-fill me-1"></i> Vues par Catégorie
         </h6>
-        <div style="height: 300px; overflow-x: auto; overflow-y: hidden;">
-          <div style="min-width: 400px; height: 100%; position: relative;">
-            <canvas id="categoryChart"></canvas>
+        <div class="chart-panel">
+          <div class="chart-scroll">
+            <div class="chart-inner">
+              <canvas id="categoryChart" class="responsive-chart"></canvas>
+            </div>
           </div>
         </div>
       </div>
@@ -155,23 +163,29 @@
 
     <!-- Distribution des prix -->
     <div class="col-lg-6">
-      <div class="card p-3 chart-card">
+      <div class="card p-3 h-100">
         <h6 class="fw-bold text-primary mb-2">
           <i class="bi bi-cash-coin me-1"></i> Distribution des Prix Consultés
         </h6>
-        <canvas id="priceChart"></canvas>
+        <div class="chart-panel">
+          <div class="chart-shell sm">
+            <canvas id="priceChart" class="responsive-chart"></canvas>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Évolution temporelle -->
     <div class="col-lg-12">
-      <div class="card p-3 chart-card">
+      <div class="card p-3 h-100">
         <h6 class="fw-bold text-primary mb-2">
           <i class="bi bi-calendar3 me-1"></i> Évolution des Consultations (7 derniers jours)
         </h6>
-        <div style="height: 300px; overflow-x: auto; overflow-y: hidden;">
-          <div style="min-width: 600px; height: 100%; position: relative;">
-            <canvas id="evolutionChart"></canvas>
+        <div class="chart-panel">
+          <div class="chart-scroll">
+            <div class="chart-inner">
+              <canvas id="evolutionChart" class="responsive-chart"></canvas>
+            </div>
           </div>
         </div>
       </div>
@@ -248,7 +262,7 @@
     </h6>
 
     <div class="table-responsive">
-      <table class="table align-middle table-hover">
+      <table class="table align-middle table-hover stacked-table">
         <thead class="table-light">
           <tr>
             <th style="width: 60px;">Image</th>
@@ -267,7 +281,7 @@
         <tbody>
           {% for p in products %}
           <tr>
-            <td>
+            <td class="media-cell" data-label="Image">
               {% if p.image_url %}
                 <img src="{{ p.image_url }}" alt="{{ p.name }}" width="50" height="50" class="rounded" style="object-fit:cover;">
               {% else %}
@@ -276,28 +290,28 @@
                 </div>
               {% endif %}
             </td>
-            <td class="fw-semibold text-dark">{{ p.name }}</td>
-            <td><small class="text-muted">{{ p.category|default:"—" }}</small></td>
-            <td><small class="text-muted">{{ p.brand|default:"—" }}</small></td>
-            <td class="text-end"><strong>{{ p.price|floatformat:2 }}€</strong></td>
-            <td class="text-center">
+            <td class="fw-semibold text-dark" data-label="Nom">{{ p.name }}</td>
+            <td data-label="Categorie"><small class="text-muted">{{ p.category|default:"—" }}</small></td>
+            <td data-label="Marque"><small class="text-muted">{{ p.brand|default:"—" }}</small></td>
+            <td class="text-end" data-label="Prix"><strong>{{ p.price|floatformat:2 }}€</strong></td>
+            <td class="text-center" data-label="Dispo">
               {% if p.available %}
                 <span class="badge bg-success">✓</span>
               {% else %}
                 <span class="badge bg-danger">✗</span>
               {% endif %}
             </td>
-            <td class="text-end"><span class="badge bg-primary">{{ p.total_views|intcomma }}</span></td>
-            <td class="text-end"><span class="badge bg-info">{{ p.total_recos|intcomma }}</span></td>
-            <td class="text-end"><span class="badge bg-success">{{ p.clicked_recos|intcomma }}</span></td>
-            <td class="text-end">
+            <td class="text-end" data-label="Vues"><span class="badge bg-primary">{{ p.total_views|intcomma }}</span></td>
+            <td class="text-end" data-label="Recos"><span class="badge bg-info">{{ p.total_recos|intcomma }}</span></td>
+            <td class="text-end" data-label="Clics IA"><span class="badge bg-success">{{ p.clicked_recos|intcomma }}</span></td>
+            <td class="text-end" data-label="Taux">
               {% if p.click_rate > 0 %}
                 <strong class="text-success">{{ p.click_rate|floatformat:1 }}%</strong>
               {% else %}
                 <span class="text-muted">0%</span>
               {% endif %}
             </td>
-            <td class="text-center">
+            <td class="text-center actions-cell" data-label="Actions">
               <a href="{% url 'product_detail' p.id %}" class="btn btn-sm btn-outline-primary">
                 <i class="bi bi-eye-fill"></i> Détail
               </a>
@@ -349,14 +363,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
-.chart-card {
-  height: 380px;
-  display: flex;
-  flex-direction: column;
-}
-.chart-card canvas {
-  flex-grow: 1;
-}
 #topProductsTable tbody tr:hover {
   background-color: rgba(37,99,235,0.08);
 }

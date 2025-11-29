@@ -15,17 +15,17 @@
 
   <!-- En-tête Produit -->
   <div class="card p-4 mb-4 shadow-sm">
-    <div class="row">
-      <div class="col-md-2">
+    <div class="row g-3 align-items-center">
+      <div class="col-md-3 col-sm-4">
         {% if product.image_url %}
-          <img src="{{ product.image_url }}" alt="{{ product.name }}" class="img-fluid rounded shadow-sm" style="width: 100%; max-width: 200px;">
+          <img src="{{ product.image_url }}" alt="{{ product.name }}" class="img-fluid rounded shadow-sm w-100 product-thumb">
         {% else %}
-          <div class="bg-light rounded d-flex align-items-center justify-content-center" style="width: 200px; height: 200px;">
-            <i class="bi bi-image text-muted" style="font-size: 4rem;"></i>
+          <div class="bg-light rounded d-flex align-items-center justify-content-center w-100 product-thumb placeholder-thumb">
+            <i class="bi bi-image text-muted" style="font-size: 3rem;"></i>
           </div>
         {% endif %}
       </div>
-      <div class="col-md-7">
+      <div class="col-md-6 col-sm-8">
         <h3 class="fw-bold">{{ product.name }}</h3>
         <div class="mt-2">
           <span class="badge bg-primary me-2">{{ product.product_id }}</span>
@@ -37,7 +37,7 @@
           <h4 class="text-primary mb-0">{{ product.price|floatformat:2 }}€</h4>
         </div>
       </div>
-      <div class="col-md-3 text-end">
+      <div class="col-md-3 text-md-end text-start">
         {% if product.available %}
           <span class="badge bg-success fs-5">
             <i class="bi bi-check-circle-fill me-1"></i> Disponible
@@ -83,13 +83,15 @@
   <div class="row g-4 mb-4">
     <!-- Évolution consultations -->
     <div class="col-lg-8">
-      <div class="card p-3" style="height: 350px;">
+      <div class="card p-3 h-100">
         <h6 class="fw-bold text-primary mb-2">
           <i class="bi bi-graph-up me-1"></i> Évolution des Consultations (7 derniers jours)
         </h6>
-        <div style="height: 280px; overflow-x: auto; overflow-y: hidden;">
-          <div style="min-width: 500px; height: 100%; position: relative;">
-            <canvas id="evolutionChart"></canvas>
+        <div class="chart-panel">
+          <div class="chart-scroll">
+            <div class="chart-inner">
+              <canvas id="evolutionChart" class="responsive-chart"></canvas>
+            </div>
           </div>
         </div>
       </div>
@@ -97,11 +99,15 @@
 
     <!-- Répartition par source -->
     <div class="col-lg-4">
-      <div class="card p-3" style="height: 350px;">
+      <div class="card p-3 h-100">
         <h6 class="fw-bold text-primary mb-2">
           <i class="bi bi-pie-chart-fill me-1"></i> Consultations par Source
         </h6>
-        <canvas id="sourceChart"></canvas>
+        <div class="chart-panel">
+          <div class="chart-shell">
+            <canvas id="sourceChart" class="responsive-chart"></canvas>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -116,7 +122,7 @@
           <span class="badge bg-primary ms-2">{{ recent_views.count }}</span>
         </h6>
         <div class="table-responsive">
-          <table class="table table-sm table-hover align-middle">
+          <table class="table table-sm table-hover align-middle stacked-table">
             <thead class="table-light">
               <tr>
                 <th>Date</th>
@@ -128,8 +134,8 @@
             <tbody>
               {% for view in recent_views %}
               <tr>
-                <td><small>{{ view.viewed_at|date:"d/m/Y H:i" }}</small></td>
-                <td>
+                <td data-label="Date"><small>{{ view.viewed_at|date:"d/m/Y H:i" }}</small></td>
+                <td data-label="Source">
                   {% if view.source == "chatbot" %}
                     <span class="badge bg-info">Chatbot</span>
                   {% elif view.source == "carte" %}
@@ -140,8 +146,8 @@
                     <span class="badge bg-secondary">{{ view.source|default:"—" }}</span>
                   {% endif %}
                 </td>
-                <td><small>{{ view.zone|default:"—" }}</small></td>
-                <td><a href="{% url 'session_detail' view.session.id %}" class="text-decoration-none">#{{ view.session.id }}</a></td>
+                <td data-label="Zone"><small>{{ view.zone|default:"—" }}</small></td>
+                <td data-label="Session"><a href="{% url 'session_detail' view.session.id %}" class="text-decoration-none">#{{ view.session.id }}</a></td>
               </tr>
               {% empty %}
               <tr><td colspan="4" class="text-center text-muted py-3">Aucune consultation.</td></tr>
@@ -160,7 +166,7 @@
           <span class="badge bg-info ms-2">{{ recent_recos.count }}</span>
         </h6>
         <div class="table-responsive">
-          <table class="table table-sm table-hover align-middle">
+          <table class="table table-sm table-hover align-middle stacked-table">
             <thead class="table-light">
               <tr>
                 <th>Date</th>
@@ -172,7 +178,7 @@
             <tbody>
               {% for reco in recent_recos %}
               <tr>
-                <td><small>{{ reco.recommended_at|date:"d/m/Y H:i" }}</small></td>
+                <td data-label="Date"><small>{{ reco.recommended_at|date:"d/m/Y H:i" }}</small></td>
                 <td>
                   {% if reco.clicked %}
                     <span class="badge bg-success">✓ Oui</span>
@@ -189,7 +195,7 @@
                     {% endif %}
                   </small>
                 </td>
-                <td><a href="{% url 'session_detail' reco.session.id %}" class="text-decoration-none">#{{ reco.session.id }}</a></td>
+                <td data-label="Session"><a href="{% url 'session_detail' reco.session.id %}" class="text-decoration-none">#{{ reco.session.id }}</a></td>
               </tr>
               {% empty %}
               <tr><td colspan="4" class="text-center text-muted py-3">Aucune recommandation.</td></tr>
@@ -199,7 +205,25 @@
         </div>
       </div>
     </div>
-  </div>
+  
+<style>
+.product-thumb {
+  max-width: 240px;
+  object-fit: cover;
+}
+
+.placeholder-thumb {
+  height: 200px;
+}
+
+@media (max-width: 768px) {
+  .product-thumb,
+  .placeholder-thumb {
+    max-width: 100%;
+    height: auto;
+  }
+}
+</style>
 
   <!-- Produits similaires -->
   {% if similar_products %}

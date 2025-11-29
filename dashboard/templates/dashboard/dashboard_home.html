@@ -11,7 +11,7 @@
   <div class="row mb-4">
     <div class="col-12">
       <div class="welcome-banner p-4 rounded-3 shadow-sm">
-        <div class="d-flex align-items-center justify-content-between flex-wrap">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
           <div class="mb-3 mb-md-0">
             <h3 class="fw-bold mb-2 text-white">
               <i class="bi bi-speedometer2 me-2"></i>Tableau de bord <span class="text-info">LIASEC</span>
@@ -20,7 +20,7 @@
               <i class="bi bi-calendar3 me-1"></i>{{ "now"|date:"l d F Y" }} • Vue d'ensemble de l'activité
             </p>
           </div>
-          <div>
+          <div class="page-actions">
             <a href="{% url 'export_dashboard_pdf' %}" class="btn btn-primary fw-semibold shadow-sm me-2">
               <i class="bi bi-file-earmark-pdf me-2"></i>Exporter en PDF
             </a>
@@ -242,9 +242,11 @@
           <h5 class="fw-bold text-primary mb-3">
             <i class="bi bi-graph-up-arrow me-2"></i>Évolution de l'activité (7 derniers jours)
           </h5>
-          <div style="height: 350px; overflow-x: auto; overflow-y: hidden;">
-            <div style="min-width: 600px; height: 100%; position: relative;">
-              <canvas id="evolutionChart"></canvas>
+          <div class="chart-panel">
+            <div class="chart-scroll">
+              <div class="chart-inner">
+                <canvas id="evolutionChart" class="responsive-chart"></canvas>
+              </div>
             </div>
           </div>
         </div>
@@ -258,8 +260,10 @@
           <h5 class="fw-bold text-primary mb-3">
             <i class="bi bi-arrows-angle-contract me-2"></i>Sources de consultation
           </h5>
-          <div style="height: 350px; position: relative;">
-            <canvas id="sourcesChart"></canvas>
+          <div class="chart-panel">
+            <div class="chart-shell">
+              <canvas id="sourcesChart" class="responsive-chart"></canvas>
+            </div>
           </div>
         </div>
       </div>
@@ -551,16 +555,6 @@
     background-color: rgba(255, 255, 255, 0.8) !important;
   }
 
-  canvas {
-    width: 100% !important;
-    height: 100% !important;
-  }
-
-  @media (max-width: 992px) {
-    div[style*="height: 350px"] {
-      height: 280px !important;
-    }
-  }
 </style>
 
 <!-- ============================

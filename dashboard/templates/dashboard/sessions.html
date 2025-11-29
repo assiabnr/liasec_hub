@@ -1,78 +1,33 @@
 {% extends 'dashboard/base.html' %}
 {% load humanize %}
 {% block content %}
-
-<style>
-/* Styles pour le scroll horizontal du graphique */
-.chart-scroll-container {
-  overflow-x: auto;
-  overflow-y: hidden;
-  padding-bottom: 10px;
-  margin-bottom: 10px;
-}
-
-.chart-scroll-container::-webkit-scrollbar {
-  height: 12px;
-}
-
-.chart-scroll-container::-webkit-scrollbar-track {
-  background: #f1f1f1;
-  border-radius: 10px;
-}
-
-.chart-scroll-container::-webkit-scrollbar-thumb {
-  background: #888;
-  border-radius: 10px;
-}
-
-.chart-scroll-container::-webkit-scrollbar-thumb:hover {
-  background: #555;
-}
-
-/* Pour Firefox */
-.chart-scroll-container {
-  scrollbar-width: thin;
-  scrollbar-color: #888 #f1f1f1;
-}
-
-.chart-inner-container {
-  width: 1400px;
-  height: 320px;
-  position: relative;
-}
-
-@media (max-width: 768px) {
-  .chart-inner-container {
-    width: 1200px;
-  }
-}
-</style>
-
 <div class="container-fluid py-4">
 
   <!-- En-tête avec titre et bouton export -->
-  <div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="page-header mb-4">
     <div>
       <h4 class="fw-bold mb-1">
         <i class="bi bi-people-fill me-2 text-primary"></i> Analyse des sessions utilisateurs
       </h4>
       <p class="text-muted mb-0 small">Analysez le comportement et l'engagement de vos utilisateurs</p>
     </div>
-    <a href="{% url 'export_sessions_pdf' %}" class="btn btn-primary shadow-sm d-flex align-items-center">
-      <i class="bi bi-file-earmark-pdf me-2"></i> Exporter en PDF
-    </a>
+    <div class="page-actions">
+      <a href="{% url 'export_sessions_pdf' %}" class="btn btn-primary shadow-sm d-flex align-items-center">
+        <i class="bi bi-file-earmark-pdf me-2"></i> Exporter en PDF
+      </a>
+    </div>
   </div>
 
   <!-- ========== FILTRES ========== -->
   <div class="card p-3 mb-4 shadow-sm border-0">
-    <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
       <h6 class="fw-bold text-primary mb-0"><i class="bi bi-funnel me-2"></i>Filtres</h6>
       <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetFilters()">
         <i class="bi bi-arrow-clockwise me-1"></i>Réinitialiser
       </button>
     </div>
     <form method="get" action="{% url 'sessions' %}" id="filterForm">
-      <div class="row g-3">
+      <div class="row g-3 align-items-end">
         <!-- Filtre période -->
         <div class="col-md-3">
           <label class="form-label small fw-semibold">Période</label>
@@ -377,9 +332,11 @@
             <i class="bi bi-arrow-left-right"></i> Défilez horizontalement
           </small>
         </h6>
-        <div class="chart-scroll-container">
-          <div class="chart-inner-container">
-            <canvas id="evolutionChart"></canvas>
+        <div class="chart-panel">
+          <div class="chart-scroll">
+            <div class="chart-inner">
+              <canvas id="evolutionChart" class="responsive-chart"></canvas>
+            </div>
           </div>
         </div>
       </div>
@@ -389,7 +346,11 @@
     <div class="col-lg-4">
       <div class="card p-3 shadow-sm border-0">
         <h6 class="fw-bold text-primary mb-3"><i class="bi bi-clock-history me-2"></i>Distribution de durée</h6>
-        <canvas id="durationChart" height="160"></canvas>
+        <div class="chart-panel">
+          <div class="chart-shell sm">
+            <canvas id="durationChart" class="responsive-chart"></canvas>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -397,7 +358,11 @@
     <div class="col-lg-6">
       <div class="card p-3 shadow-sm border-0">
         <h6 class="fw-bold text-primary mb-3"><i class="bi bi-hourglass-split me-2"></i>Activité par heure</h6>
-        <canvas id="activityChart" height="100"></canvas>
+        <div class="chart-panel">
+          <div class="chart-shell sm">
+            <canvas id="activityChart" class="responsive-chart"></canvas>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -405,7 +370,11 @@
     <div class="col-lg-6">
       <div class="card p-3 shadow-sm border-0">
         <h6 class="fw-bold text-primary mb-3"><i class="bi bi-speedometer2 me-2"></i>Taux d'engagement (7 derniers jours)</h6>
-        <canvas id="engagementChart" height="100"></canvas>
+        <div class="chart-panel">
+          <div class="chart-shell sm">
+            <canvas id="engagementChart" class="responsive-chart"></canvas>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -415,7 +384,7 @@
     <h6 class="fw-bold text-primary mb-3"><i class="bi bi-table me-2"></i>Liste des sessions ({{ total_sessions }} au total)</h6>
 
     <div class="table-responsive">
-      <table class="table table-hover align-middle">
+      <table class="table table-hover align-middle stacked-table">
         <thead class="table-light">
           <tr>
             <th>ID</th>
@@ -431,33 +400,33 @@
         <tbody>
           {% for session in sessions %}
           <tr>
-            <td class="fw-semibold">#{{ session.id }}</td>
-            <td>{{ session.start_time|date:"d/m/Y H:i" }}</td>
-            <td>
+            <td class="fw-semibold" data-label="ID">#{{ session.id }}</td>
+            <td data-label="Debut">{{ session.start_time|date:"d/m/Y H:i" }}</td>
+            <td data-label="Duree">
               {% if session.duration %}
                 <span class="badge bg-info">{{ session.duration }}</span>
               {% else %}
                 <span class="text-muted">—</span>
               {% endif %}
             </td>
-            <td>
+            <td data-label="Etat">
               {% if session.end_time %}
                 <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Terminée</span>
               {% else %}
                 <span class="badge bg-warning"><i class="bi bi-hourglass-split me-1"></i>Active</span>
               {% endif %}
             </td>
-            <td>
+            <td data-label="Interactions">
               <span class="badge bg-primary">
                 <i class="bi bi-chat-dots me-1"></i>{{ session.chatbot_interactions.count }}
               </span>
             </td>
-            <td>
+            <td data-label="Produits">
               <span class="badge bg-info">
                 <i class="bi bi-bag me-1"></i>{{ session.product_views.count }}
               </span>
             </td>
-            <td>
+            <td data-label="Engagement">
               {% with total_actions=session.chatbot_interactions.count|add:session.product_views.count %}
                 {% if total_actions > 10 %}
                   <span class="badge bg-success">Élevé ({{ total_actions }})</span>
@@ -470,7 +439,7 @@
                 {% endif %}
               {% endwith %}
             </td>
-            <td>
+            <td class="actions-cell" data-label="Actions">
               <button class="btn btn-sm btn-outline-primary" data-session-id="{{ session.id }}" onclick="openSessionDetail(this)">
                 <i class="bi bi-eye"></i> Détails
               </button>

@@ -398,6 +398,8 @@ a {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
   min-height: var(--navbar-height);
   border: 1px solid var(--border-color);
   position: sticky;
@@ -622,6 +624,27 @@ main {
   padding: 0 1.5rem;
 }
 
+/* Helpers de structure */
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.page-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.card-grid {
+  display: grid;
+  gap: 1rem;
+}
+
 /* ===================== */
 /* WELCOME BANNER - Design Ultra-Moderne */
 /* ===================== */
@@ -685,6 +708,53 @@ main {
 .welcome-banner .btn {
   position: relative;
   z-index: 1;
+}
+
+/* ===================== */
+/* CHARTS & PANELS */
+/* ===================== */
+.chart-panel {
+  min-height: 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.chart-shell {
+  position: relative;
+  flex: 1;
+  min-height: 280px;
+}
+
+.chart-shell.sm {
+  min-height: 220px;
+}
+
+.chart-shell.lg {
+  min-height: 340px;
+}
+
+.chart-scroll {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 0.5rem;
+  margin: 0 -0.25rem;
+}
+
+.chart-scroll .chart-inner {
+  min-width: 640px;
+  height: 100%;
+  position: relative;
+}
+
+.responsive-chart {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.chart-panel canvas {
+  width: 100% !important;
+  height: 100% !important;
 }
 
 /* ===================== */
@@ -954,6 +1024,106 @@ main {
   overflow: hidden;
 }
 
+/* Tables empilables (mobile) */
+.table.stacked-table {
+  min-width: 720px;
+}
+
+.table.stacked-table .actions-cell {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.table.stacked-table .media-cell img {
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  border-radius: var(--border-radius-sm);
+}
+
+@media (max-width: 992px) {
+  .table.stacked-table {
+    min-width: 100%;
+  }
+}
+
+@media (max-width: 768px) {
+  .table.stacked-table thead {
+    display: none;
+  }
+
+  .table.stacked-table tbody {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .table.stacked-table tbody tr {
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 0.5rem 0;
+  }
+
+  .table.stacked-table tbody td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .table.stacked-table tbody td:last-child {
+    border-bottom: none;
+  }
+
+  .table.stacked-table tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--text-secondary);
+    letter-spacing: 0;
+  }
+
+  .table.stacked-table tbody td > * {
+    text-align: right;
+  }
+
+  .table.stacked-table .actions-cell {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+  }
+
+  .table.stacked-table .media-cell {
+    align-items: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .table.stacked-table tbody td {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .table.stacked-table tbody td::before {
+    margin-bottom: 0.25rem;
+  }
+
+  .table.stacked-table tbody td > * {
+    text-align: left;
+    width: 100%;
+  }
+
+  .table.stacked-table .actions-cell {
+    justify-content: flex-start;
+  }
+}
+
 /* ===================== */
 /* BADGES Modernes */
 /* ===================== */
@@ -1142,6 +1312,14 @@ main {
   main {
     padding: 1.25rem;
   }
+
+  .chart-panel {
+    min-height: 300px;
+  }
+
+  .chart-scroll .chart-inner {
+    min-width: 560px;
+  }
 }
 
 /* ===================== */
@@ -1174,6 +1352,8 @@ main {
     margin: 1rem;
     padding: 0.875rem 1.25rem;
     top: 1rem;
+    position: sticky;
+    gap: 0.75rem;
   }
 
   main {
@@ -1183,6 +1363,18 @@ main {
   .welcome-banner {
     padding: 2rem;
     border-radius: var(--border-radius-xl);
+  }
+
+  .chart-panel {
+    min-height: 280px;
+  }
+
+  .chart-shell {
+    min-height: 240px;
+  }
+
+  .chart-scroll .chart-inner {
+    min-width: 500px;
   }
 
   .footer-simple {
@@ -1202,6 +1394,9 @@ main {
   .navbar-main {
     margin: 0.875rem;
     padding: 0.75rem 1rem;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
   }
 
   .navbar-main h6 {
@@ -1239,6 +1434,28 @@ main {
     padding: 0.625rem 1.25rem;
     font-size: 0.875rem;
   }
+
+  .chart-panel {
+    min-height: 260px;
+  }
+
+  .chart-scroll {
+    margin: 0 -0.5rem;
+  }
+
+  .chart-scroll .chart-inner {
+    min-width: 480px;
+  }
+
+  .page-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .navbar-main > .d-flex {
+    width: 100%;
+    justify-content: space-between;
+  }
 }
 
 @media (max-width: 576px) {
@@ -1275,6 +1492,14 @@ main {
   .table tbody td {
     padding: 0.75rem;
     font-size: 0.875rem;
+  }
+
+  .chart-panel {
+    min-height: 240px;
+  }
+
+  .chart-scroll .chart-inner {
+    min-width: 420px;
   }
 }
 

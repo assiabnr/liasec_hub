@@ -2,11 +2,19 @@
 {% load static %}
 
 {% block content %}
-<div class="container py-4">
-  <h2 class="mb-4">
-    <span class="material-icons align-middle text-primary me-2">manage_accounts</span>
-    Gestion des comptes utilisateurs
-  </h2>
+<div class="container-fluid py-4">
+  <div class="page-header mb-4">
+    <h2 class="mb-0">
+      <span class="material-icons align-middle text-primary me-2">manage_accounts</span>
+      Gestion des comptes utilisateurs
+    </h2>
+    <div class="page-actions">
+      <button type="submit" form="createUserForm" class="btn btn-primary">
+        <span class="material-icons align-middle me-1" style="font-size: 18px;">add_circle</span>
+        Créer le compte
+      </button>
+    </div>
+  </div>
 
   <!-- Messages -->
   {% if messages %}
@@ -20,7 +28,7 @@
   <!-- Section de création -->
   <div class="card mb-4 shadow-sm border-0">
     <div class="card-body">
-      <div class="d-flex justify-content-between align-items-center mb-4">
+      <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-4">
         <h5 class="card-title mb-0 fw-bold text-secondary">
           <i class="bi bi-person-plus-fill me-2 text-primary"></i> Créer un nouvel utilisateur
         </h5>
@@ -61,7 +69,7 @@
         <i class="bi bi-people-fill me-2 text-primary"></i> Liste des utilisateurs
       </h5>
       <div class="table-responsive">
-        <table class="table align-middle table-hover" id="usersTable">
+        <table class="table align-middle table-hover stacked-table" id="usersTable">
           <thead class="table-light">
             <tr>
               <th>#</th>
@@ -142,13 +150,13 @@ document.addEventListener("DOMContentLoaded", function() {
     data.results.forEach((user, index) => {
       const row = `
         <tr data-id="${user.id}" class="user-row" style="cursor:pointer;">
-          <td>${index + 1}</td>
-          <td>${user.last_name || '-'}</td>
-          <td>${user.first_name || '-'}</td>
-          <td>${user.email}</td>
-          <td><span class="badge bg-${roleColor(user.role)}">${user.role}</span></td>
-          <td>${user.is_active ? '<span class="badge bg-success">Actif</span>' : '<span class="badge bg-danger">Inactif</span>'}</td>
-          <td class="text-end">
+          <td data-label="#">${index + 1}</td>
+          <td data-label="Nom">${user.last_name || '-'}</td>
+          <td data-label="Pr?nom">${user.first_name || '-'}</td>
+          <td data-label="Email">${user.email}</td>
+          <td data-label="R?le"><span class="badge bg-${roleColor(user.role)}">${user.role}</span></td>
+          <td data-label="Statut">${user.is_active ? '<span class="badge bg-success">Actif</span>' : '<span class="badge bg-danger">Inactif</span>'}</td>
+          <td class="text-end actions-cell" data-label="Actions">
             <button class="btn btn-sm btn-outline-${user.is_active ? 'warning' : 'success'} me-2"
                     onclick="event.stopPropagation(); toggleActiveStatus(${user.id}, ${user.is_active});"
                     title="${user.is_active ? 'Désactiver' : 'Activer'}">
