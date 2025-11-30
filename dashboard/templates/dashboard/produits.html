@@ -2,95 +2,103 @@
 {% load humanize %}
 {% block content %}
 
-<div class="container-fluid py-4">
+<div class="container-fluid py-4 px-xxl-0 px-xl-0 px-lg-1 px-md-1 px-sm-1">
 
   <!-- En-tête -->
-  <div class="page-header mb-4">
-    <h4 class="fw-bold mb-0">
-      <i class="bi bi-box-seam-fill me-2 text-primary"></i> Analyse des Produits
-    </h4>
-    <div class="page-actions">
-      <a href="{% url 'export_products_pdf' %}" class="btn btn-primary shadow-sm">
-        <i class="bi bi-file-earmark-pdf me-1"></i> Exporter en PDF
-      </a>
+  <div class="page-header d-flex justify-content-between align-items-center flex-wrap gap-3 mb-3">
+    <h5 class="fw-bold mb-0 d-flex align-items-center gap-2">
+      <i class="bi bi-box-seam-fill text-primary"></i> Analyse des Produits
+    </h5>
+    <div class="page-actions d-flex flex-wrap gap-2">
+      {% if request.user.role == 'ADMIN' or request.user.can_export %}
+        <a href="{% url 'export_products_pdf' %}" class="btn btn-primary btn-sm shadow-sm">
+          <i class="bi bi-file-earmark-pdf me-1"></i> Exporter en PDF
+        </a>
+      {% else %}
+        <button class="btn btn-secondary btn-sm shadow-sm" disabled style="opacity:0.6; cursor:not-allowed;">
+          <i class="bi bi-file-earmark-pdf me-1"></i> Exporter en PDF
+        </button>
+      {% endif %}
     </div>
   </div>
 
   <!-- KPIs principaux -->
-  <div class="row g-3 mb-4">
-    <div class="col-lg-2 col-md-4 col-sm-6">
-      <div class="card text-center p-3 shadow-sm">
+  <div class="row g-2 mb-3">
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="card text-center p-2 shadow-sm kpi-card">
         <h6 class="text-muted mb-1 small">Total Produits</h6>
-        <h2 class="fw-bold text-primary mb-0">{{ total_products|intcomma }}</h2>
+        <h3 class="fw-bold text-primary mb-0">{{ total_products|intcomma }}</h3>
       </div>
     </div>
-    <div class="col-lg-2 col-md-4 col-sm-6">
-      <div class="card text-center p-3 shadow-sm">
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="card text-center p-2 shadow-sm kpi-card">
         <h6 class="text-muted mb-1 small">Disponibles</h6>
-        <h2 class="fw-bold text-success mb-0">{{ available_products|intcomma }}</h2>
+        <h3 class="fw-bold text-success mb-0">{{ available_products|intcomma }}</h3>
         <small class="text-muted">{{ pct_available }}%</small>
       </div>
     </div>
-    <div class="col-lg-2 col-md-4 col-sm-6">
-      <div class="card text-center p-3 shadow-sm">
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="card text-center p-2 shadow-sm kpi-card">
         <h6 class="text-muted mb-1 small">Indisponibles</h6>
-        <h2 class="fw-bold text-danger mb-0">{{ unavailable_products|intcomma }}</h2>
+        <h3 class="fw-bold text-danger mb-0">{{ unavailable_products|intcomma }}</h3>
         <small class="text-muted">{{ pct_unavailable }}%</small>
       </div>
     </div>
-    <div class="col-lg-2 col-md-4 col-sm-6">
-      <div class="card text-center p-3 shadow-sm">
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="card text-center p-2 shadow-sm kpi-card">
         <h6 class="text-muted mb-1 small">Produits consultés</h6>
-        <h2 class="fw-bold text-info mb-0">{{ unique_viewed_products|intcomma }}</h2>
+        <h3 class="fw-bold text-info mb-0">{{ unique_viewed_products|intcomma }}</h3>
         <small class="text-muted">{{ pct_viewed }}%</small>
       </div>
     </div>
-    <div class="col-lg-2 col-md-4 col-sm-6">
-      <div class="card text-center p-3 shadow-sm">
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="card text-center p-2 shadow-sm kpi-card">
         <h6 class="text-muted mb-1 small">Total Vues</h6>
-        <h2 class="fw-bold text-primary mb-0">{{ total_views|intcomma }}</h2>
+        <h3 class="fw-bold text-primary mb-0">{{ total_views|intcomma }}</h3>
       </div>
     </div>
-    <div class="col-lg-2 col-md-4 col-sm-6">
-      <div class="card text-center p-3 shadow-sm">
+    <div class="col-xl-2 col-md-4 col-sm-6">
+      <div class="card text-center p-2 shadow-sm kpi-card">
         <h6 class="text-muted mb-1 small">Prix Moyen Consulté</h6>
-        <h2 class="fw-bold text-warning mb-0">{{ avg_viewed_price|floatformat:0 }}€</h2>
+        <h3 class="fw-bold text-warning mb-0">{{ avg_viewed_price|floatformat:0 }}€</h3>
       </div>
     </div>
   </div>
 
+  {# Bloc export CSV retiré #}
+
   <!-- KPIs secondaires -->
-  <div class="row g-3 mb-4">
-    <div class="col-md-4">
-      <div class="card p-3 shadow-sm">
+  <div class="row row-cols-xl-3 row-cols-lg-3 row-cols-md-2 row-cols-1 g-2 mb-3">
+    <div class="col">
+      <div class="card p-2 shadow-sm h-100 kpi-card">
         <div class="d-flex justify-content-between align-items-center">
           <div>
             <h6 class="text-muted mb-1">Recommandations IA</h6>
-            <h3 class="fw-bold text-info mb-0">{{ total_recos|intcomma }}</h3>
+            <h4 class="fw-bold text-info mb-0">{{ total_recos|intcomma }}</h4>
           </div>
-          <i class="bi bi-robot text-info" style="font-size: 2rem;"></i>
+          <i class="bi bi-robot text-info" style="font-size: 1.75rem;"></i>
         </div>
       </div>
     </div>
-    <div class="col-md-4">
-      <div class="card p-3 shadow-sm">
+    <div class="col">
+      <div class="card p-2 shadow-sm h-100 kpi-card">
         <div class="d-flex justify-content-between align-items-center">
           <div>
             <h6 class="text-muted mb-1">Taux de Clic Moyen</h6>
-            <h3 class="fw-bold text-success mb-0">{{ avg_click_rate }}%</h3>
+            <h4 class="fw-bold text-success mb-0">{{ avg_click_rate }}%</h4>
           </div>
-          <i class="bi bi-cursor-fill text-success" style="font-size: 2rem;"></i>
+          <i class="bi bi-cursor-fill text-success" style="font-size: 1.75rem;"></i>
         </div>
       </div>
     </div>
-    <div class="col-md-4">
-      <div class="card p-3 shadow-sm">
+    <div class="col">
+      <div class="card p-2 shadow-sm h-100 kpi-card">
         <div class="d-flex justify-content-between align-items-center">
           <div>
             <h6 class="text-muted mb-1">Conversion IA → Clic</h6>
-            <h3 class="fw-bold text-primary mb-0">{{ conversion_rate }}%</h3>
+            <h4 class="fw-bold text-primary mb-0">{{ conversion_rate }}%</h4>
           </div>
-          <i class="bi bi-graph-up-arrow text-primary" style="font-size: 2rem;"></i>
+          <i class="bi bi-graph-up-arrow text-primary" style="font-size: 1.75rem;"></i>
         </div>
       </div>
     </div>
@@ -119,7 +127,8 @@
         <h6 class="fw-bold text-primary mb-3">
           <i class="bi bi-trophy-fill me-1"></i> Top 5 Produits Populaires
         </h6>
-        <table class="table table-sm align-middle mb-0" id="topProductsTable">
+        <div class="table-responsive">
+        <table class="table table-sm align-middle mb-0 table-stacked" id="topProductsTable">
           <thead class="table-light">
             <tr>
               <th>Produit</th>
@@ -133,8 +142,8 @@
   {% else %}
   <tr>
   {% endif %}
-    <td class="fw-semibold text-dark">{{ p.product__name|truncatechars:30 }}</td>
-    <td class="text-end"><span class="badge bg-primary">{{ p.clicks|intcomma }}</span></td>
+    <td class="fw-semibold text-dark" data-label="Produit">{{ p.product__name|truncatechars:30 }}</td>
+    <td class="text-end" data-label="Vues"><span class="badge bg-primary">{{ p.clicks|intcomma }}</span></td>
   </tr>
 {% empty %}
 
@@ -142,6 +151,7 @@
             {% endfor %}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
 
@@ -366,6 +376,74 @@
 #topProductsTable tbody tr:hover {
   background-color: rgba(37,99,235,0.08);
 }
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .page-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-actions .btn {
+    flex: 1 1 auto;
+  }
+  .kpi-card {
+    text-align: left;
+    height: 100%;
+  }
+  .chart-panel .chart-shell,
+  .chart-panel .chart-inner {
+    min-width: 260px;
+  }
+}
+
+.chart-panel .chart-scroll {
+  overflow-x: auto;
+}
+
+.kpi-card {
+  min-height: 100%;
+}
+
+.chart-panel .chart-shell,
+.chart-panel .chart-inner {
+  width: 100%;
+}
+
+/* Stack table rows on very small screens */
+@media (max-width: 576px) {
+  .table-stacked thead {
+    display: none;
+  }
+  .table-stacked tr {
+    display: block;
+    margin-bottom: 0.75rem;
+    border: 1px solid #eee;
+    border-radius: 8px;
+    padding: 0.5rem;
+  }
+  .table-stacked td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border: none !important;
+    padding: 0.35rem 0;
+  }
+  .table-stacked td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #6c757d;
+  }
+  .table-stacked td.text-end {
+    text-align: right;
+  }
+}
 </style>
 
 <script>
@@ -536,32 +614,34 @@ document.addEventListener("DOMContentLoaded", function() {
         },
         body: new URLSearchParams({ data_type: "products" })
       })
-      .then(response => response.json())
+      .then(async response => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) {
+          const msg = data.error || (response.status === 403 ? "Accès réservé aux administrateurs." : "Échec de l'export.");
+          throw new Error(msg);
+        }
+        return data;
+      })
       .then(data => {
         exportBtn.disabled = false;
         exportBtn.innerHTML = '<i class="bi bi-download me-1"></i> Exporter les données';
 
-        if (data.success) {
-          exportAlert.className = "alert alert-success alert-dismissible fade show";
-          exportAlert.innerHTML = `
-            <i class="bi bi-check-circle-fill me-2"></i>
-            Export réussi ! <a href="${data.file}" target="_blank" class="fw-semibold text-decoration-none">
-            <i class="bi bi-file-earmark-arrow-down"></i> Télécharger le fichier</a>
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
-        } else {
-          exportAlert.className = "alert alert-danger alert-dismissible fade show";
-          exportAlert.innerHTML = `
-            <i class="bi bi-exclamation-triangle-fill me-2"></i>
-            Erreur : ${data.error || "échec de l'export"}
-            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
-        }
+        exportAlert.className = "alert alert-success alert-dismissible fade show";
+        exportAlert.innerHTML = `
+          <i class="bi bi-check-circle-fill me-2"></i>
+          Export réussi ! <a href="${data.file}" target="_blank" class="fw-semibold text-decoration-none">
+          <i class="bi bi-file-earmark-arrow-down"></i> Télécharger le fichier</a>
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
         exportAlert.classList.remove("d-none");
       })
       .catch(err => {
         exportBtn.disabled = false;
         exportBtn.innerHTML = '<i class="bi bi-download me-1"></i> Exporter les données';
-        exportAlert.className = "alert alert-danger";
-        exportAlert.innerHTML = "<i class='bi bi-bug-fill me-2'></i> Erreur lors de l'export.";
+        exportAlert.className = "alert alert-danger alert-dismissible fade show";
+        exportAlert.innerHTML = `
+          <i class="bi bi-exclamation-triangle-fill me-2"></i>
+          ${err.message || "Erreur lors de l'export."}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
         exportAlert.classList.remove("d-none");
       });
     });
