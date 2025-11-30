@@ -7,7 +7,7 @@ from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 
-from dashboard.models import Session, Click, Product, ProductView
+from dashboard.models import Session, Product, ProductView
 
 
 # --------- Helpers session ---------
@@ -388,13 +388,14 @@ def track_zone_click_api(request):
 
     print(f"[ZONE_CLICK] Clic direct sur zone: {zone_name} (source: {source}, session: {session.id})")
 
-    # On pourrait créer un ProductView sans produit spécifique,
-    # ou créer une nouvelle table ZoneClick si besoin
-    # Pour l'instant, on log simplement l'information
-
-    # Note: Si on veut tracker dans ProductView, il faudrait un produit
-    # On pourrait chercher un produit représentatif de cette zone
-    # Pour simplifier, on retourne juste le succès
+    # Enregistre une consultation générique pour compter le clic carte
+    ProductView.objects.create(
+        session=session,
+        product=None,
+        viewed_at=timezone.now(),
+        source=source,
+        zone=zone_name or zone_id,
+    )
 
     return JsonResponse(
         {

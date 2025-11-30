@@ -79,25 +79,6 @@ class Product(models.Model):
     def __str__(self):
         return f"{self.name} ({'Disponible' if self.available else 'Indisponible'})"
 # ==========================
-# CLIC UTILISATEUR
-# ==========================
-class Click(models.Model):
-    """
-    Historique des clics utilisateurs (anonymes)
-    """
-    session = models.ForeignKey(Session, on_delete=models.CASCADE, related_name="clicks")
-    product_name = models.CharField(max_length=200, blank=True, null=True)
-    page = models.CharField(max_length=200)
-    timestamp = models.DateTimeField(default=timezone.now)
-
-    objects = ActiveBySessionManager()
-    all_objects = models.Manager()
-
-    def __str__(self):
-        return f"Clic sur {self.product_name or self.page}"
-
-
-# ==========================
 # PRODUITS CONSULTÉS
 # ==========================
 class ProductView(models.Model):

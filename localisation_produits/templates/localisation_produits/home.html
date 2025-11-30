@@ -48,7 +48,7 @@
             name="q"
             id="locSearchInput"
             class="loc-search-input"
-            placeholder="Rechercher un produit par nom, marque, sport…"
+            placeholder="Rechercher un produit par nom, marque, sport..."
             value="{{ query }}"
             autocomplete="off"
           />
@@ -168,7 +168,7 @@
             value="0-10"
             class="loc-price-pill {% if price_key == '0-10' %}active{% endif %}"
           >
-            0 – 10 €
+            0 - 10 &euro;
           </button>
           <button
             type="submit"
@@ -177,7 +177,7 @@
             value="10-25"
             class="loc-price-pill {% if price_key == '10-25' %}active{% endif %}"
           >
-            10 – 25 €
+            10 - 25 &euro;
           </button>
           <button
             type="submit"
@@ -186,7 +186,7 @@
             value="25-50"
             class="loc-price-pill {% if price_key == '25-50' %}active{% endif %}"
           >
-            25 – 50 €
+            25 - 50 &euro;
           </button>
           <button
             type="submit"
@@ -195,7 +195,7 @@
             value="50-100"
             class="loc-price-pill {% if price_key == '50-100' %}active{% endif %}"
           >
-            50 – 100 €
+            50 - 100 &euro;
           </button>
           <button
             type="submit"
@@ -204,7 +204,7 @@
             value="100-250"
             class="loc-price-pill {% if price_key == '100-250' %}active{% endif %}"
           >
-            100 – 250 €
+            100 - 250 &euro;
           </button>
           <button
             type="submit"
@@ -213,7 +213,7 @@
             value="250-500"
             class="loc-price-pill {% if price_key == '250-500' %}active{% endif %}"
           >
-            250 – 500 €
+            250 - 500 &euro;
           </button>
           <button
             type="submit"
@@ -222,7 +222,7 @@
             value="500+"
             class="loc-price-pill {% if price_key == '500+' %}active{% endif %}"
           >
-            500 € et +
+            500 &euro; et +
           </button>
         </div>
 
@@ -255,7 +255,7 @@
 
                   {% if p.price is not None %}
                     <span class="loc-product-price">
-                      {{ p.price|floatformat:2 }} €
+                      {{ p.price|floatformat:2 }} &euro;
                     </span>
                   {% endif %}
                 </div>
@@ -278,7 +278,7 @@
             </article>
           {% empty %}
             <p class="loc-empty">
-              Aucun produit ne correspond à votre recherche.
+              Aucun produit ne correspond ├á votre recherche.
             </p>
           {% endfor %}
         </div>
@@ -296,7 +296,7 @@
 
             {% for item in pagination_items %}
               {% if item == '...' %}
-                <span class="loc-page-btn loc-page-ellipsis">…</span>
+                <span class="loc-page-btn loc-page-ellipsis">...</span>
               {% else %}
                 {% if item == page_obj.number %}
                   <span class="loc-page-btn active">{{ item }}</span>
@@ -325,7 +325,7 @@
     <!-- Pop-up confirmation retour accueil -->
     <div id="homeConfirm" class="reset-popup" style="display: none;">
       <div class="reset-content">
-        <h3>Voulez-vous retourner à l'accueil ?</h3>
+        <h3>Voulez-vous retourner ├á l'accueil ?</h3>
         <div class="popup-buttons">
           <button type="button" class="button button-secondary" id="homeCancel">
             Non
@@ -760,7 +760,7 @@
         color: #9ca3af;
       }
 
-      /* Bouton Entrée du clavier - déjà stylé dans keyboard.css */
+      /* Bouton Entr├®e du clavier - d├®j├á styl├® dans keyboard.css */
 
       /* Clavier virtuel au-dessus de tout */
       .keyboard {
@@ -781,7 +781,7 @@
         display: block !important;
       }
 
-      /* Overlay sombre derrière le clavier */
+      /* Overlay sombre derri├¿re le clavier */
       .keyboard.active::before {
         content: '';
         position: fixed;
@@ -809,7 +809,7 @@
       window.RESET_URL = "{% url 'chatbot:reset_chat' %}";
     </script>
 
-    <!-- Inactivité borne -->
+    <!-- Inactivit├® borne -->
     <script type="module">
       import { initInactivityListener, resetInactivity } from "{% static 'chatbot/js/inactivity.js' %}";
 
@@ -837,14 +837,14 @@
         return cookieValue;
       }
 
-      // État global pour tracer le contexte de navigation
+      // ├ëtat global pour tracer le contexte de navigation
       let navigationContext = {
-        lastSource: "recherche", // Par défaut: recherche
+        lastSource: "recherche", // Par d├®faut: recherche
         lastZoneClick: null
       };
 
       async function trackProductView(productId, source = null) {
-        // Si pas de source spécifiée, utiliser le contexte de navigation
+        // Si pas de source sp├®cifi├®e, utiliser le contexte de navigation
         const finalSource = source || navigationContext.lastSource;
 
         try {
@@ -866,10 +866,10 @@
           if (!response.ok) {
             console.error("Erreur lors du tracking de la vue produit");
           } else {
-            console.log(`[TRACKING] ProductView créé: produit ${productId}, source: ${finalSource}`);
+            console.log(`[TRACKING] ProductView cr├®├®: produit ${productId}, source: ${finalSource}`);
           }
         } catch (error) {
-          console.error("Erreur réseau lors du tracking:", error);
+          console.error("Erreur r├®seau lors du tracking:", error);
         }
       }
 
@@ -905,19 +905,19 @@
             console.error("Erreur lors du tracking de la localisation");
           }
         } catch (error) {
-          console.error("Erreur réseau lors du tracking de localisation:", error);
+          console.error("Erreur r├®seau lors du tracking de localisation:", error);
         }
       }
 
       document.addEventListener("DOMContentLoaded", function () {
         // ====================================
-        // RECHERCHE SUR ENTRÉE UNIQUEMENT
+        // RECHERCHE SUR ENTR├ëE UNIQUEMENT
         // ====================================
 
         const searchInput = document.getElementById("locSearchInput");
         const searchForm = document.getElementById("loc-search-form");
 
-        // Activer la recherche sur submit (Entrée)
+        // Activer la recherche sur submit (Entr├®e)
         if (searchForm) {
           searchForm.addEventListener("submit", function(e) {
             e.preventDefault();
@@ -928,16 +928,16 @@
               keyboardElement.classList.remove("active");
             }
 
-            // Récupérer tous les paramètres du formulaire
+            // R├®cup├®rer tous les param├¿tres du formulaire
             const formData = new FormData(searchForm);
             const params = new URLSearchParams(formData);
 
-            // Recharger la page avec les nouveaux paramètres
+            // Recharger la page avec les nouveaux param├¿tres
             window.location.href = "?" + params.toString();
           });
         }
 
-        // Recherche sur Entrée du clavier physique
+        // Recherche sur Entr├®e du clavier physique
         if (searchInput) {
           searchInput.addEventListener("keydown", function(e) {
             if (e.key === "Enter") {
@@ -958,7 +958,7 @@
         if (searchForm) {
           searchForm.addEventListener("submit", function() {
             navigationContext.lastSource = "recherche";
-            console.log("[TRACKING] Context mis à jour: recherche");
+            console.log("[TRACKING] Context mis ├á jour: recherche");
           });
         }
 
@@ -966,16 +966,16 @@
           if (element) {
             element.addEventListener("change", function() {
               navigationContext.lastSource = "recherche";
-              console.log("[TRACKING] Context mis à jour: recherche");
+              console.log("[TRACKING] Context mis ├á jour: recherche");
             });
           }
         });
 
-        // Écouter les clics sur les zones de la carte
+        // ├ëcouter les clics sur les zones de la carte
         document.addEventListener("map-zone-clicked", function(e) {
           navigationContext.lastSource = "carte";
           navigationContext.lastZoneClick = e.detail;
-          console.log("[TRACKING] Context mis à jour: carte", e.detail);
+          console.log("[TRACKING] Context mis ├á jour: carte", e.detail);
         });
 
         const list = document.querySelector(".loc-products-list");

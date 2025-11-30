@@ -46,13 +46,22 @@
     </li>
 
     <!-- Exports -->
-    <li class="nav-item">
-      <a href="{% url 'exports' %}"
-         class="nav-link {% if request.resolver_match.url_name == 'exports' %}active{% endif %}">
-        <span class="material-icons">download</span>
-        Exports
-      </a>
-    </li>
+    {% if request.user.role == "ADMIN" or request.user.can_export %}
+      <li class="nav-item">
+        <a href="{% url 'exports' %}"
+           class="nav-link {% if request.resolver_match.url_name == 'exports' %}active{% endif %}">
+          <span class="material-icons">download</span>
+          Exports
+        </a>
+      </li>
+    {% else %}
+      <li class="nav-item">
+        <span class="nav-link disabled" style="opacity:0.5; cursor:not-allowed;">
+          <span class="material-icons">download</span>
+          Exports
+        </span>
+      </li>
+    {% endif %}
 
 
 

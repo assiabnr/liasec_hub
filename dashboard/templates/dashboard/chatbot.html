@@ -13,9 +13,15 @@
       <p class="text-muted mb-0 small">Analyse approfondie des interactions, performances et recommandations</p>
     </div>
     <div class="page-actions">
-      <a href="{% url 'export_chatbot_pdf' %}" class="btn btn-primary shadow-sm d-flex align-items-center">
-        <i class="bi bi-file-earmark-pdf me-2"></i> Exporter en PDF
-      </a>
+      {% if request.user.role == 'ADMIN' or request.user.can_export %}
+        <a href="{% url 'export_chatbot_pdf' %}" class="btn btn-primary shadow-sm d-flex align-items-center">
+          <i class="bi bi-file-earmark-pdf me-2"></i> Exporter en PDF
+        </a>
+      {% else %}
+        <button class="btn btn-secondary shadow-sm d-flex align-items-center" disabled style="opacity:0.6; cursor:not-allowed;">
+          <i class="bi bi-file-earmark-pdf me-2"></i> Exporter en PDF
+        </button>
+      {% endif %}
     </div>
   </div>
 

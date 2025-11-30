@@ -133,13 +133,14 @@
 
   <!-- ============================
        EXPORTS CSV PERSONNALISÉS
-  ============================ -->
+============================ -->
   <div class="card p-4 shadow-sm border-0 mb-4">
     <h5 class="fw-semibold text-primary mb-3">
       <i class="bi bi-file-earmark-spreadsheet-fill me-2"></i> Exports CSV Personnalisés
     </h5>
     <p class="text-muted small mb-3">Exportez des données brutes avec filtres personnalisés pour vos analyses</p>
 
+    {% if is_authorized %}
     <form id="exportForm" method="POST" action="{% url 'export_data' %}">
       {% csrf_token %}
 
@@ -191,11 +192,66 @@
         </button>
       </div>
     </form>
+    {% else %}
+      <div class="alert alert-info mb-0">
+        <i class="bi bi-info-circle me-2"></i> Les exports CSV sont réservés aux utilisateurs autorisés. Demandez à un administrateur d'activer vos rapports.
+      </div>
+    {% endif %}
   </div>
+
+  {% if request.user.role == 'ADMIN' and managers %}
+  <!-- Gestion des accès exports -->
+  <div class="card p-4 shadow-sm border-0 mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+      <div>
+        <h6 class="fw-bold mb-1"><i class="bi bi-broadcast me-2 text-primary"></i> Autoriser les managers</h6>
+        <p class="text-muted mb-0 small">Attribuez l'accès permanent aux exports PDF/CSV et envoyez une notification “Nouveaux rapports disponibles”.</p>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead>
+          <tr>
+            <th>Email</th>
+            <th>Nom</th>
+            <th>Accès export</th>
+            <th class="text-end">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for manager in managers %}
+            <tr>
+              <td>{{ manager.email }}</td>
+              <td>{{ manager.first_name }} {{ manager.last_name }}</td>
+              <td>
+                {% if manager.can_export %}
+                  <span class="badge bg-success">Autorisé</span>
+                {% else %}
+                  <span class="badge bg-secondary">Non autorisé</span>
+                {% endif %}
+              </td>
+              <td class="text-end">
+                {% if not manager.can_export %}
+                  <button class="btn btn-sm btn-primary grant-export-btn" data-user-id="{{ manager.id }}">
+                    <i class="bi bi-unlock me-1"></i>Autoriser et notifier
+                  </button>
+                {% else %}
+                  <span class="text-muted small">Déjà autorisé</span>
+                {% endif %}
+              </td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="4" class="text-center text-muted">Aucun manager trouvé.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
 
   <!-- ============================
        HISTORIQUE DES EXPORTS
-  ============================ -->
+============================ -->
   <div class="card p-4 shadow-sm border-0">
     <div class="d-flex justify-content-between align-items-center mb-3">
       <h5 class="fw-semibold text-primary mb-0">
@@ -262,8 +318,14 @@
     {% else %}
       <div class="text-center py-5">
         <i class="bi bi-inbox fs-1 text-muted mb-3 d-block"></i>
-        <p class="text-muted mb-0">Aucun export enregistré pour le moment.</p>
-        <p class="text-muted small">Commencez par générer un rapport PDF ou un export CSV ci-dessus.</p>
+        <p class="text-muted mb-0">Aucun export disponible.</p>
+        <p class="text-muted small">
+          {% if is_authorized %}
+            Commencez par générer un rapport PDF ou un export CSV ci-dessus.
+          {% else %}
+            Demandez à un administrateur d'activer vos rapports pour accéder à l'historique.
+          {% endif %}
+        </p>
       </div>
     {% endif %}
   </div>
@@ -336,6 +398,7 @@
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("exportForm");
+  const grantButtons = document.querySelectorAll(".grant-export-btn");
 
   form.addEventListener("submit", function (e) {
     e.preventDefault();
@@ -359,25 +422,28 @@ document.addEventListener("DOMContentLoaded", () => {
       headers: { "X-CSRFToken": getCookie("csrftoken") },
       body: formData
     })
-    .then(response => response.json())
+    .then(async response => {
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.success) {
+        const msg = data.error || (response.status === 403 ? "Accès réservé aux administrateurs." : "Échec de l'export.");
+        throw new Error(msg);
+      }
+      return data;
+    })
     .then(data => {
       submitBtn.disabled = false;
       submitBtn.innerHTML = originalHtml;
 
-      if (data.success) {
-        showToast("Export CSV réussi ! Le fichier a été généré.", "success", "bi-check-circle-fill");
+      showToast("Export CSV réussi ! Le fichier a été généré.", "success", "bi-check-circle-fill");
 
-        // Recharger la page après 2 secondes pour afficher le nouvel export dans l'historique
-        setTimeout(() => location.reload(), 2000);
-      } else {
-        showToast("Erreur : " + (data.error || "échec de l'export."), "danger", "bi-x-circle-fill");
-      }
+      // Recharger la page après 2 secondes pour afficher le nouvel export dans l'historique
+      setTimeout(() => location.reload(), 2000);
     })
     .catch(err => {
       console.error(err);
       submitBtn.disabled = false;
       submitBtn.innerHTML = originalHtml;
-      showToast("Une erreur est survenue pendant l'export.", "danger", "bi-exclamation-triangle-fill");
+      showToast(err.message || "Une erreur est survenue pendant l'export.", "danger", "bi-exclamation-triangle-fill");
     });
   });
 
@@ -418,6 +484,35 @@ document.addEventListener("DOMContentLoaded", () => {
       }
     }
     return cookieValue;
+  }
+
+  if (grantButtons && grantButtons.length) {
+    grantButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const userId = btn.getAttribute("data-user-id");
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Envoi...';
+
+        fetch("{% url 'grant_export_access' %}", {
+          method: "POST",
+          headers: { "X-CSRFToken": getCookie("csrftoken"), "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ user_id: userId })
+        })
+        .then(async response => {
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok || !data.success) {
+            throw new Error(data.error || "Echec de l'autorisation.");
+          }
+          showToast(data.message || "Acces accorde.", "success", "bi-check-circle-fill");
+          setTimeout(() => location.reload(), 1000);
+        })
+        .catch(err => {
+          showToast(err.message || "Impossible d'autoriser l'export.", "danger", "bi-exclamation-triangle-fill");
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-unlock me-1"></i>Autoriser et notifier';
+        });
+      });
+    });
   }
 });
 </script>

@@ -15,6 +15,7 @@ from .views import (
     chatbot_product_detail_api,
     chatbot_interaction_detail_api,
     delete_session_view,
+    grant_export_access,
 )
 
 urlpatterns = [
@@ -57,6 +58,7 @@ urlpatterns = [
     path("export-history/", login_required(views.export_history_view), name="export_history"),
     path("exports/", login_required(views.exports_view), name="exports"),
     path("export-data/", login_required(views.export_data_view), name="export_data"),
+    path("exports/grant-access/", login_required(grant_export_access), name="grant_export_access"),
 
     # Exports PDF
     path("export-pdf/dashboard/", login_required(views.export_dashboard_pdf), name="export_dashboard_pdf"),

@@ -8,9 +8,15 @@
     <h4 class="fw-bold mb-0">
       <i class="bi bi-mouse-fill me-2 text-primary"></i> Consultations produits
     </h4>
-    <a href="{% url 'export_clicks_pdf' %}" class="btn btn-primary shadow-sm">
-      <i class="bi bi-file-earmark-pdf me-1"></i> Exporter en PDF
-    </a>
+    {% if request.user.role == 'ADMIN' or request.user.can_export %}
+      <a href="{% url 'export_clicks_pdf' %}" class="btn btn-primary shadow-sm">
+        <i class="bi bi-file-earmark-pdf me-1"></i> Exporter en PDF
+      </a>
+    {% else %}
+      <button class="btn btn-secondary shadow-sm" disabled style="opacity:0.6; cursor:not-allowed;">
+        <i class="bi bi-file-earmark-pdf me-1"></i> Exporter en PDF
+      </button>
+    {% endif %}
   </div>
 
   <!-- Statistiques globales -->
@@ -56,6 +62,8 @@
       </div>
     </div>
   </div>
+
+  {# Bloc export CSV retiré #}
 
   <!-- Taux de conversion chatbot -->
   {% if total_recommendations > 0 %}
@@ -418,47 +426,51 @@ document.addEventListener("DOMContentLoaded", function () {
   const exportBtn = document.getElementById("exportClicksBtn");
   const exportAlert = document.getElementById("exportAlert");
 
-  exportBtn.addEventListener("click", function () {
-    exportBtn.disabled = true;
-    exportBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Export en cours...';
+  if (exportBtn) {
+    exportBtn.addEventListener("click", function () {
+      exportBtn.disabled = true;
+      exportBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i> Export en cours...';
 
-    fetch("{% url 'export_data' %}", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-        "X-CSRFToken": getCookie("csrftoken"),
-      },
-      body: new URLSearchParams({ data_type: "clicks" })
-    })
-    .then(response => response.json())
-    .then(data => {
-      exportBtn.disabled = false;
-      exportBtn.innerHTML = '<i class="bi bi-download me-1"></i> Exporter les données';
+      fetch("{% url 'export_data' %}", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "X-CSRFToken": getCookie("csrftoken"),
+        },
+        body: new URLSearchParams({ data_type: "clicks" })
+      })
+      .then(async response => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) {
+          const msg = data.error || (response.status === 403 ? "Accès réservé aux administrateurs." : "Échec de l'export.");
+          throw new Error(msg);
+        }
+        return data;
+      })
+      .then(data => {
+        exportBtn.disabled = false;
+        exportBtn.innerHTML = '<i class="bi bi-download me-1"></i> Exporter les données';
 
-      if (data.success) {
         exportAlert.className = "alert alert-success alert-dismissible fade show";
         exportAlert.innerHTML = `
           <i class="bi bi-check-circle-fill me-2"></i>
           Export réussi ! <a href="${data.file}" target="_blank" class="fw-semibold text-decoration-none">
           <i class="bi bi-file-earmark-arrow-down"></i> Télécharger le fichier</a>
           <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
-      } else {
+        exportAlert.classList.remove("d-none");
+      })
+      .catch(err => {
+        exportBtn.disabled = false;
+        exportBtn.innerHTML = '<i class="bi bi-download me-1"></i> Exporter les données';
         exportAlert.className = "alert alert-danger alert-dismissible fade show";
         exportAlert.innerHTML = `
           <i class="bi bi-exclamation-triangle-fill me-2"></i>
-          Erreur : ${data.error || "échec de l'export"}
+          ${err.message || "Erreur lors de l'export."}
           <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
-      }
-      exportAlert.classList.remove("d-none");
-    })
-    .catch(err => {
-      exportBtn.disabled = false;
-      exportBtn.innerHTML = '<i class="bi bi-download me-1"></i> Exporter les données';
-      exportAlert.className = "alert alert-danger";
-      exportAlert.innerHTML = "<i class='bi bi-bug-fill me-2'></i> Erreur lors de l'export.";
-      exportAlert.classList.remove("d-none");
+        exportAlert.classList.remove("d-none");
+      });
     });
-  });
+  }
 
   function getCookie(name) {
     let cookieValue = null;
