@@ -137,7 +137,17 @@ window.mergedData = {
             { name: "Sacs de sport et accessoires", pathId: "area23" },
             { name: "Equipements clubs de boxe", pathId: "area23" },
             { name: "Chaussures de boxe", pathId: "area23" },
-            { name: "Boxe pour enfants", pathId: "area23" }
+            { name: "Boxe pour enfants", pathId: "area23" },
+            { name: "Nos boutiques", pathId: "area23" }
+        ]
+    },
+    "Boxes": {
+        categories: [
+            { name: "Sacs de frappe et punching ball", pathId: "area23" },
+            { name: "Nos boutiques", pathId: "area23" },
+            { name: "Protections de boxe", pathId: "area23" },
+            { name: "Gants et accessoires", pathId: "area23" },
+            { name: "Vêtements de boxe", pathId: "area23" }
         ]
     },
     "Bushcraft": {
@@ -638,11 +648,11 @@ window.mergedData = {
     },
     "Pilates, Gym Douce": {
         categories: [
-            { name: "Boutiques", pathId: ["area6","area7"] },
             { name: "Accessoires Pilates", pathId: "area23" },
+            { name: "Tapis de sol", pathId: "area23" },
             { name: "Vêtements homme", pathId: "area6" },
             { name: "Vêtements femme", pathId: "area7" },
-            { name: "Tapis de sol", pathId: "area23" }
+            { name: "Boutiques", pathId: "area23" }
         ]
     },
     "Plongée sous-marine en bouteille": {
@@ -662,10 +672,10 @@ window.mergedData = {
     "Randonnée - Trek": {
         categories: [
             { name: "Chaussures et sandales", pathId: "area12" },
-            { name: "Vêtements", pathId: ["area1","area12"] },
-            { name: "Sacs à dos et porte-bébés", pathId: ["area1","area12"] },
-            { name: "Équipements", pathId: "area356" },
-            { name: "Collections spécifiques", pathId: "area357" }
+            { name: "Vêtements", pathId: "area12" },
+            { name: "Sacs à dos et porte-bébés", pathId: "area12" },
+            { name: "Équipements", pathId: "area12" },
+            { name: "Collections spécifiques", pathId: "area12" }
         ]
     },
     "Roller": {
@@ -1052,16 +1062,16 @@ window.mergedData = {
         categories: [
             { name: "Vêtements yoga femme", pathId: "area7" },
             { name: "Vêtements yoga homme", pathId: "area6" },
+            { name: "Tapis de yoga", pathId: "area23" },
             { name: "Equipement de yoga", pathId: "area23" },
-            { name: "Boutiques", pathId: ["area9","area23"] },
             { name: "Méditation", pathId: "area23" },
-            { name: "Tapis de yoga", pathId: "area23" }
+            { name: "Boutiques", pathId: "area23" }
         ]
     }
 };
 
 
-window.getPathIdFromCategory = function (categoryLabel, sportLabel) {
+window.getPathIdFromCategory = function (categoryLabel, sportLabel, productName) {
   if (!window.mergedData) {
     console.error("mergedData non défini");
     return null;
@@ -1086,60 +1096,105 @@ window.getPathIdFromCategory = function (categoryLabel, sportLabel) {
   const normalized = normalize(categoryLabel);
   const normalizedWords = normalized.split(" ").filter(w => w.length > 0);
   const sportNormalized = normalize(sportLabel);
+  const productNormalized = normalize(productName || "");
 
-  // ÉTAPE 0 : Si un sport est fourni, chercher d'abord dans CE sport spécifique
+  // LOGS DE DÉBOGAGE DÉTAILLÉS
+  console.log(`[DEBUG] ═══════════════════════════════════════════`);
+  console.log(`[DEBUG] Sport brut: "${sportLabel}"`);
+  console.log(`[DEBUG] Sport normalisé: "${sportNormalized}"`);
+  console.log(`[DEBUG] Catégorie brute: "${categoryLabel}"`);
+  console.log(`[DEBUG] Catégorie normalisée: "${normalized}"`);
+  console.log(`[DEBUG] Produit: "${productName}"`);
+  console.log(`[DEBUG] ═══════════════════════════════════════════`);
+
+  // ÉTAPE 0 : Si un sport est fourni, chercher UNIQUEMENT dans CE sport spécifique
+  // CONDITIONS DURCIES: Pas de fallback, pas de recherche globale
   if (sportNormalized) {
+    console.log(`[DEBUG] ÉTAPE 0: Sport fourni ("${sportLabel}"), recherche STRICTE...`);
+
+    let sportFound = false;
+    let sportMatchedKey = null;
+
+    // ÉTAPE 0.1: Trouver le sport exact (matching ULTRA-STRICT)
     for (const sport in window.mergedData) {
       const currentSportNormalized = normalize(sport);
 
-      // Vérifier si c'est le bon sport (exact ou contient tous les mots)
-      const sportWords = currentSportNormalized.split(" ").filter(w => w.length > 0);
-      const inputSportWords = sportNormalized.split(" ").filter(w => w.length > 0);
+      // Match ULTRA-STRICT du sport - UNIQUEMENT égalité exacte
+      // Pas de matching partiel pour éviter Fitness → Aquafitness
+      const isExactMatch = currentSportNormalized === sportNormalized;
 
-      const isMatchingSport =
-        currentSportNormalized === sportNormalized ||
-        inputSportWords.every(word => sportWords.some(sw => sw.includes(word) || word.includes(sw)));
+      if (isExactMatch) {
+        sportFound = true;
+        sportMatchedKey = sport;
+        console.log(`[DEBUG] ✅ Sport trouvé: "${sport}" (EXACT)`);
+        break;
+      }
+    }
 
-      if (isMatchingSport) {
-        const categories = window.mergedData[sport].categories || [];
+    // Si le sport n'existe pas dans les mappings, retourner null IMMÉDIATEMENT
+    if (!sportFound) {
+      console.error(`[ERREUR] Sport "${sportLabel}" NON TROUVÉ dans les mappings → STOP`);
+      return null;
+    }
 
-        // Si on a une catégorie, chercher dans ce sport
-        if (normalized) {
-          for (const cat of categories) {
-            const catNormalized = normalize(cat.name);
-            let pathId = cat.pathId;
+    // ÉTAPE 0.2: Sport trouvé - chercher la catégorie UNIQUEMENT dans ce sport
+    const categories = window.mergedData[sportMatchedKey].categories || [];
+    console.log(`[DEBUG] Sport "${sportMatchedKey}" a ${categories.length} catégories`);
 
-            if (!pathId || pathId.length === 0) continue;
+    // PRIORITÉ 1: Match EXACT de catégorie (ABSOLU - ne jamais ignorer)
+    if (normalized) {
+      for (const cat of categories) {
+        const catNormalized = normalize(cat.name);
+        let pathId = cat.pathId;
 
-            if (typeof pathId === "string" && !pathId.startsWith("area")) {
-              pathId = "area" + pathId;
-            }
+        if (!pathId || pathId.length === 0) continue;
 
-            // Match exact de catégorie dans le bon sport
-            if (catNormalized === normalized) {
-              console.log(`Match exact dans sport "${sport}": ${categoryLabel} → ${cat.name} → ${pathId}`);
-              return pathId;
-            }
-
-            // Match partiel de catégorie dans le bon sport
-            if (catNormalized.includes(normalized) || normalized.includes(catNormalized)) {
-              console.log(`Match partiel dans sport "${sport}": ${categoryLabel} → ${cat.name} → ${pathId}`);
-              return pathId;
-            }
-          }
+        // Gestion des arrays de pathId
+        if (Array.isArray(pathId)) {
+          pathId = pathId[pathId.length - 1];
         }
 
-        // Si pas de match de catégorie mais sport trouvé, prendre la première catégorie du sport
-        if (categories.length > 0) {
-          let pathId = categories[0].pathId;
-          if (typeof pathId === "string" && !pathId.startsWith("area")) {
-            pathId = "area" + pathId;
-          }
-          console.log(`Match sport sans catégorie spécifique "${sport}": ${pathId}`);
+        if (typeof pathId === "string" && !pathId.startsWith("area")) {
+          pathId = "area" + pathId;
+        }
+
+        // Match exact strict (normalisation identique)
+        if (catNormalized === normalized) {
+          console.log(`✅ [MATCH EXACT] Sport "${sportMatchedKey}" → Catégorie "${cat.name}" → ${pathId}`);
           return pathId;
         }
       }
+
+      // PRIORITÉ 2: Match partiel de catégorie (seulement si catégorie contient ou est contenue)
+      for (const cat of categories) {
+        const catNormalized = normalize(cat.name);
+        let pathId = cat.pathId;
+
+        if (!pathId || pathId.length === 0) continue;
+
+        if (Array.isArray(pathId)) {
+          pathId = pathId[pathId.length - 1];
+        }
+
+        if (typeof pathId === "string" && !pathId.startsWith("area")) {
+          pathId = "area" + pathId;
+        }
+
+        // Match partiel uniquement si l'un contient entièrement l'autre
+        if (catNormalized.includes(normalized) || normalized.includes(catNormalized)) {
+          console.log(`⚠️  [MATCH PARTIEL] Sport "${sportMatchedKey}" → Catégorie "${cat.name}" → ${pathId}`);
+          return pathId;
+        }
+      }
+
+      // Catégorie fournie mais non trouvée dans le sport → ERREUR, pas de fallback
+      console.error(`❌ [ERREUR] Sport "${sportMatchedKey}" trouvé mais catégorie "${categoryLabel}" INTROUVABLE → STOP (pas de fallback)`);
+      return null;
     }
+
+    // Pas de catégorie fournie → retourner null (ne pas deviner)
+    console.warn(`[AVERTISSEMENT] Sport "${sportMatchedKey}" trouvé mais aucune catégorie fournie → STOP`);
+    return null;
   }
 
   // Si pas de sport fourni ou pas trouvé dans le sport, faire recherche globale
@@ -1152,6 +1207,12 @@ window.getPathIdFromCategory = function (categoryLabel, sportLabel) {
       const categories = window.mergedData[sport].categories || [];
       if (categories.length > 0) {
         let pathId = categories[0].pathId;
+
+        // Gestion des arrays
+        if (Array.isArray(pathId)) {
+          pathId = pathId[pathId.length - 1];
+        }
+
         if (typeof pathId === "string" && !pathId.startsWith("area")) {
           pathId = "area" + pathId;
         }
@@ -1169,6 +1230,11 @@ window.getPathIdFromCategory = function (categoryLabel, sportLabel) {
       let pathId = cat.pathId;
 
       if (!pathId || pathId.length === 0) continue;
+
+      // Gestion des arrays
+      if (Array.isArray(pathId)) {
+        pathId = pathId[pathId.length - 1];
+      }
 
       if (typeof pathId === "string" && !pathId.startsWith("area")) {
         pathId = "area" + pathId;
@@ -1197,6 +1263,12 @@ window.getPathIdFromCategory = function (categoryLabel, sportLabel) {
       const categories = window.mergedData[sport].categories || [];
       if (categories.length > 0) {
         let pathId = categories[0].pathId;
+
+        // Gestion des arrays
+        if (Array.isArray(pathId)) {
+          pathId = pathId[pathId.length - 1];
+        }
+
         if (typeof pathId === "string" && !pathId.startsWith("area")) {
           pathId = "area" + pathId;
         }
@@ -1221,6 +1293,11 @@ window.getPathIdFromCategory = function (categoryLabel, sportLabel) {
       let pathId = cat.pathId;
 
       if (!pathId || pathId.length === 0) continue;
+
+      // Gestion des arrays
+      if (Array.isArray(pathId)) {
+        pathId = pathId[pathId.length - 1];
+      }
 
       if (typeof pathId === "string" && !pathId.startsWith("area")) {
         pathId = "area" + pathId;

@@ -1250,10 +1250,20 @@ function createProductCarousel(products) {
   const modal = document.getElementById("svgModal");
   const object = document.getElementById("svgMap"); // <object>
 
-  const pathId = getPathIdFromCategory(product.category);
-  console.log("Catégorie brute :", product.category);
-  console.log(" Recherche de pathId pour :", product.category);
-  console.log("Résultat pathId :", pathId);
+  // IMPORTANT: Passer sport, catégorie ET nom du produit pour localisation précise
+  const productName = product.product || product.name || "";
+  const sportLabel = product.sport || "";
+  const categoryLabel = product.category || "";
+
+  console.log("[INDEX] ========================================");
+  console.log("[INDEX] Localisation demandée pour:");
+  console.log("[INDEX] Produit:", productName);
+  console.log("[INDEX] Sport:", sportLabel);
+  console.log("[INDEX] Catégorie:", categoryLabel);
+  console.log("[INDEX] ========================================");
+
+  const pathId = getPathIdFromCategory(categoryLabel, sportLabel, productName);
+  console.log("[INDEX] Résultat pathId:", pathId);
 
   if (!pathId) {
     console.warn("Aucune zone trouvée pour cette catégorie.");

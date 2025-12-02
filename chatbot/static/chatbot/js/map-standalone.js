@@ -113,7 +113,9 @@ function initMapHighlight() {
 
     const categoryLabel = category || product.category || "";
     const sportLabel = sport || product.sport || "";
+    const productName = product.name || product.product || "";
 
+    console.log("[MAP] Produit :", productName);
     console.log("[MAP] Catégorie extraite:", categoryLabel);
     console.log("[MAP] Sport extrait:", sportLabel);
 
@@ -129,7 +131,7 @@ function initMapHighlight() {
       return;
     }
 
-    const pathId = window.getPathIdFromCategory(categoryLabel, sportLabel);
+    const pathId = window.getPathIdFromCategory(categoryLabel, sportLabel, productName);
 
     console.log("[MAP] Sport :", sportLabel);
     console.log("[MAP] Catégorie :", categoryLabel);
