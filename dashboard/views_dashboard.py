@@ -30,14 +30,197 @@ from accounts.models import Role
 from accounts.decorators import role_required
 from liasec_hub import settings
 from .view_utils import format_duration, get_period_range
+from .cache_utils import cache_dashboard_kpis
+
+
+@cache_dashboard_kpis(timeout=300)  # Cache pour 5 minutes
+def calculate_dashboard_kpis():
+    """
+    Calcule tous les KPIs du dashboard principal.
+    Cette fonction est cachée pour améliorer les performances.
+    """
+    from django.db.models.functions import TruncDate, Cast
+    from django.db.models import Avg, Sum, F, Q, FloatField
+    import json
+
+    # ========== PÉRIODE DE COMPARAISON ==========
+    today = timezone.now()
+    last_7_days = today - timedelta(days=7)
+    previous_7_days = last_7_days - timedelta(days=7)
+
+    # ========== SESSIONS ==========
+    sessions_total = Session.objects.count()
+    sessions_last_7 = Session.objects.filter(start_time__gte=last_7_days).count()
+    sessions_previous_7 = Session.objects.filter(
+        start_time__gte=previous_7_days, start_time__lt=last_7_days
+    ).count()
+
+    sessions_variation = 0
+    if sessions_previous_7 > 0:
+        sessions_variation = round(((sessions_last_7 - sessions_previous_7) / sessions_previous_7) * 100, 1)
+
+    # Durée moyenne des sessions (en soustrayant 30s pour la popup d'inactivité)
+    avg_duration = Session.objects.filter(
+        duration__isnull=False
+    ).aggregate(avg_duration=Avg("duration"))["avg_duration"]
+
+    if avg_duration:
+        # Soustraire 30 secondes (durée de la popup d'inactivité)
+        avg_duration_seconds = avg_duration.total_seconds() - 30
+        # S'assurer que la durée reste positive
+        avg_duration_seconds = max(0, avg_duration_seconds)
+        avg_duration_minutes = round(avg_duration_seconds / 60, 1)
+    else:
+        avg_duration_minutes = 0
+
+    # Sessions actives (avec au moins une interaction)
+    active_sessions = Session.objects.filter(
+        Q(chatbot_interactions__isnull=False) | Q(product_views__isnull=False)
+    ).distinct().count()
+    active_sessions_rate = round((active_sessions / sessions_total * 100), 1) if sessions_total > 0 else 0
+
+    # ========== CHATBOT ==========
+    interactions_total = ChatbotInteraction.objects.count()
+    interactions_last_7 = ChatbotInteraction.objects.filter(created_at__gte=last_7_days).count()
+
+    # Taux de satisfaction (uniquement pour les interactions avec feedback)
+    satisfaction_stats = ChatbotInteraction.objects.filter(
+        satisfaction__isnull=False
+    ).aggregate(
+        total=Count('id'),
+        positives=Count('id', filter=Q(satisfaction=True))
+    )
+
+    satisfaction_total = satisfaction_stats['total'] or 0
+    satisfaction_positives = satisfaction_stats['positives'] or 0
+    satisfaction_rate = round((satisfaction_positives / satisfaction_total * 100), 1) if satisfaction_total > 0 else 0
+
+    # Taux de succès
+    success_stats = ChatbotInteraction.objects.aggregate(
+        total=Count('id'),
+        successes=Count('id', filter=Q(response_success=True))
+    )
+    success_total = success_stats['total'] or 0
+    success_count = success_stats['successes'] or 0
+    success_rate = round((success_count / success_total * 100), 1) if success_total > 0 else 0
+
+    # Temps de réponse moyen
+    avg_response_time = ChatbotInteraction.objects.filter(
+        response_time__isnull=False
+    ).aggregate(avg_time=Avg('response_time'))['avg_time']
+    avg_response_time = round(avg_response_time, 2) if avg_response_time else 0
+
+    # ========== PRODUITS ==========
+    products_total = Product.objects.count()
+    products_available = Product.objects.filter(available=True).count()
+
+    # Top 5 intents
+    top_intents = list(
+        ChatbotInteraction.objects.filter(intent__isnull=False)
+        .exclude(intent='')
+        .values('intent')
+        .annotate(count=Count('id'))
+        .order_by('-count')[:5]
+    )
+
+    # Top 5 produits consultés
+    top_products_raw = list(
+        ProductView.objects.filter(product__isnull=False)
+        .values('product__name', 'product__price')
+        .annotate(views=Count('id'))
+        .order_by('-views')[:5]
+    )
+    top_products = [
+        {'name': p['product__name'], 'views': p['views'], 'price': float(p['product__price'])}
+        for p in top_products_raw
+    ]
+
+    # Sources de clics
+    sources = list(
+        ProductView.objects.exclude(source__isnull=True).exclude(source='')
+        .values('source')
+        .annotate(count=Count('id'))
+        .order_by('-count')
+    )
+
+    # Graphique 7 jours (sessions par jour)
+    sessions_by_day = list(
+        Session.objects.filter(start_time__gte=last_7_days)
+        .annotate(day=TruncDate('start_time'))
+        .values('day')
+        .annotate(count=Count('id'))
+        .order_by('day')
+    )
+
+    # Total clics
+    clicks_total = ProductView.objects.count()
+
+    # Prix moyen consulté
+    avg_price_viewed = ProductView.objects.filter(
+        product__isnull=False
+    ).aggregate(
+        avg_price=Avg('product__price')
+    )['avg_price']
+    avg_price_viewed = round(float(avg_price_viewed), 2) if avg_price_viewed else 0
+
+    # Recommandations
+    recommendations_total = ChatbotRecommendation.objects.count()
+    recommendations_clicked = ChatbotRecommendation.objects.filter(clicked=True).count()
+    recommendations_ctr = round((recommendations_clicked / recommendations_total * 100), 1) if recommendations_total > 0 else 0
+
+    return {
+        'sessions_total': sessions_total,
+        'sessions_last_7': sessions_last_7,
+        'sessions_variation': sessions_variation,
+        'avg_duration_minutes': avg_duration_minutes,
+        'active_sessions_rate': active_sessions_rate,
+        'interactions_total': interactions_total,
+        'interactions_last_7': interactions_last_7,
+        'satisfaction_rate': satisfaction_rate,
+        'success_rate': success_rate,
+        'avg_response_time': avg_response_time,
+        'products_total': products_total,
+        'products_available': products_available,
+        'top_intents': top_intents,
+        'top_products': top_products,
+        'sources': sources,
+        'sessions_by_day': sessions_by_day,
+        'clicks_total': clicks_total,
+        'avg_price_viewed': avg_price_viewed,
+        'recommendations_total': recommendations_total,
+        'recommendations_ctr': recommendations_ctr,
+    }
 
 
 def dashboard_home(request):
     import json
-    from django.db.models.functions import TruncDate
-    from django.db.models import Avg, Sum, F, Q, FloatField
-    from django.db.models.functions import Cast
 
+    # ========== RÉCUPÉRATION DES KPIS CACHÉS ==========
+    kpis = calculate_dashboard_kpis()
+
+    # Déstructurer pour le template (pour compatibilité avec l'ancien code)
+    sessions_total = kpis['sessions_total']
+    sessions_last_7 = kpis['sessions_last_7']
+    sessions_variation = kpis['sessions_variation']
+    avg_duration_minutes = kpis['avg_duration_minutes']
+    active_sessions_rate = kpis['active_sessions_rate']
+    interactions_total = kpis['interactions_total']
+    interactions_last_7 = kpis['interactions_last_7']
+    satisfaction_rate = kpis['satisfaction_rate']
+    success_rate = kpis['success_rate']
+    avg_response_time = kpis['avg_response_time']
+    products_total = kpis['products_total']
+    products_available = kpis['products_available']
+    top_intents = kpis['top_intents']
+    top_products = kpis['top_products']
+    sources = kpis['sources']
+    sessions_by_day = kpis['sessions_by_day']
+    clicks_total = kpis['clicks_total']
+    avg_price_viewed = kpis['avg_price_viewed']
+    recommendations_total = kpis['recommendations_total']
+    recommendations_ctr = kpis['recommendations_ctr']
+
+    # Code legacy (peut être supprimé si tout est dans kpis)
     # ========== PÉRIODE DE COMPARAISON ==========
     today = timezone.now()
     last_7_days = today - timedelta(days=7)

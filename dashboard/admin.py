@@ -8,6 +8,7 @@ from .models import (
     ExportHistory,
     Settings,
     Notification,
+    ExportRequest,
 )
 
 
@@ -77,3 +78,39 @@ class SessionAdmin(admin.ModelAdmin):
 @admin.register(Settings)
 class SettingsAdmin(admin.ModelAdmin):
     list_display = ('name', 'code', 'location', 'track_sessions', 'track_clicks', 'track_chatbot')
+
+
+@admin.register(ExportRequest)
+class ExportRequestAdmin(admin.ModelAdmin):
+    list_display = ('requester', 'status', 'requested_at', 'reviewed_by', 'reviewed_at')
+    list_filter = ('status', 'requested_at', 'reviewed_at')
+    search_fields = ('requester__email', 'requester__first_name', 'requester__last_name', 'reason', 'response_message')
+    readonly_fields = ('requested_at', 'reviewed_at')
+    ordering = ('-requested_at',)
+
+    fieldsets = (
+        ('Demandeur', {
+            'fields': ('requester', 'reason', 'requested_at')
+        }),
+        ('Traitement', {
+            'fields': ('status', 'reviewed_by', 'reviewed_at', 'response_message')
+        }),
+    )
+
+    actions = ['approve_requests', 'reject_requests']
+
+    def approve_requests(self, request, queryset):
+        count = 0
+        for export_request in queryset.filter(status='PENDING'):
+            export_request.approve(request.user, "Demande approuvée par l'administrateur.")
+            count += 1
+        self.message_user(request, f"{count} demande(s) approuvée(s).")
+    approve_requests.short_description = "Approuver les demandes sélectionnées"
+
+    def reject_requests(self, request, queryset):
+        count = 0
+        for export_request in queryset.filter(status='PENDING'):
+            export_request.reject(request.user, "Demande refusée par l'administrateur.")
+            count += 1
+        self.message_user(request, f"{count} demande(s) refusée(s).")
+    reject_requests.short_description = "Refuser les demandes sélectionnées"

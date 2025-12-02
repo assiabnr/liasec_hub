@@ -15,8 +15,9 @@ from .views import (
     chatbot_product_detail_api,
     chatbot_interaction_detail_api,
     delete_session_view,
-    grant_export_access,
 )
+from .views_exports import grant_export_access, revoke_export_access
+from . import views_export_requests
 
 urlpatterns = [
     # Tableau de bord principal
@@ -59,6 +60,7 @@ urlpatterns = [
     path("exports/", login_required(views.exports_view), name="exports"),
     path("export-data/", login_required(views.export_data_view), name="export_data"),
     path("exports/grant-access/", login_required(grant_export_access), name="grant_export_access"),
+    path("exports/revoke-access/", login_required(revoke_export_access), name="revoke_export_access"),
 
     # Exports PDF
     path("export-pdf/dashboard/", login_required(views.export_dashboard_pdf), name="export_dashboard_pdf"),
@@ -76,4 +78,11 @@ urlpatterns = [
     path("api/notifications/<int:notification_id>/read/", login_required(views.mark_notification_read), name="mark_notification_read"),
     path("api/notifications/read-all/", login_required(views.mark_all_notifications_read), name="mark_all_notifications_read"),
     path("api/notifications/<int:notification_id>/delete/", login_required(views.delete_notification), name="delete_notification"),
+
+    # Demandes d'accès export
+    path("api/export-requests/create/", views_export_requests.create_export_request, name="create_export_request"),
+    path("api/export-requests/", views_export_requests.list_export_requests, name="list_export_requests"),
+    path("api/export-requests/my/", views_export_requests.get_my_export_requests, name="get_my_export_requests"),
+    path("api/export-requests/<int:request_id>/approve/", views_export_requests.approve_export_request, name="approve_export_request"),
+    path("api/export-requests/<int:request_id>/reject/", views_export_requests.reject_export_request, name="reject_export_request"),
 ]

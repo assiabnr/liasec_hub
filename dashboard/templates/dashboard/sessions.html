@@ -17,9 +17,9 @@
           <i class="bi bi-file-earmark-pdf me-2"></i> Exporter en PDF
         </a>
       {% else %}
-        <button class="btn btn-secondary shadow-sm d-flex align-items-center" disabled style="opacity:0.6; cursor:not-allowed;">
-          <i class="bi bi-file-earmark-pdf me-2"></i> Exporter en PDF
-        </button>
+        <a href="{% url 'exports' %}" class="btn btn-warning shadow-sm d-flex align-items-center">
+          <i class="bi bi-lock-fill me-2"></i> Demander l'accès export
+        </a>
       {% endif %}
     </div>
   </div>

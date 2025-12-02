@@ -77,6 +77,23 @@ DATABASES = {
     }
 }
 
+# --- CACHE (REDIS) ---
+CACHES = {
+    'default': {
+        'BACKEND': 'django_redis.cache.RedisCache',
+        'LOCATION': 'redis://127.0.0.1:6379/1',
+        'OPTIONS': {
+            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+            'SOCKET_CONNECT_TIMEOUT': 5,
+            'SOCKET_TIMEOUT': 5,
+            'CONNECTION_POOL_KWARGS': {'max_connections': 50},
+            'IGNORE_EXCEPTIONS': True,  # Ne pas crasher si Redis est down
+        },
+        'KEY_PREFIX': 'liasec',
+        'TIMEOUT': 300,  # 5 minutes par défaut
+    }
+}
+
 # --- PASSWORD VALIDATORS ---
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator'},

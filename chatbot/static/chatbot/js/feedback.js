@@ -74,7 +74,7 @@ function showEscaladePopup() {
   console.log("[POPUP] Popup d'escalade ajoutée au DOM");
 
   document.getElementById("escalade-home").addEventListener("click", () => {
-    window.location.href = "/";
+    window.location.href = "chatbot/";
   });
 
   document.getElementById("escalade-continue").addEventListener("click", () => {

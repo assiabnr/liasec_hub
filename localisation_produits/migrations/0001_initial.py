@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('dashboard', '0006_remove_productview_product_id_and_more'),
+        ('dashboard', '0001_initial'),
     ]
 
     operations = [

@@ -10,18 +10,88 @@
       <h4 class="fw-bold mb-1">
         <i class="bi bi-cloud-arrow-down-fill text-primary me-2"></i> Exports & Rapports
       </h4>
-      <p class="text-muted mb-0 small">Exportez vos données en CSV ou générez des rapports PDF</p>
+      <p class="text-muted mb-0 small">
+        {% if is_authorized %}
+          Exportez vos données en CSV ou générez des rapports PDF
+        {% else %}
+          Demandez l'accès aux exports pour télécharger les rapports
+        {% endif %}
+      </p>
     </div>
   </div>
 
   <!-- ============================
+       DEMANDE D'ACCÈS EXPORT (MANAGER SANS ACCÈS)
+       Affiché EN PREMIER pour les managers non autorisés
+  ============================ -->
+  {% if request.user.role == 'MANAGER' and not request.user.can_export %}
+  <div class="card p-4 shadow-sm border-0 mb-4" style="border-left: 4px solid #3b82f6 !important;">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+      <div>
+        <h6 class="fw-bold mb-1 text-primary">
+          <i class="bi bi-unlock-fill me-2"></i> Demander l'accès aux exports
+        </h6>
+        <p class="text-muted mb-0 small">Vous n'avez pas encore accès aux exports. Faites une demande auprès des administrateurs pour télécharger les rapports PDF et CSV.</p>
+      </div>
+      <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#requestExportModal">
+        <i class="bi bi-send-fill me-2"></i>Faire une demande
+      </button>
+    </div>
+
+    <!-- Historique des demandes du manager -->
+    {% if user_requests %}
+    <div class="mt-3">
+      <h6 class="fw-semibold mb-2"><i class="bi bi-list-ul me-2"></i>Mes demandes</h6>
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead class="table-light">
+            <tr>
+              <th>Statut</th>
+              <th>Demandé le</th>
+              <th>Traité le</th>
+              <th>Message</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for req in user_requests %}
+            <tr>
+              <td>
+                {% if req.status == 'PENDING' %}
+                  <span class="badge bg-warning text-dark"><i class="bi bi-hourglass-split me-1"></i> En attente</span>
+                {% elif req.status == 'APPROVED' %}
+                  <span class="badge bg-success"><i class="bi bi-check-circle-fill me-1"></i> Approuvée</span>
+                {% else %}
+                  <span class="badge bg-danger"><i class="bi bi-x-circle-fill me-1"></i> Refusée</span>
+                {% endif %}
+              </td>
+              <td><small>{{ req.requested_at|date:"d/m/Y H:i" }}</small></td>
+              <td><small>{{ req.reviewed_at|date:"d/m/Y H:i"|default:"-" }}</small></td>
+              <td><small class="text-muted">{{ req.response_message|default:req.reason|truncatewords:10 }}</small></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- ============================
        EXPORTS PDF RAPIDES
+       Toujours affiché, mais grisé si non autorisé
   ============================ -->
   <div class="card p-4 shadow-sm border-0 mb-4">
     <h5 class="fw-semibold text-primary mb-3">
       <i class="bi bi-file-earmark-pdf-fill me-2"></i> Rapports PDF
     </h5>
-    <p class="text-muted small mb-3">Générez instantanément des rapports PDF professionnels avec toutes les statistiques</p>
+    <p class="text-muted small mb-3">
+      {% if is_authorized %}
+        Générez instantanément des rapports PDF professionnels avec toutes les statistiques
+      {% else %}
+        <span class="text-warning"><i class="bi bi-lock-fill me-1"></i>Accès restreint - Cliquez sur un rapport pour demander l'accès</span>
+      {% endif %}
+    </p>
 
     <div class="row g-3">
       <!-- Dashboard général -->
@@ -38,9 +108,15 @@
               </div>
             </div>
             <p class="text-muted small mb-3 flex-grow-1">Sessions, interactions chatbot, consultations produits, KPIs globaux</p>
-            <a href="{% url 'export_dashboard_pdf' %}" class="btn btn-primary w-100">
-              <i class="bi bi-download me-2"></i>Télécharger PDF
-            </a>
+            {% if is_authorized %}
+              <a href="{% url 'export_dashboard_pdf' %}" class="btn btn-primary w-100">
+                <i class="bi bi-download me-2"></i>Télécharger PDF
+              </a>
+            {% else %}
+              <button class="btn btn-warning w-100 request-access-btn" data-bs-toggle="modal" data-bs-target="#requestExportModal">
+                <i class="bi bi-lock-fill me-2"></i>Demander l'accès
+              </button>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -59,9 +135,15 @@
               </div>
             </div>
             <p class="text-muted small mb-3 flex-grow-1">Durées, engagement, sessions avec chatbot, dernières sessions</p>
-            <a href="{% url 'export_sessions_pdf' %}" class="btn btn-primary w-100">
-              <i class="bi bi-download me-2"></i>Télécharger PDF
-            </a>
+            {% if is_authorized %}
+              <a href="{% url 'export_sessions_pdf' %}" class="btn btn-primary w-100">
+                <i class="bi bi-download me-2"></i>Télécharger PDF
+              </a>
+            {% else %}
+              <button class="btn btn-warning w-100 request-access-btn" data-bs-toggle="modal" data-bs-target="#requestExportModal">
+                <i class="bi bi-lock-fill me-2"></i>Demander l'accès
+              </button>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -80,9 +162,15 @@
               </div>
             </div>
             <p class="text-muted small mb-3 flex-grow-1">Taux de succès, satisfaction, top intents, recommandations</p>
-            <a href="{% url 'export_chatbot_pdf' %}" class="btn btn-primary w-100">
-              <i class="bi bi-download me-2"></i>Télécharger PDF
-            </a>
+            {% if is_authorized %}
+              <a href="{% url 'export_chatbot_pdf' %}" class="btn btn-primary w-100">
+                <i class="bi bi-download me-2"></i>Télécharger PDF
+              </a>
+            {% else %}
+              <button class="btn btn-warning w-100 request-access-btn" data-bs-toggle="modal" data-bs-target="#requestExportModal">
+                <i class="bi bi-lock-fill me-2"></i>Demander l'accès
+              </button>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -101,9 +189,15 @@
               </div>
             </div>
             <p class="text-muted small mb-3 flex-grow-1">Répartition par source, top produits consultés, disponibilité</p>
-            <a href="{% url 'export_products_pdf' %}" class="btn btn-primary w-100">
-              <i class="bi bi-download me-2"></i>Télécharger PDF
-            </a>
+            {% if is_authorized %}
+              <a href="{% url 'export_products_pdf' %}" class="btn btn-primary w-100">
+                <i class="bi bi-download me-2"></i>Télécharger PDF
+              </a>
+            {% else %}
+              <button class="btn btn-warning w-100 request-access-btn" data-bs-toggle="modal" data-bs-target="#requestExportModal">
+                <i class="bi bi-lock-fill me-2"></i>Demander l'accès
+              </button>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -122,9 +216,15 @@
               </div>
             </div>
             <p class="text-muted small mb-3 flex-grow-1">Par source, conversion recommandations, produits les plus vus</p>
-            <a href="{% url 'export_clicks_pdf' %}" class="btn btn-primary w-100">
-              <i class="bi bi-download me-2"></i>Télécharger PDF
-            </a>
+            {% if is_authorized %}
+              <a href="{% url 'export_clicks_pdf' %}" class="btn btn-primary w-100">
+                <i class="bi bi-download me-2"></i>Télécharger PDF
+              </a>
+            {% else %}
+              <button class="btn btn-warning w-100 request-access-btn" data-bs-toggle="modal" data-bs-target="#requestExportModal">
+                <i class="bi bi-lock-fill me-2"></i>Demander l'accès
+              </button>
+            {% endif %}
           </div>
         </div>
       </div>
@@ -134,13 +234,13 @@
   <!-- ============================
        EXPORTS CSV PERSONNALISÉS
 ============================ -->
+  {% if is_authorized %}
   <div class="card p-4 shadow-sm border-0 mb-4">
     <h5 class="fw-semibold text-primary mb-3">
       <i class="bi bi-file-earmark-spreadsheet-fill me-2"></i> Exports CSV Personnalisés
     </h5>
     <p class="text-muted small mb-3">Exportez des données brutes avec filtres personnalisés pour vos analyses</p>
 
-    {% if is_authorized %}
     <form id="exportForm" method="POST" action="{% url 'export_data' %}">
       {% csrf_token %}
 
@@ -192,20 +292,72 @@
         </button>
       </div>
     </form>
-    {% else %}
-      <div class="alert alert-info mb-0">
-        <i class="bi bi-info-circle me-2"></i> Les exports CSV sont réservés aux utilisateurs autorisés. Demandez à un administrateur d'activer vos rapports.
-      </div>
-    {% endif %}
   </div>
+  {% endif %}
+
+  <!-- ============================
+       DEMANDES EN ATTENTE (ADMIN)
+  ============================ -->
+  {% if request.user.role == 'ADMIN' and pending_requests %}
+  <div class="card p-4 shadow-sm border-0 mb-4" style="border-left: 4px solid #f59e0b !important;">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <div>
+        <h6 class="fw-bold mb-1 text-warning">
+          <i class="bi bi-exclamation-circle-fill me-2"></i> Demandes d'export en attente
+        </h6>
+        <p class="text-muted mb-0 small">{{ pending_requests|length }} demande(s) à traiter</p>
+      </div>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table align-middle">
+        <thead class="table-light">
+          <tr>
+            <th>Demandeur</th>
+            <th>Justification</th>
+            <th>Date</th>
+            <th class="text-end">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for req in pending_requests %}
+          <tr>
+            <td>
+              <div>
+                <strong>{{ req.requester.first_name }} {{ req.requester.last_name }}</strong><br>
+                <small class="text-muted">{{ req.requester.email }}</small>
+              </div>
+            </td>
+            <td>
+              <small>{{ req.reason|truncatewords:15 }}</small>
+              <button class="btn btn-sm btn-link p-0 ms-2" onclick="showFullReason('{{ req.id }}', `{{ req.reason|escapejs }}`)">
+                <i class="bi bi-eye"></i> Voir plus
+              </button>
+            </td>
+            <td><small>{{ req.requested_at|date:"d/m/Y H:i" }}</small></td>
+            <td class="text-end">
+              <button class="btn btn-sm btn-success me-2 approve-request-btn" data-request-id="{{ req.id }}" data-requester="{{ req.requester.first_name }} {{ req.requester.last_name }}">
+                <i class="bi bi-check-circle me-1"></i>Approuver
+              </button>
+              <button class="btn btn-sm btn-danger reject-request-btn" data-request-id="{{ req.id }}" data-requester="{{ req.requester.first_name }} {{ req.requester.last_name }}">
+                <i class="bi bi-x-circle me-1"></i>Refuser
+              </button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
 
   {% if request.user.role == 'ADMIN' and managers %}
   <!-- Gestion des accès exports -->
   <div class="card p-4 shadow-sm border-0 mb-4">
     <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
       <div>
-        <h6 class="fw-bold mb-1"><i class="bi bi-broadcast me-2 text-primary"></i> Autoriser les managers</h6>
-        <p class="text-muted mb-0 small">Attribuez l'accès permanent aux exports PDF/CSV et envoyez une notification “Nouveaux rapports disponibles”.</p>
+        <h6 class="fw-bold mb-1"><i class="bi bi-key me-2 text-primary"></i> Gérer les accès exports des managers</h6>
+        <p class="text-muted mb-0 small">Autorisez ou révoquez l'accès permanent aux exports PDF/CSV</p>
       </div>
     </div>
     <div class="table-responsive">
@@ -215,7 +367,7 @@
             <th>Email</th>
             <th>Nom</th>
             <th>Accès export</th>
-            <th class="text-end">Action</th>
+            <th class="text-end">Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -225,18 +377,20 @@
               <td>{{ manager.first_name }} {{ manager.last_name }}</td>
               <td>
                 {% if manager.can_export %}
-                  <span class="badge bg-success">Autorisé</span>
+                  <span class="badge bg-success"><i class="bi bi-check-circle me-1"></i>Autorisé</span>
                 {% else %}
-                  <span class="badge bg-secondary">Non autorisé</span>
+                  <span class="badge bg-secondary"><i class="bi bi-lock me-1"></i>Non autorisé</span>
                 {% endif %}
               </td>
               <td class="text-end">
                 {% if not manager.can_export %}
-                  <button class="btn btn-sm btn-primary grant-export-btn" data-user-id="{{ manager.id }}">
-                    <i class="bi bi-unlock me-1"></i>Autoriser et notifier
+                  <button class="btn btn-sm btn-success grant-export-btn" data-user-id="{{ manager.id }}" data-user-name="{{ manager.first_name }} {{ manager.last_name }}">
+                    <i class="bi bi-unlock me-1"></i>Autoriser
                   </button>
                 {% else %}
-                  <span class="text-muted small">Déjà autorisé</span>
+                  <button class="btn btn-sm btn-warning revoke-export-btn" data-user-id="{{ manager.id }}" data-user-name="{{ manager.first_name }} {{ manager.last_name }}">
+                    <i class="bi bi-lock me-1"></i>Révoquer l'accès
+                  </button>
                 {% endif %}
               </td>
             </tr>
@@ -333,6 +487,101 @@
 </div>
 
 <!-- ============================
+     MODALES
+============================ -->
+
+<!-- Modale : Demande d'accès export (Manager) -->
+<div class="modal fade" id="requestExportModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-bottom border-3 border-primary">
+        <h5 class="modal-title text-primary">
+          <i class="bi bi-send-fill me-2"></i>Demander l'accès aux exports
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <form id="requestExportForm">
+          <div class="mb-3">
+            <label for="requestReason" class="form-label fw-semibold">
+              Justification <span class="text-danger">*</span>
+            </label>
+            <textarea
+              class="form-control"
+              id="requestReason"
+              rows="4"
+              required
+              minlength="20"
+              placeholder="Expliquez pourquoi vous avez besoin d'accéder aux exports (minimum 20 caractères)..."></textarea>
+            <div class="form-text">Cette justification sera visible par les administrateurs.</div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-primary" id="submitRequestBtn">
+          <i class="bi bi-send me-1"></i>Envoyer la demande
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modale : Refuser une demande (Admin) -->
+<div class="modal fade" id="rejectRequestModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header border-bottom border-3 border-danger">
+        <h5 class="modal-title text-danger">
+          <i class="bi bi-x-circle-fill me-2"></i>Refuser la demande
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>Vous êtes sur le point de refuser la demande de <strong id="rejectRequesterName"></strong>.</p>
+        <form id="rejectRequestForm">
+          <input type="hidden" id="rejectRequestId">
+          <div class="mb-3">
+            <label for="rejectMessage" class="form-label fw-semibold">
+              Message de refus <span class="text-muted">(optionnel)</span>
+            </label>
+            <textarea
+              class="form-control"
+              id="rejectMessage"
+              rows="3"
+              placeholder="Expliquez pourquoi vous refusez cette demande..."></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+        <button type="button" class="btn btn-danger" id="confirmRejectBtn">
+          <i class="bi bi-x-circle me-1"></i>Confirmer le refus
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modale : Voir la justification complète -->
+<div class="modal fade" id="viewReasonModal" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Justification de la demande</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p id="fullReasonText" class="mb-0"></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================
      STYLES
 ============================ -->
 <style>
@@ -400,52 +649,55 @@ document.addEventListener("DOMContentLoaded", () => {
   const form = document.getElementById("exportForm");
   const grantButtons = document.querySelectorAll(".grant-export-btn");
 
-  form.addEventListener("submit", function (e) {
-    e.preventDefault();
+  // Gérer le formulaire d'export CSV (uniquement si présent)
+  if (form) {
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
 
-    const formData = new FormData(form);
-    const exportType = formData.get("data_type");
+      const formData = new FormData(form);
+      const exportType = formData.get("data_type");
 
-    if (!exportType) {
-      showToast("Veuillez choisir un type de données avant d'exporter.", "warning", "bi-exclamation-triangle-fill");
-      return;
-    }
-
-    // Désactiver le bouton pendant l'export
-    const submitBtn = form.querySelector('button[type="submit"]');
-    const originalHtml = submitBtn.innerHTML;
-    submitBtn.disabled = true;
-    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Génération en cours...';
-
-    fetch(form.action, {
-      method: "POST",
-      headers: { "X-CSRFToken": getCookie("csrftoken") },
-      body: formData
-    })
-    .then(async response => {
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok || !data.success) {
-        const msg = data.error || (response.status === 403 ? "Accès réservé aux administrateurs." : "Échec de l'export.");
-        throw new Error(msg);
+      if (!exportType) {
+        showToast("Veuillez choisir un type de données avant d'exporter.", "warning", "bi-exclamation-triangle-fill");
+        return;
       }
-      return data;
-    })
-    .then(data => {
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = originalHtml;
 
-      showToast("Export CSV réussi ! Le fichier a été généré.", "success", "bi-check-circle-fill");
+      // Désactiver le bouton pendant l'export
+      const submitBtn = form.querySelector('button[type="submit"]');
+      const originalHtml = submitBtn.innerHTML;
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Génération en cours...';
 
-      // Recharger la page après 2 secondes pour afficher le nouvel export dans l'historique
-      setTimeout(() => location.reload(), 2000);
-    })
-    .catch(err => {
-      console.error(err);
-      submitBtn.disabled = false;
-      submitBtn.innerHTML = originalHtml;
-      showToast(err.message || "Une erreur est survenue pendant l'export.", "danger", "bi-exclamation-triangle-fill");
+      fetch(form.action, {
+        method: "POST",
+        headers: { "X-CSRFToken": getCookie("csrftoken") },
+        body: formData
+      })
+      .then(async response => {
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok || !data.success) {
+          const msg = data.error || (response.status === 403 ? "Accès réservé aux administrateurs." : "Échec de l'export.");
+          throw new Error(msg);
+        }
+        return data;
+      })
+      .then(data => {
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalHtml;
+
+        showToast("Export CSV réussi ! Le fichier a été généré.", "success", "bi-check-circle-fill");
+
+        // Recharger la page après 2 secondes pour afficher le nouvel export dans l'historique
+        setTimeout(() => location.reload(), 2000);
+      })
+      .catch(err => {
+        console.error(err);
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = originalHtml;
+        showToast(err.message || "Une erreur est survenue pendant l'export.", "danger", "bi-exclamation-triangle-fill");
+      });
     });
-  });
+  }
 
   // Toast Bootstrap dynamique
   function showToast(message, type, icon) {
@@ -490,8 +742,12 @@ document.addEventListener("DOMContentLoaded", () => {
     grantButtons.forEach(btn => {
       btn.addEventListener("click", () => {
         const userId = btn.getAttribute("data-user-id");
+        const userName = btn.getAttribute("data-user-name");
+
+        if (!confirm(`Autoriser ${userName} à accéder aux exports ?`)) return;
+
         btn.disabled = true;
-        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Envoi...';
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Autorisation...';
 
         fetch("{% url 'grant_export_access' %}", {
           method: "POST",
@@ -501,19 +757,202 @@ document.addEventListener("DOMContentLoaded", () => {
         .then(async response => {
           const data = await response.json().catch(() => ({}));
           if (!response.ok || !data.success) {
-            throw new Error(data.error || "Echec de l'autorisation.");
+            throw new Error(data.error || "Échec de l'autorisation.");
           }
-          showToast(data.message || "Acces accorde.", "success", "bi-check-circle-fill");
+          showToast(data.message || "Accès accordé.", "success", "bi-check-circle-fill");
           setTimeout(() => location.reload(), 1000);
         })
         .catch(err => {
           showToast(err.message || "Impossible d'autoriser l'export.", "danger", "bi-exclamation-triangle-fill");
           btn.disabled = false;
-          btn.innerHTML = '<i class="bi bi-unlock me-1"></i>Autoriser et notifier';
+          btn.innerHTML = '<i class="bi bi-unlock me-1"></i>Autoriser';
         });
       });
     });
   }
+
+  // Boutons de révocation d'accès export
+  const revokeButtons = document.querySelectorAll(".revoke-export-btn");
+  if (revokeButtons && revokeButtons.length) {
+    revokeButtons.forEach(btn => {
+      btn.addEventListener("click", () => {
+        const userId = btn.getAttribute("data-user-id");
+        const userName = btn.getAttribute("data-user-name");
+
+        if (!confirm(`Révoquer l'accès aux exports de ${userName} ?\n\nCette action empêchera cet utilisateur de télécharger des rapports.`)) return;
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Révocation...';
+
+        fetch("{% url 'revoke_export_access' %}", {
+          method: "POST",
+          headers: { "X-CSRFToken": getCookie("csrftoken"), "Content-Type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ user_id: userId })
+        })
+        .then(async response => {
+          const data = await response.json().catch(() => ({}));
+          if (!response.ok || !data.success) {
+            throw new Error(data.error || "Échec de la révocation.");
+          }
+          showToast(data.message || "Accès révoqué.", "warning", "bi-lock-fill");
+          setTimeout(() => location.reload(), 1000);
+        })
+        .catch(err => {
+          showToast(err.message || "Impossible de révoquer l'accès.", "danger", "bi-exclamation-triangle-fill");
+          btn.disabled = false;
+          btn.innerHTML = '<i class="bi bi-lock me-1"></i>Révoquer l\'accès';
+        });
+      });
+    });
+  }
+
+  // ======================================
+  // GESTION DES DEMANDES D'EXPORT
+  // ======================================
+
+  // Manager : Envoyer une demande d'accès export
+  const submitRequestBtn = document.getElementById('submitRequestBtn');
+  if (submitRequestBtn) {
+    submitRequestBtn.addEventListener('click', () => {
+      const reason = document.getElementById('requestReason').value.trim();
+
+      if (!reason || reason.length < 20) {
+        showToast('La justification doit contenir au moins 20 caractères.', 'warning', 'bi-exclamation-triangle-fill');
+        return;
+      }
+
+      submitRequestBtn.disabled = true;
+      submitRequestBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Envoi...';
+
+      fetch("{% url 'create_export_request' %}", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ reason })
+      })
+      .then(async response => {
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'Échec de l\'envoi de la demande.');
+        }
+        return data;
+      })
+      .then(data => {
+        showToast(data.message || 'Demande envoyée avec succès !', 'success', 'bi-check-circle-fill');
+        const modalElement = document.getElementById('requestExportModal');
+        const modalInstance = bootstrap.Modal.getInstance(modalElement);
+        if (modalInstance) {
+          modalInstance.hide();
+        }
+        setTimeout(() => location.reload(), 1500);
+      })
+      .catch(err => {
+        showToast(err.message, 'danger', 'bi-exclamation-triangle-fill');
+        submitRequestBtn.disabled = false;
+        submitRequestBtn.innerHTML = '<i class="bi bi-send me-1"></i>Envoyer la demande';
+      });
+    });
+  }
+
+  // Admin : Approuver une demande
+  const approveButtons = document.querySelectorAll('.approve-request-btn');
+  approveButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const requestId = btn.getAttribute('data-request-id');
+      const requester = btn.getAttribute('data-requester');
+
+      if (!confirm(`Approuver la demande de ${requester} ?`)) return;
+
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Approbation...';
+
+      fetch(`/dashboard/api/export-requests/${requestId}/approve/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({})
+      })
+      .then(async response => {
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'Échec de l\'approbation.');
+        }
+        return data;
+      })
+      .then(data => {
+        showToast(data.message || 'Demande approuvée avec succès !', 'success', 'bi-check-circle-fill');
+        setTimeout(() => location.reload(), 1000);
+      })
+      .catch(err => {
+        showToast(err.message, 'danger', 'bi-exclamation-triangle-fill');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-check-circle me-1"></i>Approuver';
+      });
+    });
+  });
+
+  // Admin : Refuser une demande (ouvre la modale)
+  const rejectButtons = document.querySelectorAll('.reject-request-btn');
+  rejectButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const requestId = btn.getAttribute('data-request-id');
+      const requester = btn.getAttribute('data-requester');
+
+      document.getElementById('rejectRequestId').value = requestId;
+      document.getElementById('rejectRequesterName').textContent = requester;
+      document.getElementById('rejectMessage').value = '';
+
+      new bootstrap.Modal(document.getElementById('rejectRequestModal')).show();
+    });
+  });
+
+  // Admin : Confirmer le refus
+  const confirmRejectBtn = document.getElementById('confirmRejectBtn');
+  if (confirmRejectBtn) {
+    confirmRejectBtn.addEventListener('click', () => {
+      const requestId = document.getElementById('rejectRequestId').value;
+      const message = document.getElementById('rejectMessage').value.trim();
+
+      confirmRejectBtn.disabled = true;
+      confirmRejectBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Refus...';
+
+      fetch(`/dashboard/api/export-requests/${requestId}/reject/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ message: message || 'Votre demande a été refusée.' })
+      })
+      .then(async response => {
+        const data = await response.json();
+        if (!response.ok || !data.success) {
+          throw new Error(data.error || 'Échec du refus.');
+        }
+        return data;
+      })
+      .then(data => {
+        showToast(data.message || 'Demande refusée.', 'warning', 'bi-x-circle-fill');
+        bootstrap.Modal.getInstance(document.getElementById('rejectRequestModal')).hide();
+        setTimeout(() => location.reload(), 1000);
+      })
+      .catch(err => {
+        showToast(err.message, 'danger', 'bi-exclamation-triangle-fill');
+        confirmRejectBtn.disabled = false;
+        confirmRejectBtn.innerHTML = '<i class="bi bi-x-circle me-1"></i>Confirmer le refus';
+      });
+    });
+  }
+
+  // Fonction : Afficher la justification complète
+  window.showFullReason = function(requestId, fullReason) {
+    document.getElementById('fullReasonText').textContent = fullReason;
+    new bootstrap.Modal(document.getElementById('viewReasonModal')).show();
+  };
 });
 </script>
 

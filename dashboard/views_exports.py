@@ -78,14 +78,27 @@ def exports_view(request):
     exports = list(exports_qs[:20])
 
     managers = None
+    pending_requests = None
+    user_requests = None
+
     if is_admin:
         User = get_user_model()
         managers = User.objects.filter(role=Role.MANAGER, is_active=True).order_by("email")
+
+        # Récupérer les demandes en attente pour l'admin
+        from dashboard.models import ExportRequest
+        pending_requests = ExportRequest.objects.filter(status='PENDING').select_related('requester').order_by('-requested_at')
+    else:
+        # Récupérer les demandes de l'utilisateur actuel (manager)
+        from dashboard.models import ExportRequest
+        user_requests = ExportRequest.objects.filter(requester=request.user).select_related('reviewed_by').order_by('-requested_at')
 
     return render(request, "dashboard/exports.html", {
         "exports": exports,
         "managers": managers,
         "is_authorized": is_authorized,
+        "pending_requests": pending_requests,
+        "user_requests": user_requests,
     })
 
 @login_required
@@ -208,16 +221,77 @@ def grant_export_access(request):
 
     Notification.create_notification(
         user=target,
-        title="Nouveaux rapports disponibles",
-        message="Vous pouvez télécharger les rapports PDF et votre historique d'exports.",
+        title="✅ Accès export accordé",
+        message="Vous avez maintenant accès aux exports PDF et CSV. Vous pouvez télécharger les rapports depuis la page Exports.",
         notification_type="export",
-        priority="normal",
+        priority="high",
         action_url="/dashboard/exports/",
-        action_label="Ouvrir les exports",
-        icon="bi-download"
+        action_label="Voir les exports",
+        icon="bi-unlock-fill"
     )
 
+    # Notification pour l'admin qui a accordé l'accès
+    if request.user.is_authenticated:
+        Notification.create_notification(
+            user=request.user,
+            title="Accès export accordé",
+            message=f"Vous avez autorisé {target.first_name} {target.last_name} ({target.email}) à accéder aux exports.",
+            notification_type="user",
+            priority="low",
+            action_url="/dashboard/exports/",
+            action_label="Voir les managers",
+            icon="bi-check-circle-fill"
+        )
+
     return JsonResponse({"success": True, "message": "Accès export accordé et notification envoyée."})
+
+
+@login_required
+@role_required(Role.ADMIN)
+def revoke_export_access(request):
+    """Révoque l'accès aux exports d'un manager."""
+    if request.method != "POST":
+        return JsonResponse({"success": False, "error": "Méthode non autorisée"}, status=405)
+
+    user_id = request.POST.get("user_id")
+    User = get_user_model()
+    try:
+        target = User.objects.get(id=user_id, is_active=True, role=Role.MANAGER)
+    except User.DoesNotExist:
+        return JsonResponse({"success": False, "error": "Utilisateur introuvable."}, status=404)
+
+    if not getattr(target, "can_export", False):
+        return JsonResponse({"success": True, "message": "L'utilisateur n'a déjà pas accès aux exports."})
+
+    target.can_export = False
+    target.save(update_fields=["can_export"])
+
+    # Notification au manager
+    Notification.create_notification(
+        user=target,
+        title="⚠️ Accès export révoqué",
+        message="Votre accès aux exports a été révoqué par un administrateur. Vous ne pouvez plus télécharger de rapports.",
+        notification_type="warning",
+        priority="high",
+        action_url="/dashboard/exports/",
+        action_label="Voir la page exports",
+        icon="bi-lock-fill"
+    )
+
+    # Notification pour l'admin qui a révoqué l'accès
+    if request.user.is_authenticated:
+        Notification.create_notification(
+            user=request.user,
+            title="Accès export révoqué",
+            message=f"Vous avez révoqué l'accès aux exports de {target.first_name} {target.last_name} ({target.email}).",
+            notification_type="user",
+            priority="low",
+            action_url="/dashboard/exports/",
+            action_label="Voir les managers",
+            icon="bi-lock-fill"
+        )
+
+    return JsonResponse({"success": True, "message": "Accès export révoqué et notification envoyée."})
 
 @login_required
 def export_dashboard_pdf(request):

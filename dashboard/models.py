@@ -315,3 +315,127 @@ class Notification(models.Model):
             action_label=action_label,
             icon=icon
         )
+
+
+# ==========================
+# DEMANDES D'ACCÈS EXPORT
+# ==========================
+class ExportRequest(models.Model):
+    """
+    Système de demandes d'accès aux exports pour les managers.
+    Les managers peuvent demander l'accès, les admins peuvent approuver/refuser.
+    """
+
+    # Statuts possibles
+    STATUS_CHOICES = [
+        ('PENDING', 'En attente'),
+        ('APPROVED', 'Approuvée'),
+        ('REJECTED', 'Refusée'),
+    ]
+
+    # Demandeur
+    requester = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name='export_requests',
+        help_text="Manager qui demande l'accès"
+    )
+
+    # Statut de la demande
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='PENDING',
+        db_index=True
+    )
+
+    # Justification de la demande
+    reason = models.TextField(
+        help_text="Justification fournie par le manager"
+    )
+
+    # Dates
+    requested_at = models.DateTimeField(
+        default=timezone.now,
+        help_text="Date de création de la demande"
+    )
+    reviewed_at = models.DateTimeField(
+        blank=True,
+        null=True,
+        help_text="Date de traitement par l'admin"
+    )
+
+    # Réviseur (admin qui traite la demande)
+    reviewed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        blank=True,
+        null=True,
+        related_name='reviewed_export_requests',
+        help_text="Admin qui a traité la demande"
+    )
+
+    # Message de réponse de l'admin
+    response_message = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Message optionnel de l'admin (surtout en cas de refus)"
+    )
+
+    class Meta:
+        ordering = ['-requested_at']
+        indexes = [
+            models.Index(fields=['requester', 'status']),
+            models.Index(fields=['status', 'requested_at']),
+        ]
+
+    def __str__(self):
+        return f"Demande d'export de {self.requester.email} - {self.get_status_display()}"
+
+    def approve(self, admin_user, message=None):
+        """
+        Approuve la demande et active l'accès export pour le manager.
+        """
+        self.status = 'APPROVED'
+        self.reviewed_by = admin_user
+        self.reviewed_at = timezone.now()
+        self.response_message = message or "Votre demande d'accès aux exports a été approuvée."
+        self.save()
+
+        # Activer l'accès export pour le manager
+        self.requester.can_export = True
+        self.requester.save(update_fields=['can_export'])
+
+        # Créer une notification pour le manager
+        Notification.create_notification(
+            user=self.requester,
+            title="✅ Accès export approuvé",
+            message=self.response_message,
+            notification_type='success',
+            priority='high',
+            action_url='/dashboard/exports/',
+            action_label='Voir les exports',
+            icon='bi-check-circle-fill'
+        )
+
+    def reject(self, admin_user, message=None):
+        """
+        Refuse la demande.
+        """
+        self.status = 'REJECTED'
+        self.reviewed_by = admin_user
+        self.reviewed_at = timezone.now()
+        self.response_message = message or "Votre demande d'accès aux exports a été refusée."
+        self.save()
+
+        # Créer une notification pour le manager
+        Notification.create_notification(
+            user=self.requester,
+            title="❌ Demande d'export refusée",
+            message=self.response_message,
+            notification_type='warning',
+            priority='normal',
+            action_url='/dashboard/exports/',
+            action_label='Voir les détails',
+            icon='bi-x-circle-fill'
+        )
