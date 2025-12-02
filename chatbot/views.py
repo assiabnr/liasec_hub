@@ -1,5 +1,6 @@
 import json
 import uuid
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
@@ -24,6 +25,73 @@ from .query_parser import (
 from .product_filters import filter_products_for_query
 from .llm_service import call_deepseek, retrieve_recommendations
 from .product_matcher import find_best_product, match_rec_to_vector_product
+
+
+def compute_product_score(product, query):
+    """Fonction helper pour calculer le score d'un produit (utilisée en parallèle)"""
+    product["score"] = compute_score(query, product)
+    return product
+
+
+def match_single_recommendation(rec, filtered_products, session, interaction):
+    """Fonction helper pour matcher une recommandation (utilisée en parallèle)"""
+    produit = None
+
+    vec_product = match_rec_to_vector_product(rec, filtered_products)
+    if vec_product:
+        ref = str(vec_product["reference"]).strip()
+        produit = Product.objects.filter(product_id=ref).first()
+        if produit:
+            print(f"Produit trouvé via vector_store : {produit.name} (ref {produit.product_id})")
+        else:
+            print(f"Ref {ref} issue du vector_store introuvable en BDD, on tente la suite.")
+
+    if not produit and rec.get("reference"):
+        ref_llm = rec["reference"].strip()
+        produit = Product.objects.filter(product_id=ref_llm).first()
+        if produit:
+            print(f"Produit trouvé par référence LLM : {produit.name} (ref {ref_llm})")
+
+    if not produit and rec.get("nom"):
+        produit = find_best_product(rec["nom"])
+        if produit:
+            print(f"Produit trouvé par nom global : {produit.name}")
+
+    if produit:
+        # Phrase d'introduction (bandeau au-dessus de la carte)
+        description = rec.get("intro", "")
+        if not description:
+            description = f"Je vous recommande ce produit {produit.name}."
+
+        # Description produit : uniquement la description BDD
+        if produit.description:
+            features_list = [produit.description]
+        else:
+            features_list = []
+
+        product_json = {
+            "id": produit.id,
+            "reference": produit.product_id,
+            "conversationId": interaction.id,
+            "product": produit.name,
+            "name": produit.name,
+            "brand": produit.brand or "Décathlon",
+            "price": f"{produit.price:.2f} €" if produit.price is not None else "",
+            "category": produit.category or "",
+            "sport": produit.sport or "",
+            "imageUrl": produit.image_url or "",
+            "image_url": produit.image_url or "",
+            "imageUrlAlt": produit.image_url_alt or "",
+            "description": description,
+            "productDescription": produit.description or "",
+            "features": features_list,
+        }
+
+        print(f"Produit ajouté au JSON : {produit.name} (ID: {produit.id})")
+        return produit, product_json
+    else:
+        print(f"Produit non trouvé : {rec.get('nom', 'N/A')} (ref: {rec.get('reference', 'N/A')})")
+        return None, None
 
 
 def index_view(request):
@@ -283,13 +351,16 @@ def chat_api(request):
 
             print(f"[SEARCH] Requête: {search_query[:120]}...")
 
-            retrieved_products = search_products(search_query, k=15000)
+            # Optimisation 1: Réduire k de 15000 à 2000 (plus réaliste)
+            retrieved_products = search_products(search_query, k=2000)
 
-            for p in retrieved_products:
-                p["score"] = compute_score(search_query, p)
+            # Optimisation 2: Calcul parallèle des scores avec ThreadPoolExecutor
+            with ThreadPoolExecutor(max_workers=8) as executor:
+                futures = [executor.submit(compute_product_score, p, search_query) for p in retrieved_products]
+                retrieved_products = [future.result() for future in as_completed(futures)]
 
             retrieved_products = sorted(retrieved_products, key=lambda x: x["score"], reverse=True)
-            print(f"[VECTOR] {len(retrieved_products)} produits récupérés (brut).")
+            print(f"[VECTOR] {len(retrieved_products)} produits récupérés et scorés (brut).")
         except Exception as e:
             print(f"[VECTOR][ERREUR] {e}")
             retrieved_products = []
@@ -353,73 +424,26 @@ def chat_api(request):
 
     produits_json = []
 
-    for rec in recommendations:
-        produit = None
+    # Optimisation 3: Matching parallèle des recommandations avec ThreadPoolExecutor
+    if recommendations:
+        with ThreadPoolExecutor(max_workers=4) as executor:
+            futures = [
+                executor.submit(match_single_recommendation, rec, filtered_products, session, interaction)
+                for rec in recommendations
+            ]
 
-        vec_product = match_rec_to_vector_product(rec, filtered_products)
-        if vec_product:
-            ref = str(vec_product["reference"]).strip()
-            produit = Product.objects.filter(product_id=ref).first()
-            if produit:
-                print(f"Produit trouvé via vector_store : {produit.name} (ref {produit.product_id})")
-            else:
-                print(f"Ref {ref} issue du vector_store introuvable en BDD, on tente la suite.")
-
-        if not produit and rec.get("reference"):
-            ref_llm = rec["reference"].strip()
-            produit = Product.objects.filter(product_id=ref_llm).first()
-            if produit:
-                print(f"Produit trouvé par référence LLM : {produit.name} (ref {ref_llm})")
-
-        if not produit and rec.get("nom"):
-            produit = find_best_product(rec["nom"])
-            if produit:
-                print(f"Produit trouvé par nom global : {produit.name}")
-
-        if produit:
-            ChatbotRecommendation.objects.create(
-                session=session,
-                interaction=interaction,
-                product=produit,
-                recommended_at=timezone.now(),
-            )
-            print(f"Recommandation enregistrée en BD : {produit.name}")
-
-            # Phrase d’introduction (bandeau au-dessus de la carte)
-            description = rec.get("intro", "")
-            if not description:
-                description = f"Je vous recommande ce produit {produit.name}."
-
-            # Description produit : uniquement la description BDD
-            if produit.description:
-                features_list = [produit.description]
-            else:
-                features_list = []
-
-            produits_json.append({
-                "id": produit.id,
-                "reference": produit.product_id,
-                "conversationId": interaction.id,
-                "product": produit.name,
-                "name": produit.name,
-                "brand": produit.brand or "Décathlon",
-                "price": f"{produit.price:.2f} €" if produit.price is not None else "",
-                "category": produit.category or "",
-                "sport": produit.sport or "",
-                "imageUrl": produit.image_url or "",
-                "image_url": produit.image_url or "",
-                "imageUrlAlt": produit.image_url_alt or "",
-                # Texte d’intro (Je vous recommande / N’oubliez pas…)
-                "description": description,
-                # Copie brute de la description BDD
-                "productDescription": produit.description or "",
-                # Description affichée dans la carte : EXACTEMENT celle de la BDD
-                "features": features_list,
-            })
-
-            print(f"Produit ajouté au JSON : {produit.name} (ID: {produit.id})")
-        else:
-            print(f"Produit non trouvé : {rec.get('nom', 'N/A')} (ref: {rec.get('reference', 'N/A')})")
+            for future in as_completed(futures):
+                produit, product_json = future.result()
+                if produit and product_json:
+                    # Enregistrer la recommandation en BD
+                    ChatbotRecommendation.objects.create(
+                        session=session,
+                        interaction=interaction,
+                        product=produit,
+                        recommended_at=timezone.now(),
+                    )
+                    print(f"Recommandation enregistrée en BD : {produit.name}")
+                    produits_json.append(product_json)
 
     print(f"Total produits recommandés : {len(produits_json)}")
     print(f"Total enregistrements en BD : {ChatbotRecommendation.objects.filter(interaction=interaction).count()}")
