@@ -4186,6 +4186,165 @@ div.force-light-mode,
 }
 
 /* ============================================
+   COULEURS BOOTSTRAP POUR KPI CARDS - MODE SOMBRE
+   ============================================ */
+
+/* Bleu - text-primary */
+[data-theme="dark"] .kpi-card .text-primary,
+[data-theme="dark"] .metric-card .text-primary,
+[data-theme="dark"] .card.kpi-card .text-primary,
+[data-theme="dark"] .card.metric-card .text-primary,
+html[data-theme="dark"] .kpi-card .text-primary,
+html[data-theme="dark"] .metric-card .text-primary,
+html[data-theme="dark"] .card.kpi-card .text-primary,
+html[data-theme="dark"] .card.metric-card .text-primary {
+  color: #60a5fa !important;
+}
+
+/* Vert - text-success */
+[data-theme="dark"] .kpi-card .text-success,
+[data-theme="dark"] .metric-card .text-success,
+[data-theme="dark"] .card.kpi-card .text-success,
+[data-theme="dark"] .card.metric-card .text-success,
+html[data-theme="dark"] .kpi-card .text-success,
+html[data-theme="dark"] .metric-card .text-success,
+html[data-theme="dark"] .card.kpi-card .text-success,
+html[data-theme="dark"] .card.metric-card .text-success {
+  color: #34d399 !important;
+}
+
+/* Cyan - text-info */
+[data-theme="dark"] .kpi-card .text-info,
+[data-theme="dark"] .metric-card .text-info,
+[data-theme="dark"] .card.kpi-card .text-info,
+[data-theme="dark"] .card.metric-card .text-info,
+html[data-theme="dark"] .kpi-card .text-info,
+html[data-theme="dark"] .metric-card .text-info,
+html[data-theme="dark"] .card.kpi-card .text-info,
+html[data-theme="dark"] .card.metric-card .text-info {
+  color: #38bdf8 !important;
+}
+
+/* Jaune - text-warning */
+[data-theme="dark"] .kpi-card .text-warning,
+[data-theme="dark"] .metric-card .text-warning,
+[data-theme="dark"] .card.kpi-card .text-warning,
+[data-theme="dark"] .card.metric-card .text-warning,
+html[data-theme="dark"] .kpi-card .text-warning,
+html[data-theme="dark"] .metric-card .text-warning,
+html[data-theme="dark"] .card.kpi-card .text-warning,
+html[data-theme="dark"] .card.metric-card .text-warning {
+  color: #fbbf24 !important;
+}
+
+/* Rouge - text-danger */
+[data-theme="dark"] .kpi-card .text-danger,
+[data-theme="dark"] .metric-card .text-danger,
+[data-theme="dark"] .card.kpi-card .text-danger,
+[data-theme="dark"] .card.metric-card .text-danger,
+html[data-theme="dark"] .kpi-card .text-danger,
+html[data-theme="dark"] .metric-card .text-danger,
+html[data-theme="dark"] .card.kpi-card .text-danger,
+html[data-theme="dark"] .card.metric-card .text-danger {
+  color: #f87171 !important;
+}
+
+/* ============================================
+   COULEURS BOOTSTRAP POUR KPI CARDS - MODE CLAIR
+   ============================================ */
+
+/* Bleu - text-primary */
+[data-theme="light"] .kpi-card .text-primary,
+[data-theme="light"] .metric-card .text-primary,
+[data-theme="light"] .card.kpi-card .text-primary,
+[data-theme="light"] .card.metric-card .text-primary,
+html[data-theme="light"] .kpi-card .text-primary,
+html[data-theme="light"] .metric-card .text-primary {
+  color: #0d6efd !important;
+}
+
+/* Vert - text-success */
+[data-theme="light"] .kpi-card .text-success,
+[data-theme="light"] .metric-card .text-success,
+[data-theme="light"] .card.kpi-card .text-success,
+[data-theme="light"] .card.metric-card .text-success,
+html[data-theme="light"] .kpi-card .text-success,
+html[data-theme="light"] .metric-card .text-success {
+  color: #198754 !important;
+}
+
+/* Cyan - text-info */
+[data-theme="light"] .kpi-card .text-info,
+[data-theme="light"] .metric-card .text-info,
+[data-theme="light"] .card.kpi-card .text-info,
+[data-theme="light"] .card.metric-card .text-info,
+html[data-theme="light"] .kpi-card .text-info,
+html[data-theme="light"] .metric-card .text-info {
+  color: #0dcaf0 !important;
+}
+
+/* Jaune - text-warning */
+[data-theme="light"] .kpi-card .text-warning,
+[data-theme="light"] .metric-card .text-warning,
+[data-theme="light"] .card.kpi-card .text-warning,
+[data-theme="light"] .card.metric-card .text-warning,
+html[data-theme="light"] .kpi-card .text-warning,
+html[data-theme="light"] .metric-card .text-warning {
+  color: #ffc107 !important;
+}
+
+/* Rouge - text-danger */
+[data-theme="light"] .kpi-card .text-danger,
+[data-theme="light"] .metric-card .text-danger,
+[data-theme="light"] .card.kpi-card .text-danger,
+[data-theme="light"] .card.metric-card .text-danger,
+html[data-theme="light"] .kpi-card .text-danger,
+html[data-theme="light"] .metric-card .text-danger {
+  color: #dc3545 !important;
+}
+
+/* Icon boxes colorés dans les KPI cards - MODE SOMBRE */
+[data-theme="dark"] .kpi-card .icon-box.bg-primary.text-primary,
+[data-theme="dark"] .metric-card .icon-box.bg-primary.text-primary,
+html[data-theme="dark"] .kpi-card .icon-box.bg-primary.text-primary,
+html[data-theme="dark"] .metric-card .icon-box.bg-primary.text-primary {
+  background-color: rgba(96, 165, 250, 0.15) !important;
+  color: #60a5fa !important;
+}
+
+[data-theme="dark"] .kpi-card .icon-box.bg-success.text-success,
+[data-theme="dark"] .metric-card .icon-box.bg-success.text-success,
+html[data-theme="dark"] .kpi-card .icon-box.bg-success.text-success,
+html[data-theme="dark"] .metric-card .icon-box.bg-success.text-success {
+  background-color: rgba(52, 211, 153, 0.15) !important;
+  color: #34d399 !important;
+}
+
+[data-theme="dark"] .kpi-card .icon-box.bg-info.text-info,
+[data-theme="dark"] .metric-card .icon-box.bg-info.text-info,
+html[data-theme="dark"] .kpi-card .icon-box.bg-info.text-info,
+html[data-theme="dark"] .metric-card .icon-box.bg-info.text-info {
+  background-color: rgba(56, 189, 248, 0.15) !important;
+  color: #38bdf8 !important;
+}
+
+[data-theme="dark"] .kpi-card .icon-box.bg-warning.text-warning,
+[data-theme="dark"] .metric-card .icon-box.bg-warning.text-warning,
+html[data-theme="dark"] .kpi-card .icon-box.bg-warning.text-warning,
+html[data-theme="dark"] .metric-card .icon-box.bg-warning.text-warning {
+  background-color: rgba(251, 191, 36, 0.15) !important;
+  color: #fbbf24 !important;
+}
+
+[data-theme="dark"] .kpi-card .icon-box.bg-danger.text-danger,
+[data-theme="dark"] .metric-card .icon-box.bg-danger.text-danger,
+html[data-theme="dark"] .kpi-card .icon-box.bg-danger.text-danger,
+html[data-theme="dark"] .metric-card .icon-box.bg-danger.text-danger {
+  background-color: rgba(248, 113, 113, 0.15) !important;
+  color: #f87171 !important;
+}
+
+/* ============================================
    BOUTON DÉCONNEXION - Rouge en mode clair
    ============================================ */
 
