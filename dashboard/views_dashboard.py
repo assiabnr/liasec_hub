@@ -31,6 +31,7 @@ from accounts.decorators import role_required
 from liasec_hub import settings
 from .view_utils import format_duration, get_period_range
 from .cache_utils import cache_dashboard_kpis
+from .utils.analytics import calculate_trend, get_period_comparison, get_kpi_with_trend
 
 
 @cache_dashboard_kpis(timeout=300)  # Cache pour 5 minutes
@@ -168,15 +169,62 @@ def calculate_dashboard_kpis():
     recommendations_clicked = ChatbotRecommendation.objects.filter(clicked=True).count()
     recommendations_ctr = round((recommendations_clicked / recommendations_total * 100), 1) if recommendations_total > 0 else 0
 
+    # ========== TENDANCES UNIFORMISÉES ==========
+    # Calculer les tendances pour les KPIs principaux
+    sessions_trend = calculate_trend(sessions_last_7, sessions_previous_7)
+
+    # Interactions chatbot - comparaison période précédente
+    interactions_previous_7 = ChatbotInteraction.objects.filter(
+        created_at__gte=previous_7_days, created_at__lt=last_7_days
+    ).count()
+    interactions_trend = calculate_trend(interactions_last_7, interactions_previous_7)
+
+    # Clics - comparaison période précédente
+    clicks_last_7 = ProductView.objects.filter(viewed_at__gte=last_7_days).count()
+    clicks_previous_7 = ProductView.objects.filter(
+        viewed_at__gte=previous_7_days, viewed_at__lt=last_7_days
+    ).count()
+    clicks_trend = calculate_trend(clicks_last_7, clicks_previous_7)
+
+    # Satisfaction - comparaison période précédente
+    satisfaction_last_7_stats = ChatbotInteraction.objects.filter(
+        created_at__gte=last_7_days,
+        satisfaction__isnull=False
+    ).aggregate(
+        total=Count('id'),
+        positives=Count('id', filter=Q(satisfaction=True))
+    )
+    satisfaction_previous_7_stats = ChatbotInteraction.objects.filter(
+        created_at__gte=previous_7_days,
+        created_at__lt=last_7_days,
+        satisfaction__isnull=False
+    ).aggregate(
+        total=Count('id'),
+        positives=Count('id', filter=Q(satisfaction=True))
+    )
+
+    sat_last_total = satisfaction_last_7_stats['total'] or 0
+    sat_last_positives = satisfaction_last_7_stats['positives'] or 0
+    sat_last_rate = (sat_last_positives / sat_last_total * 100) if sat_last_total > 0 else 0
+
+    sat_prev_total = satisfaction_previous_7_stats['total'] or 0
+    sat_prev_positives = satisfaction_previous_7_stats['positives'] or 0
+    sat_prev_rate = (sat_prev_positives / sat_prev_total * 100) if sat_prev_total > 0 else 0
+
+    satisfaction_trend = calculate_trend(sat_last_rate, sat_prev_rate)
+
     return {
         'sessions_total': sessions_total,
         'sessions_last_7': sessions_last_7,
         'sessions_variation': sessions_variation,
+        'sessions_trend': sessions_trend,  # Nouveau format unifié
         'avg_duration_minutes': avg_duration_minutes,
         'active_sessions_rate': active_sessions_rate,
         'interactions_total': interactions_total,
         'interactions_last_7': interactions_last_7,
+        'interactions_trend': interactions_trend,  # Nouveau
         'satisfaction_rate': satisfaction_rate,
+        'satisfaction_trend': satisfaction_trend,  # Nouveau
         'success_rate': success_rate,
         'avg_response_time': avg_response_time,
         'products_total': products_total,
@@ -186,6 +234,7 @@ def calculate_dashboard_kpis():
         'sources': sources,
         'sessions_by_day': sessions_by_day,
         'clicks_total': clicks_total,
+        'clicks_trend': clicks_trend,  # Nouveau
         'avg_price_viewed': avg_price_viewed,
         'recommendations_total': recommendations_total,
         'recommendations_ctr': recommendations_ctr,

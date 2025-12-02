@@ -18,6 +18,16 @@
 
 
   <link rel="stylesheet" href="{% static 'dashboard/assets/css/custom.css' %}">
+
+  <!-- Initialisation immédiate du thème pour éviter le flash -->
+  <script>
+    (function() {
+      const savedTheme = localStorage.getItem('theme');
+      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const theme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', theme);
+    })();
+  </script>
 </head>
 
 <body>
@@ -256,6 +266,306 @@
       }
       return cookieValue;
     }
+
+    // ============================
+    // SYSTÈME DE THÈME (DARK MODE) - VERSION SIMPLIFIÉE
+    // ============================
+    (function() {
+      const themeToggle = document.getElementById('themeToggle');
+      const html = document.documentElement;
+
+      // Charger le thème sauvegardé ou détecter la préférence système
+      const savedTheme = localStorage.getItem('theme');
+      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const initialTheme = savedTheme || (systemPrefersDark ? 'dark' : 'light');
+
+      // Appliquer le thème initial
+      html.setAttribute('data-theme', initialTheme);
+
+      // Toggle du thème
+      if (themeToggle) {
+        themeToggle.addEventListener('click', () => {
+          const currentTheme = html.getAttribute('data-theme');
+          const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+
+          html.setAttribute('data-theme', newTheme);
+          localStorage.setItem('theme', newTheme);
+
+          // Animation du bouton
+          themeToggle.style.transform = 'rotate(360deg)';
+          setTimeout(() => {
+            themeToggle.style.transform = 'rotate(0deg)';
+          }, 300);
+        });
+      }
+
+      // Écouter les changements de préférence système
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', (e) => {
+        if (!localStorage.getItem('theme')) {
+          html.setAttribute('data-theme', e.matches ? 'dark' : 'light');
+        }
+      });
+    })();
+
+    // ============================
+    // FORCE STYLES SUR TOUS LES KPI CARDS (SOLUTION ULTRA-RADICALE)
+    // ============================
+    function forceKPIStyles() {
+      const theme = document.documentElement.getAttribute('data-theme');
+
+      // Supprimer l'ancien style s'il existe
+      const oldStyle = document.getElementById('force-kpi-styles');
+      if (oldStyle) {
+        oldStyle.remove();
+      }
+
+      // Créer une nouvelle balise style avec des règles ultra-spécifiques
+      const styleTag = document.createElement('style');
+      styleTag.id = 'force-kpi-styles';
+
+      if (theme === 'dark') {
+        styleTag.textContent = `
+          /* MODE SOMBRE - Règles injectées dynamiquement avec priorité MAXIMALE ABSOLUE */
+          html[data-theme="dark"] .kpi-card,
+          html[data-theme="dark"] .metric-card,
+          html[data-theme="dark"] .card.kpi-card,
+          html[data-theme="dark"] .card.metric-card,
+          html[data-theme="dark"] div.card.kpi-card,
+          html[data-theme="dark"] div.card.metric-card,
+          html[data-theme="dark"] .card.border-0.shadow-sm.h-100.kpi-card,
+          html[data-theme="dark"] .card.border-0.shadow-sm.text-center.p-3.metric-card,
+          html[data-theme="dark"] .card.text-center.p-2.shadow-sm.kpi-card,
+          html[data-theme="dark"] .card.text-center.p-2,
+          html[data-theme="dark"] #kpi-sessions,
+          html[data-theme="dark"] #kpi-chatbot,
+          html[data-theme="dark"] #kpi-consultations,
+          html[data-theme="dark"] #kpi-clics {
+            background-color: #161b22 !important;
+            background: #161b22 !important;
+            border-color: #30363d !important;
+            color: #e6edf3 !important;
+          }
+
+          html[data-theme="dark"] .kpi-card .card-body,
+          html[data-theme="dark"] .metric-card .card-body,
+          html[data-theme="dark"] .card.kpi-card .card-body,
+          html[data-theme="dark"] .card.metric-card .card-body {
+            background-color: transparent !important;
+            background: transparent !important;
+            color: #e6edf3 !important;
+          }
+
+          /* Titres par défaut */
+          html[data-theme="dark"] .kpi-card h1, html[data-theme="dark"] .kpi-card h2,
+          html[data-theme="dark"] .kpi-card h3, html[data-theme="dark"] .kpi-card h4,
+          html[data-theme="dark"] .metric-card h1, html[data-theme="dark"] .metric-card h2,
+          html[data-theme="dark"] .metric-card h3, html[data-theme="dark"] .metric-card h4,
+          html[data-theme="dark"] .card.kpi-card h1, html[data-theme="dark"] .card.kpi-card h2,
+          html[data-theme="dark"] .card.kpi-card h3, html[data-theme="dark"] .card.kpi-card h4,
+          html[data-theme="dark"] .card.metric-card h1, html[data-theme="dark"] .card.metric-card h2 {
+            color: #e6edf3 !important;
+          }
+
+          /* Couleurs spécifiques pour les textes - MODE SOMBRE */
+          html[data-theme="dark"] .kpi-card .text-primary,
+          html[data-theme="dark"] .metric-card .text-primary,
+          html[data-theme="dark"] .card.kpi-card .text-primary {
+            color: #60a5fa !important; /* Bleu clair pour mode sombre */
+          }
+
+          html[data-theme="dark"] .kpi-card .text-success,
+          html[data-theme="dark"] .metric-card .text-success,
+          html[data-theme="dark"] .card.kpi-card .text-success {
+            color: #34d399 !important; /* Vert clair pour mode sombre */
+          }
+
+          html[data-theme="dark"] .kpi-card .text-info,
+          html[data-theme="dark"] .metric-card .text-info,
+          html[data-theme="dark"] .card.kpi-card .text-info {
+            color: #38bdf8 !important; /* Cyan clair pour mode sombre */
+          }
+
+          html[data-theme="dark"] .kpi-card .text-warning,
+          html[data-theme="dark"] .metric-card .text-warning,
+          html[data-theme="dark"] .card.kpi-card .text-warning {
+            color: #fbbf24 !important; /* Jaune clair pour mode sombre */
+          }
+
+          html[data-theme="dark"] .kpi-card .text-danger,
+          html[data-theme="dark"] .metric-card .text-danger,
+          html[data-theme="dark"] .card.kpi-card .text-danger {
+            color: #f87171 !important; /* Rouge clair pour mode sombre */
+          }
+
+          html[data-theme="dark"] .kpi-card .text-muted,
+          html[data-theme="dark"] .metric-card .text-muted,
+          html[data-theme="dark"] .card.kpi-card .text-muted,
+          html[data-theme="dark"] .card.metric-card .text-muted,
+          html[data-theme="dark"] .kpi-card p.text-muted,
+          html[data-theme="dark"] .metric-card p.text-muted {
+            color: #7d8590 !important;
+          }
+
+          html[data-theme="dark"] .kpi-card small,
+          html[data-theme="dark"] .metric-card small,
+          html[data-theme="dark"] .card.kpi-card small,
+          html[data-theme="dark"] .card.metric-card small {
+            color: #9198a1 !important;
+          }
+        `;
+      } else {
+        styleTag.textContent = `
+          /* MODE CLAIR - Règles injectées dynamiquement */
+          html[data-theme="light"] .kpi-card,
+          html[data-theme="light"] .metric-card,
+          html[data-theme="light"] .card.kpi-card,
+          html[data-theme="light"] .card.metric-card,
+          html[data-theme="light"] div.card.kpi-card,
+          html[data-theme="light"] div.card.metric-card,
+          html[data-theme="light"] .card.border-0.shadow-sm.h-100.kpi-card,
+          html[data-theme="light"] .card.border-0.shadow-sm.text-center.p-3.metric-card,
+          html[data-theme="light"] .card.text-center.p-2.shadow-sm.kpi-card,
+          html[data-theme="light"] #kpi-sessions,
+          html[data-theme="light"] #kpi-chatbot,
+          html[data-theme="light"] #kpi-consultations,
+          html[data-theme="light"] #kpi-clics {
+            background-color: #ffffff !important;
+            background: #ffffff !important;
+            border-color: #dee2e6 !important;
+            color: #1a1a1a !important;
+          }
+
+          html[data-theme="light"] .kpi-card .card-body,
+          html[data-theme="light"] .metric-card .card-body,
+          html[data-theme="light"] .card.kpi-card .card-body,
+          html[data-theme="light"] .card.metric-card .card-body {
+            background-color: transparent !important;
+            background: transparent !important;
+            color: #1a1a1a !important;
+          }
+
+          /* Titres par défaut */
+          html[data-theme="light"] .kpi-card h1, html[data-theme="light"] .kpi-card h2,
+          html[data-theme="light"] .kpi-card h3, html[data-theme="light"] .kpi-card h4,
+          html[data-theme="light"] .metric-card h1, html[data-theme="light"] .metric-card h2,
+          html[data-theme="light"] .metric-card h3, html[data-theme="light"] .metric-card h4 {
+            color: #1a1a1a !important;
+          }
+
+          /* Couleurs spécifiques pour les textes - MODE CLAIR */
+          html[data-theme="light"] .kpi-card .text-primary,
+          html[data-theme="light"] .metric-card .text-primary,
+          html[data-theme="light"] .card.kpi-card .text-primary {
+            color: #0d6efd !important; /* Bleu Bootstrap */
+          }
+
+          html[data-theme="light"] .kpi-card .text-success,
+          html[data-theme="light"] .metric-card .text-success,
+          html[data-theme="light"] .card.kpi-card .text-success {
+            color: #198754 !important; /* Vert Bootstrap */
+          }
+
+          html[data-theme="light"] .kpi-card .text-info,
+          html[data-theme="light"] .metric-card .text-info,
+          html[data-theme="light"] .card.kpi-card .text-info {
+            color: #0dcaf0 !important; /* Cyan Bootstrap */
+          }
+
+          html[data-theme="light"] .kpi-card .text-warning,
+          html[data-theme="light"] .metric-card .text-warning,
+          html[data-theme="light"] .card.kpi-card .text-warning {
+            color: #ffc107 !important; /* Jaune Bootstrap */
+          }
+
+          html[data-theme="light"] .kpi-card .text-danger,
+          html[data-theme="light"] .metric-card .text-danger,
+          html[data-theme="light"] .card.kpi-card .text-danger {
+            color: #dc3545 !important; /* Rouge Bootstrap */
+          }
+
+          html[data-theme="light"] .kpi-card .text-muted,
+          html[data-theme="light"] .metric-card .text-muted,
+          html[data-theme="light"] .card.kpi-card .text-muted,
+          html[data-theme="light"] .card.metric-card .text-muted {
+            color: #6b7280 !important;
+          }
+
+          html[data-theme="light"] .kpi-card small,
+          html[data-theme="light"] .metric-card small,
+          html[data-theme="light"] .card.kpi-card small,
+          html[data-theme="light"] .card.metric-card small {
+            color: #4a5568 !important;
+          }
+        `;
+      }
+
+      // Injecter dans le head (priorité maximale car chargé en dernier)
+      document.head.appendChild(styleTag);
+
+      console.log(`[DARK MODE] Injected dynamic styles for theme: ${theme}`);
+
+      // Sélectionner TOUS les KPI cards et metric cards
+      const allCards = document.querySelectorAll('.kpi-card, .metric-card, .card.kpi-card, .card.metric-card, .card.text-center.p-2, .card.text-center.shadow-sm.kpi-card');
+
+      console.log(`[DARK MODE] Found ${allCards.length} cards`);
+
+      // Forcer un reflow pour que les styles s'appliquent immédiatement
+      allCards.forEach(card => {
+        // Forcer le navigateur à recalculer les styles
+        void card.offsetHeight;
+
+        // Vérifier l'application
+        const computedBg = window.getComputedStyle(card).backgroundColor;
+        console.log(`[DARK MODE] Card BG after injection:`, computedBg);
+      });
+    }
+
+    // Appliquer au chargement du DOM
+    document.addEventListener('DOMContentLoaded', function() {
+      // Appliquer immédiatement
+      forceKPIStyles();
+
+      // Réappliquer après un court délai pour capturer les éléments chargés dynamiquement
+      setTimeout(forceKPIStyles, 100);
+      setTimeout(forceKPIStyles, 300);
+
+      // Observer les changements de thème
+      const observer = new MutationObserver(function(mutations) {
+        mutations.forEach(function(mutation) {
+          if (mutation.type === 'attributes' && mutation.attributeName === 'data-theme') {
+            // Petit délai pour laisser les transitions CSS se faire
+            setTimeout(forceKPIStyles, 50);
+          }
+        });
+      });
+
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['data-theme']
+      });
+
+      // Observer aussi l'ajout de nouveaux éléments au DOM
+      const bodyObserver = new MutationObserver(function(mutations) {
+        let shouldReapply = false;
+        mutations.forEach(function(mutation) {
+          if (mutation.addedNodes.length > 0) {
+            mutation.addedNodes.forEach(function(node) {
+              if (node.nodeType === 1 && (node.classList.contains('kpi-card') || node.classList.contains('metric-card') || node.querySelector('.kpi-card') || node.querySelector('.metric-card'))) {
+                shouldReapply = true;
+              }
+            });
+          }
+        });
+        if (shouldReapply) {
+          forceKPIStyles();
+        }
+      });
+
+      bodyObserver.observe(document.body, {
+        childList: true,
+        subtree: true
+      });
+    });
   </script>
 
 </body>
