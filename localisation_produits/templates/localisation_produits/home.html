@@ -340,11 +340,21 @@
     <!-- Modale affichage image zone -->
     <div id="zoneImageModal" class="zone-modal">
       <div class="zone-modal-content">
-        <button type="button" class="zone-modal-close" id="closeZoneModal">
-          <i class="bi bi-x-lg"></i>
-        </button>
+        <div class="zone-modal-header">
+          <div class="zone-modal-title-wrapper">
+            <i class="bi bi-geo-alt-fill zone-modal-icon"></i>
+            <h2 id="zoneModalTitle" class="zone-modal-title">Zone</h2>
+          </div>
+          <button type="button" class="zone-modal-close" id="closeZoneModal">
+            <i class="bi bi-x-lg"></i>
+          </button>
+        </div>
         <div class="zone-modal-body">
           <img id="zoneModalImage" src="" alt="Image de la zone" />
+          <div class="zone-modal-hint">
+            <i class="bi bi-hand-index"></i>
+            <span>Pincez pour zoomer • Glissez vers le bas pour fermer</span>
+          </div>
         </div>
       </div>
     </div>
@@ -806,20 +816,21 @@
         pointer-events: none;
       }
 
-      /* Modale affichage image zone */
+      /* Modale affichage image zone - Optimisée pour borne tactile */
       .zone-modal {
         position: fixed;
         top: 0;
         left: 0;
         right: 0;
         bottom: 0;
-        background: rgba(0, 0, 0, 0.8);
+        background: rgba(0, 0, 0, 0.92);
+        backdrop-filter: blur(8px);
         z-index: 10000;
         display: none;
         align-items: center;
         justify-content: center;
         opacity: 0;
-        transition: opacity 0.3s ease;
+        transition: opacity 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       }
 
       .zone-modal.show {
@@ -828,67 +839,203 @@
       }
 
       .zone-modal-content {
-        background: #ffffff;
-        border-radius: 20px;
-        width: 450px;
-        max-width: 95vw;
-        max-height: 85vh;
+        background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+        border-radius: 32px;
+        width: 90vw;
+        max-width: 800px;
+        max-height: 90vh;
         position: relative;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+        box-shadow:
+          0 25px 80px rgba(0, 0, 0, 0.6),
+          0 0 0 1px rgba(255, 255, 255, 0.1);
         overflow: hidden;
-        transform: scale(0.95);
-        transition: transform 0.3s ease;
+        transform: scale(0.9) translateY(20px);
+        transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         display: flex;
         flex-direction: column;
       }
 
       .zone-modal.show .zone-modal-content {
-        transform: scale(1);
+        transform: scale(1) translateY(0);
+      }
+
+      .zone-modal-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 24px 28px;
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        border-bottom: 3px solid rgba(255, 255, 255, 0.2);
+        position: relative;
+      }
+
+      .zone-modal-header::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        background: linear-gradient(90deg,
+          transparent 0%,
+          rgba(255, 255, 255, 0.4) 50%,
+          transparent 100%);
+      }
+
+      .zone-modal-title-wrapper {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+      }
+
+      .zone-modal-icon {
+        font-size: 32px;
+        color: #ffffff;
+        filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+        animation: pulseIcon 2s ease-in-out infinite;
+      }
+
+      @keyframes pulseIcon {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.1); }
+      }
+
+      .zone-modal-title {
+        font-size: 26px;
+        font-weight: 700;
+        color: #ffffff;
+        margin: 0;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        letter-spacing: -0.5px;
       }
 
       .zone-modal-close {
-        position: absolute;
-        top: 12px;
-        right: 12px;
-        width: 40px;
-        height: 40px;
+        width: 56px;
+        height: 56px;
         border-radius: 50%;
-        border: none;
-        background: rgba(255, 255, 255, 0.95);
-        color: #1e293b;
-        font-size: 18px;
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        color: #ffffff;
+        font-size: 24px;
         display: flex;
         align-items: center;
         justify-content: center;
         cursor: pointer;
         z-index: 10;
-        transition: all 0.2s ease;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow:
+          0 4px 12px rgba(0, 0, 0, 0.2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2);
       }
 
-      .zone-modal-close:hover {
-        background: #ffffff;
-        transform: scale(1.1);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      .zone-modal-close:hover,
+      .zone-modal-close:active {
+        background: rgba(255, 255, 255, 0.95);
+        color: #dc2626;
+        border-color: #dc2626;
+        transform: rotate(90deg) scale(1.1);
+        box-shadow:
+          0 6px 20px rgba(220, 38, 38, 0.4),
+          inset 0 1px 0 rgba(255, 255, 255, 0.5);
       }
 
       .zone-modal-body {
         padding: 0;
         flex: 1;
-        overflow: auto;
+        overflow: hidden;
         display: flex;
+        flex-direction: column;
         align-items: center;
         justify-content: center;
-        background: #f8fafc;
+        background: #1e293b;
+        position: relative;
       }
 
       .zone-modal-body img {
         width: 100%;
         height: auto;
+        max-height: calc(90vh - 180px);
         display: block;
         object-fit: contain;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        touch-action: pinch-zoom;
+        user-select: none;
+        -webkit-user-select: none;
+      }
+
+      .zone-modal-hint {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+        padding: 20px 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+        color: #ffffff;
+        font-size: 15px;
+        font-weight: 500;
+        opacity: 1;
+        animation: fadeInOut 3s ease-in-out infinite;
+      }
+
+      @keyframes fadeInOut {
+        0%, 100% { opacity: 0.6; }
+        50% { opacity: 1; }
+      }
+
+      .zone-modal-hint i {
+        font-size: 20px;
+        color: #60a5fa;
+        animation: pointFinger 1.5s ease-in-out infinite;
+      }
+
+      @keyframes pointFinger {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-4px); }
+      }
+
+      /* Responsive pour écrans plus petits */
+      @media (max-width: 768px) {
+        .zone-modal-content {
+          width: 95vw;
+          max-height: 95vh;
+          border-radius: 24px;
+        }
+
+        .zone-modal-header {
+          padding: 20px 20px;
+        }
+
+        .zone-modal-title {
+          font-size: 22px;
+        }
+
+        .zone-modal-icon {
+          font-size: 28px;
+        }
+
+        .zone-modal-close {
+          width: 52px;
+          height: 52px;
+          font-size: 22px;
+        }
+
+        .zone-modal-hint {
+          font-size: 13px;
+          padding: 16px 20px;
+        }
       }
     </style>
+
+    <!-- Mapping des noms de zones (depuis Python) -->
+    <script>
+      // Exposer ZONE_NAMES globalement pour map-standalone.js
+      window.ZONE_NAMES = {{ zone_names_json|safe }};
+    </script>
 
     <!-- scripts carte -->
     <script src="{% static 'chatbot/js/sport.js' %}"></script>

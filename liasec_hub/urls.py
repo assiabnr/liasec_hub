@@ -28,5 +28,10 @@ urlpatterns = [
     path("chatbot/", include("chatbot.urls")),
 ]
 
-if settings.DEBUG:
+# Servir les fichiers média en développement
+if settings.DEBUG or True:  # Toujours servir en local
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+# En mode DEBUG=False, Django ne sert pas automatiquement les fichiers statiques
+# Il faut ajouter WhiteNoise ou utiliser un serveur web (Nginx, Apache)
+# Pour le développement local, il faut activer DEBUG=True

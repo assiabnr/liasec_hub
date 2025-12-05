@@ -1351,4 +1351,43 @@ window.getPathIdFromCategory = function (categoryLabel, sportLabel, productName)
   return null;
 };
 
+/**
+ * Fonction inverse : récupère le nom du sport à partir d'un pathId (ex: "area1" -> "Natation")
+ * @param {string} pathId - L'identifiant de la zone (ex: "area1", "area12", etc.)
+ * @returns {string|null} - Le nom du sport principal pour cette zone, ou null si non trouvé
+ */
+const getSportFromPathId = (pathId) => {
+  if (!pathId || !window.mergedData) {
+    return null;
+  }
+
+  // Nettoyer le pathId (enlever les espaces, mettre en minuscule)
+  const cleanPathId = pathId.toString().trim().toLowerCase();
+
+  // Parcourir tous les sports et leurs catégories
+  for (const sport in window.mergedData) {
+    const categories = window.mergedData[sport].categories || [];
+
+    for (const cat of categories) {
+      let catPathId = cat.pathId;
+
+      // Gérer les arrays de pathId
+      if (Array.isArray(catPathId)) {
+        catPathId = catPathId.map(p => p.toString().trim().toLowerCase());
+        if (catPathId.includes(cleanPathId)) {
+          return sport;
+        }
+      } else {
+        catPathId = catPathId.toString().trim().toLowerCase();
+        if (catPathId === cleanPathId) {
+          return sport;
+        }
+      }
+    }
+  }
+
+  return null;
+};
+
 window.getPathIdFromCategory = getPathIdFromCategory;
+window.getSportFromPathId = getSportFromPathId;

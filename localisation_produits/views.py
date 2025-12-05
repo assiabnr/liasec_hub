@@ -8,6 +8,7 @@ from django.shortcuts import render, get_object_or_404
 from django.utils import timezone
 
 from dashboard.models import Session, Product, ProductView
+from dashboard.zone_mapping import ZONE_NAMES
 
 
 # --------- Helpers session ---------
@@ -180,6 +181,7 @@ def home(request):
             "selected_brand": brand_filter,
             "selected_sort": sort_by,
             "pagination_items": pagination_items,
+            "zone_names_json": json.dumps(ZONE_NAMES),  # Pour JavaScript
         },
     )
 

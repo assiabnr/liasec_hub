@@ -470,6 +470,7 @@ function showZoneImage(zoneId, zoneName) {
 
   const modal = document.getElementById("zoneImageModal");
   const modalImage = document.getElementById("zoneModalImage");
+  const modalTitle = document.getElementById("zoneModalTitle");
   const closeBtn = document.getElementById("closeZoneModal");
 
   if (!modal || !modalImage) {
@@ -491,6 +492,29 @@ function showZoneImage(zoneId, zoneName) {
 
   console.log("[MAP] Affichage image zone:", zoneId, "->", imagePath);
 
+  // Mettre à jour le titre de la zone avec le nom exact depuis ZONE_NAMES
+  if (modalTitle) {
+    let displayName = zoneName;
+
+    // Utiliser ZONE_NAMES depuis Python (zone_mapping.py)
+    if (window.ZONE_NAMES && window.ZONE_NAMES[zoneId]) {
+      displayName = window.ZONE_NAMES[zoneId];
+    }
+    // Fallback: essayer de récupérer le nom du sport depuis mergedData
+    else if (typeof window.getSportFromPathId === "function") {
+      const sportName = window.getSportFromPathId(zoneId);
+      if (sportName) {
+        displayName = sportName;
+      }
+    }
+    // Fallback final si aucun nom trouvé
+    else if (!displayName) {
+      displayName = `Zone ${zoneNumber || "principale"}`;
+    }
+
+    modalTitle.textContent = displayName;
+  }
+
   // Mettre à jour le contenu de la modale
   modalImage.src = imagePath;
   modalImage.alt = `Image de la zone ${zoneName || zoneId}`;
@@ -508,6 +532,10 @@ function showZoneImage(zoneId, zoneName) {
     modal.style.opacity = "0";
     setTimeout(() => {
       modal.classList.remove("show");
+      // Reset du zoom si présent
+      if (modalImage) {
+        modalImage.style.transform = "scale(1)";
+      }
     }, 300);
   };
 
@@ -521,6 +549,54 @@ function showZoneImage(zoneId, zoneName) {
       closeModal();
     }
   };
+
+  // Gestion du swipe vers le bas pour fermer (tactile)
+  let touchStartY = 0;
+  let touchEndY = 0;
+
+  modal.addEventListener("touchstart", (e) => {
+    touchStartY = e.changedTouches[0].screenY;
+  }, { passive: true });
+
+  modal.addEventListener("touchend", (e) => {
+    touchEndY = e.changedTouches[0].screenY;
+    handleSwipe();
+  }, { passive: true });
+
+  function handleSwipe() {
+    const swipeDistance = touchEndY - touchStartY;
+    // Si swipe vers le bas de plus de 100px, fermer la modale
+    if (swipeDistance > 100) {
+      closeModal();
+    }
+  }
+
+  // Gestion du pinch-to-zoom basique
+  let initialDistance = 0;
+  let currentScale = 1;
+
+  modal.addEventListener("touchstart", (e) => {
+    if (e.touches.length === 2) {
+      initialDistance = getDistance(e.touches[0], e.touches[1]);
+    }
+  }, { passive: true });
+
+  modal.addEventListener("touchmove", (e) => {
+    if (e.touches.length === 2) {
+      const currentDistance = getDistance(e.touches[0], e.touches[1]);
+      const scale = currentDistance / initialDistance;
+      currentScale = Math.min(Math.max(1, scale), 3); // Limiter entre 1x et 3x
+      if (modalImage) {
+        modalImage.style.transform = `scale(${currentScale})`;
+      }
+    }
+  }, { passive: true });
+
+  function getDistance(touch1, touch2) {
+    const dx = touch1.clientX - touch2.clientX;
+    const dy = touch1.clientY - touch2.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
 
   console.log("[MAP] Modale image affichée pour zone:", zoneName);
 }

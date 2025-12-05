@@ -37,6 +37,7 @@ INSTALLED_APPS = [
 # --- MIDDLEWARE ---
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # WhiteNoise doit être juste après SecurityMiddleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -110,8 +111,21 @@ STATICFILES_DIRS = [
     BASE_DIR / "dashboard" / "static",
     BASE_DIR / "accounts" / "static",
     BASE_DIR / "chatbot" / "static",
+    BASE_DIR / "localisation_produits" / "static",
 ]
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# Configuration WhiteNoise pour servir les fichiers statiques même en DEBUG=False
+WHITENOISE_USE_FINDERS = True  # Permet d'utiliser STATICFILES_DIRS même sans collectstatic
+WHITENOISE_AUTOREFRESH = True  # Recharge automatiquement les fichiers en développement
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedStaticFilesStorage",  # Sans manifest pour éviter les erreurs
+    },
+}
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
