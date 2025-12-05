@@ -149,25 +149,25 @@
       </div>
     </div>
 
-    <!-- Clics -->
+    <!-- Explorations Zones -->
     <div class="col-xl-3 col-md-6">
-      <div id="kpi-clics" class="card border-0 shadow-sm h-100 kpi-card clickable-card" data-href="{% url 'clicks' %}">
+      <div id="kpi-zones" class="card border-0 shadow-sm h-100 kpi-card clickable-card" data-href="{% url 'clicks' %}">
         <div class="card-body">
           <div class="d-flex justify-content-between align-items-start mb-3">
             <div>
-              <p class="text-muted mb-1 small fw-semibold text-uppercase">Clics</p>
-              <h2 class="fw-bold mb-0 text-warning">{{ clicks_total|intcomma }}</h2>
+              <p class="text-muted mb-1 small fw-semibold text-uppercase">Explorations Zones</p>
+              <h2 class="fw-bold mb-0 text-warning">{{ zones_total|intcomma }}</h2>
             </div>
             <div class="icon-box bg-warning bg-opacity-10 text-warning">
-              <i class="bi bi-cursor-fill fs-4"></i>
+              <i class="bi bi-pin-map-fill fs-4"></i>
             </div>
           </div>
           <div class="d-flex justify-content-between align-items-center">
-            <small class="text-muted">7 derniers jours: {{ clicks_last_7|intcomma }}</small>
-            {% if clicks_variation > 0 %}
-              <span class="badge bg-success"><i class="bi bi-arrow-up"></i> {{ clicks_variation }}%</span>
-            {% elif clicks_variation < 0 %}
-              <span class="badge bg-danger"><i class="bi bi-arrow-down"></i> {{ clicks_variation }}%</span>
+            <small class="text-muted">7 derniers jours: {{ zones_last_7|intcomma }}</small>
+            {% if zones_variation > 0 %}
+              <span class="badge bg-success"><i class="bi bi-arrow-up"></i> {{ zones_variation }}%</span>
+            {% elif zones_variation < 0 %}
+              <span class="badge bg-danger"><i class="bi bi-arrow-down"></i> {{ zones_variation }}%</span>
             {% else %}
               <span class="badge bg-secondary">0%</span>
             {% endif %}
@@ -632,16 +632,6 @@ document.addEventListener("DOMContentLoaded", function () {
           fill: true,
           pointRadius: 4,
           pointBackgroundColor: "#3B82F6"
-        },
-        {
-          label: "Clics",
-          data: clicksData,
-          borderColor: "#F59E0B",
-          backgroundColor: "rgba(245, 158, 11, 0.1)",
-          tension: 0.4,
-          fill: true,
-          pointRadius: 4,
-          pointBackgroundColor: "#F59E0B"
         }
       ]
     },
@@ -765,7 +755,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // ========== FORCER LES STYLES DES 4 KPI CARDS ==========
   function applyKPIStyles() {
     const theme = document.documentElement.getAttribute('data-theme');
-    const kpiIds = ['kpi-sessions', 'kpi-chatbot', 'kpi-consultations', 'kpi-clics'];
+    const kpiIds = ['kpi-sessions', 'kpi-chatbot', 'kpi-consultations', 'kpi-zones'];
 
     kpiIds.forEach(id => {
       const card = document.getElementById(id);

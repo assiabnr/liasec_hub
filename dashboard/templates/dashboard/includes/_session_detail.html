@@ -1,3 +1,4 @@
+{% load dashboard_extras %}
 <style>
 /* ========== STYLES POUR LA VUE CONVERSATION ========== */
 .chat-container {
@@ -512,14 +513,24 @@
               {% elif event.type == "product_view" %}
                 <div class="timeline-item product-event">
                   <div class="d-flex justify-content-between align-items-start mb-2">
-                    <h6 class="mb-0 fw-bold text-success">
-                      <i class="bi bi-bag-fill me-2"></i>Consultation Produit
-                    </h6>
+                    {% if event.data.product %}
+                      <h6 class="mb-0 fw-bold text-success">
+                        <i class="bi bi-bag-fill me-2"></i>Consultation Produit
+                      </h6>
+                    {% else %}
+                      <h6 class="mb-0 fw-bold text-warning">
+                        <i class="bi bi-pin-map-fill me-2"></i>Exploration Zone
+                      </h6>
+                    {% endif %}
                     <small class="text-muted">{{ event.timestamp|date:"H:i:s" }}</small>
                   </div>
                   <div class="d-flex justify-content-between align-items-center">
                     <div>
-                      <p class="mb-1"><strong>{{ event.data.product.name|default:"Produit inconnu" }}</strong></p>
+                      {% if event.data.product %}
+                        <p class="mb-1"><strong>{{ event.data.product.name }}</strong></p>
+                      {% else %}
+                        <p class="mb-1 text-muted"><strong>Clic direct sur la carte</strong></p>
+                      {% endif %}
                       <div class="d-flex gap-2 flex-wrap">
                         {% if event.data.source == "chatbot" %}
                           <span class="badge bg-info"><i class="bi bi-chat me-1"></i>Chatbot</span>
@@ -529,11 +540,11 @@
                           <span class="badge bg-success"><i class="bi bi-search me-1"></i>Recherche</span>
                         {% endif %}
                         {% if event.data.zone %}
-                          <span class="badge bg-secondary">{{ event.data.zone }}</span>
+                          <span class="badge bg-secondary"><i class="bi bi-geo-alt-fill me-1"></i>{{ event.data.zone|zone_name }}</span>
                         {% endif %}
                       </div>
                     </div>
-                    {% if event.data.product.image_url %}
+                    {% if event.data.product and event.data.product.image_url %}
                       <img src="{{ event.data.product.image_url }}" alt="{{ event.data.product.name }}" class="rounded" width="50" height="50" style="object-fit:cover;">
                     {% endif %}
                   </div>
@@ -565,37 +576,51 @@
                   <div class="card h-100 border">
                     <div class="card-body">
                       <div class="d-flex flex-column flex-sm-row gap-3 align-items-start">
-                        {% if p.product.image_url %}
-                          <img src="{{ p.product.image_url }}" alt="{{ p.product.name }}" class="rounded reco-thumb">
-                        {% endif %}
-                        <div class="flex-grow-1">
-                          {% if p.product %}
+                        {% if p.product %}
+                          {% if p.product.image_url %}
+                            <img src="{{ p.product.image_url }}" alt="{{ p.product.name }}" class="rounded reco-thumb">
+                          {% endif %}
+                          <div class="flex-grow-1">
                             <h6 class="fw-bold mb-2">
                               <a href="{% url 'product_detail' p.product.id %}" class="text-decoration-none text-primary" target="_blank" rel="noopener">
-                                {{ p.product.name|default:"Produit inconnu" }}
+                                {{ p.product.name }}
                                 <i class="bi bi-box-arrow-up-right small ms-1"></i>
                               </a>
                             </h6>
-                          {% else %}
-                            <h6 class="fw-bold mb-2">Produit inconnu</h6>
-                          {% endif %}
-                          <p class="text-muted small mb-2">ID: {{ p.product.product_id|default:"-" }}</p>
-                          <div class="mb-2 d-flex flex-wrap gap-2">
-                            {% if p.source == "chatbot" %}
-                              <span class="badge bg-primary"><i class="bi bi-chat-dots-fill me-1"></i>Chatbot</span>
-                            {% elif p.source == "carte" %}
-                              <span class="badge bg-warning text-dark"><i class="bi bi-map-fill me-1"></i>Carte</span>
-                            {% elif p.source == "recherche" %}
-                              <span class="badge bg-info"><i class="bi bi-search me-1"></i>Recherche</span>
-                            {% endif %}
-                            {% if p.zone %}
-                              <span class="badge bg-secondary">{{ p.zone }}</span>
-                            {% endif %}
+                            <p class="text-muted small mb-2">ID: {{ p.product.product_id }}</p>
+                            <div class="mb-2 d-flex flex-wrap gap-2">
+                              {% if p.source == "chatbot" %}
+                                <span class="badge bg-primary"><i class="bi bi-chat-dots-fill me-1"></i>Chatbot</span>
+                              {% elif p.source == "carte" %}
+                                <span class="badge bg-warning text-dark"><i class="bi bi-map-fill me-1"></i>Carte</span>
+                              {% elif p.source == "recherche" %}
+                                <span class="badge bg-info"><i class="bi bi-search me-1"></i>Recherche</span>
+                              {% endif %}
+                              {% if p.zone %}
+                                <span class="badge bg-secondary">{{ p.zone }}</span>
+                              {% endif %}
+                            </div>
+                            <small class="text-muted d-inline-flex align-items-center gap-1">
+                              <i class="bi bi-clock"></i> {{ p.viewed_at|date:"d/m/Y H:i" }}
+                            </small>
                           </div>
-                          <small class="text-muted d-inline-flex align-items-center gap-1">
-                            <i class="bi bi-clock"></i> {{ p.viewed_at|date:"d/m/Y H:i" }}
-                          </small>
-                        </div>
+                        {% else %}
+                          {# Clic sur zone sans produit #}
+                          <div class="flex-grow-1">
+                            <h6 class="fw-bold mb-2 text-muted">
+                              <i class="bi bi-pin-map-fill me-2"></i>Exploration de zone
+                            </h6>
+                            <div class="mb-2 d-flex flex-wrap gap-2">
+                              <span class="badge bg-warning text-dark"><i class="bi bi-map-fill me-1"></i>Carte</span>
+                              {% if p.zone %}
+                                <span class="badge bg-secondary"><i class="bi bi-geo-alt-fill me-1"></i>{{ p.zone|zone_name }}</span>
+                              {% endif %}
+                            </div>
+                            <small class="text-muted d-inline-flex align-items-center gap-1">
+                              <i class="bi bi-clock"></i> {{ p.viewed_at|date:"d/m/Y H:i" }}
+                            </small>
+                          </div>
+                        {% endif %}
                       </div>
                     </div>
                   </div>

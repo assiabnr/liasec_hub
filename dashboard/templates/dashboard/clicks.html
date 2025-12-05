@@ -1,5 +1,6 @@
 {% extends 'dashboard/base.html' %}
 {% load humanize %}
+{% load dashboard_extras %}
 {% block content %}
 <div class="container-fluid py-4">
 
@@ -175,6 +176,132 @@
           <h6 class="fw-bold text-primary mb-0">Répartition par source</h6>
         </div>
         <canvas id="clicksBySourceChart" style="max-height: 300px;"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== SECTION ANALYSE DES ZONES ========== -->
+  <div class="card p-4 mb-4 bg-gradient" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+    <h5 class="fw-bold text-white mb-3">
+      <i class="bi bi-pin-map-fill me-2"></i>Analyse des explorations de zones
+    </h5>
+    <div class="row g-3">
+      <!-- Total explorations -->
+      <div class="col-md-3">
+        <div class="card border-0 shadow-sm text-center p-3">
+          <h6 class="text-muted mb-1">Total explorations</h6>
+          <h2 class="fw-bold mb-0 text-primary">{{ total_zone_clicks|intcomma }}</h2>
+          <small class="text-muted">clics sur zones</small>
+        </div>
+      </div>
+
+      <!-- Sessions avec explorations -->
+      <div class="col-md-3">
+        <div class="card border-0 shadow-sm text-center p-3">
+          <h6 class="text-muted mb-1">Sessions explorées</h6>
+          <h2 class="fw-bold mb-0 text-info">{{ sessions_with_zones|intcomma }}</h2>
+          <small class="text-muted">sessions uniques</small>
+        </div>
+      </div>
+
+      <!-- Taux d'exploration -->
+      <div class="col-md-3">
+        <div class="card border-0 shadow-sm text-center p-3">
+          <h6 class="text-muted mb-1">Taux d'exploration</h6>
+          <h2 class="fw-bold mb-0 text-success">{{ zone_exploration_rate }}%</h2>
+          <small class="text-muted">des sessions</small>
+        </div>
+      </div>
+
+      <!-- Moyenne par session -->
+      <div class="col-md-3">
+        <div class="card border-0 shadow-sm text-center p-3">
+          <h6 class="text-muted mb-1">Moyenne par session</h6>
+          <h2 class="fw-bold mb-0 text-warning">
+            {% if sessions_with_zones > 0 %}
+              {% widthratio total_zone_clicks sessions_with_zones 1 %}
+            {% else %}
+              0
+            {% endif %}
+          </h2>
+          <small class="text-muted">zones / session</small>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Graphiques et tableau zones -->
+  <div class="row g-4 mb-4">
+    <!-- Top 10 zones explorées - Graphique -->
+    <div class="col-md-6">
+      <div class="card p-3 chart-card">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="fw-bold text-primary mb-0">
+            <i class="bi bi-bar-chart-fill me-2"></i>Top 10 zones explorées
+          </h6>
+        </div>
+        <canvas id="topZonesChart" style="max-height: 350px;"></canvas>
+      </div>
+    </div>
+
+    <!-- Top 10 zones explorées - Tableau -->
+    <div class="col-md-6">
+      <div class="card p-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+          <h6 class="fw-bold text-primary mb-0">
+            <i class="bi bi-list-ol me-2"></i>Classement des zones
+          </h6>
+        </div>
+        {% if top_zones %}
+          <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+              <thead>
+                <tr class="border-bottom">
+                  <th class="text-muted fw-semibold" style="width: 50px;">#</th>
+                  <th class="text-muted fw-semibold">Zone</th>
+                  <th class="text-muted fw-semibold text-end" style="width: 120px;">Explorations</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for zone in top_zones %}
+                  <tr>
+                    <td>
+                      <div class="d-flex align-items-center justify-content-center" style="width: 30px; height: 30px; border-radius: 50%; background: #8B5CF6; color: white; font-weight: bold;">
+                        {{ forloop.counter }}
+                      </div>
+                    </td>
+                    <td>
+                      <div class="d-flex align-items-center gap-2">
+                        <i class="bi bi-geo-alt-fill text-secondary"></i>
+                        <span class="fw-semibold" style="color: #1e293b;">{{ zone.zone_name }}</span>
+                      </div>
+                    </td>
+                    <td class="text-end">
+                      <span class="badge" style="background: rgba(139, 92, 246, 0.1); color: #8B5CF6; font-size: 0.9rem; padding: 0.4rem 0.8rem;">
+                        {{ zone.count }}
+                      </span>
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="text-muted text-center py-4">Aucune exploration de zone enregistrée</p>
+        {% endif %}
+      </div>
+    </div>
+    <!-- Evolution explorations zones -->
+    <div class="col-md-12">
+      <div class="card p-3 chart-card">
+        <div class="d-flex justify-content-between align-items-center mb-2">
+          <h6 class="fw-bold text-primary mb-0">
+            <i class="bi bi-graph-up me-2"></i>Évolution explorations (7 jours)
+          </h6>
+        </div>
+        <div style="height: 300px;">
+          <canvas id="zoneClicksPerDayChart"></canvas>
+        </div>
       </div>
     </div>
   </div>
@@ -416,6 +543,87 @@ document.addEventListener("DOMContentLoaded", function () {
                   return `${ctx.label}: ${ctx.parsed} (${percentage}%)`;
                 }
               }
+            }
+          }
+        }
+      });
+
+      // 4. Top 10 zones explorées (Bar horizontal)
+      const ctx4 = document.getElementById("topZonesChart").getContext("2d");
+      new Chart(ctx4, {
+        type: "bar",
+        data: {
+          labels: data.top_zones_labels,
+          datasets: [{
+            label: "Explorations",
+            data: data.top_zones_values,
+            backgroundColor: "#8B5CF6",
+            borderRadius: 6,
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => `${ctx.parsed.x} explorations`
+              }
+            }
+          },
+          scales: {
+            x: {
+              beginAtZero: true,
+              grid: { color: "rgba(0,0,0,0.05)" },
+              ticks: { precision: 0 }
+            },
+            y: { grid: { display: false } }
+          }
+        }
+      });
+
+      // 5. Evolution explorations zones (7 jours)
+      const ctx5 = document.getElementById("zoneClicksPerDayChart").getContext("2d");
+      new Chart(ctx5, {
+        type: "line",
+        data: {
+          labels: data.zone_labels,
+          datasets: [{
+            label: "Explorations zones",
+            data: data.zone_clicks_per_day,
+            borderColor: "#8B5CF6",
+            backgroundColor: "rgba(139, 92, 246, 0.1)",
+            tension: 0.4,
+            fill: true,
+            pointRadius: 5,
+            pointBackgroundColor: "#8B5CF6",
+            pointBorderColor: "#fff",
+            pointBorderWidth: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              backgroundColor: "rgba(0, 0, 0, 0.8)",
+              padding: 12,
+              callbacks: {
+                label: ctx => `${ctx.parsed.y} explorations`
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              grid: { color: "rgba(0,0,0,0.05)" },
+              ticks: { precision: 0 }
+            },
+            x: {
+              grid: { display: false }
             }
           }
         }

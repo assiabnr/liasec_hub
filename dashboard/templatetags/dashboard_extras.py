@@ -2,6 +2,7 @@
 Template tags personnalisés pour le dashboard.
 """
 from django import template
+from dashboard.zone_mapping import get_zone_name
 
 register = template.Library()
 
@@ -146,3 +147,13 @@ def delta_format(current, previous):
         return f"{sign}{delta:,.0f}"
     except (ValueError, TypeError):
         return "+0"
+
+
+@register.filter
+def zone_name(zone_id):
+    """
+    Convertit un ID de zone (ex: 'area1') en nom descriptif (ex: 'Atelier').
+
+    Usage: {{ zone_id|zone_name }}
+    """
+    return get_zone_name(zone_id)

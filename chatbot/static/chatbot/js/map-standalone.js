@@ -401,6 +401,9 @@ function initMapClicks() {
 
             // Highlight visuel de la zone cliquée
             applyTemporaryHighlight(svgDoc, zoneId);
+
+            // Afficher l'image de la zone dans la modale
+            showZoneImage(zoneId, zoneName);
           }
         } catch (error) {
           console.error("[MAP] Erreur tracking zone:", error);
@@ -453,6 +456,76 @@ function initMapClicks() {
 }
 
 // ==========================================
+// AFFICHAGE IMAGE ZONE (Mode localisation uniquement)
+// ==========================================
+
+function showZoneImage(zoneId, zoneName) {
+  const { isModalContext } = detectContext();
+
+  // Seulement en mode localisation (pas dans le chatbot)
+  if (isModalContext) {
+    console.log("[MAP] Contexte chatbot: affichage image désactivé");
+    return;
+  }
+
+  const modal = document.getElementById("zoneImageModal");
+  const modalImage = document.getElementById("zoneModalImage");
+  const closeBtn = document.getElementById("closeZoneModal");
+
+  if (!modal || !modalImage) {
+    console.error("[MAP] Éléments de la modale image non trouvés");
+    return;
+  }
+
+  // Extraire le numéro de la zone (ex: "area12" -> "12")
+  const zoneNumber = zoneId.replace(/\D/g, "");
+
+  // Construire le chemin de l'image
+  // Les images sont nommées Area.jpg, Area1.jpg, Area2.jpg, etc.
+  let imagePath;
+  if (zoneNumber === "") {
+    imagePath = "/static/localisation_produits/images/Area.jpg";
+  } else {
+    imagePath = `/static/localisation_produits/images/Area${zoneNumber}.jpg`;
+  }
+
+  console.log("[MAP] Affichage image zone:", zoneId, "->", imagePath);
+
+  // Mettre à jour le contenu de la modale
+  modalImage.src = imagePath;
+  modalImage.alt = `Image de la zone ${zoneName || zoneId}`;
+
+  // Afficher la modale avec animation
+  modal.classList.add("show");
+
+  // Forcer le reflow pour l'animation
+  setTimeout(() => {
+    modal.style.opacity = "1";
+  }, 10);
+
+  // Gérer la fermeture
+  const closeModal = () => {
+    modal.style.opacity = "0";
+    setTimeout(() => {
+      modal.classList.remove("show");
+    }, 300);
+  };
+
+  if (closeBtn) {
+    closeBtn.onclick = closeModal;
+  }
+
+  // Fermer en cliquant en dehors
+  modal.onclick = (e) => {
+    if (e.target === modal) {
+      closeModal();
+    }
+  };
+
+  console.log("[MAP] Modale image affichée pour zone:", zoneName);
+}
+
+// ==========================================
 // AUTO-INITIALISATION
 // ==========================================
 
@@ -470,3 +543,4 @@ document.addEventListener("DOMContentLoaded", () => {
 window.initMapModal = initMapModal;
 window.initMapHighlight = initMapHighlight;
 window.initMapClicks = initMapClicks;
+window.showZoneImage = showZoneImage;

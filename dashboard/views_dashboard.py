@@ -136,9 +136,9 @@ def calculate_dashboard_kpis():
         for p in top_products_raw
     ]
 
-    # Sources de clics
+    # Sources de clics (uniquement produits)
     sources = list(
-        ProductView.objects.exclude(source__isnull=True).exclude(source='')
+        ProductView.objects.filter(product__isnull=False).exclude(source__isnull=True).exclude(source='')
         .values('source')
         .annotate(count=Count('id'))
         .order_by('-count')
@@ -153,8 +153,8 @@ def calculate_dashboard_kpis():
         .order_by('day')
     )
 
-    # Total clics
-    clicks_total = ProductView.objects.count()
+    # Total clics (uniquement produits)
+    clicks_total = ProductView.objects.filter(product__isnull=False).count()
 
     # Prix moyen consulté
     avg_price_viewed = ProductView.objects.filter(
@@ -179,12 +179,22 @@ def calculate_dashboard_kpis():
     ).count()
     interactions_trend = calculate_trend(interactions_last_7, interactions_previous_7)
 
-    # Clics - comparaison période précédente
-    clicks_last_7 = ProductView.objects.filter(viewed_at__gte=last_7_days).count()
+    # Clics - comparaison période précédente (uniquement produits)
+    clicks_last_7 = ProductView.objects.filter(product__isnull=False, viewed_at__gte=last_7_days).count()
     clicks_previous_7 = ProductView.objects.filter(
-        viewed_at__gte=previous_7_days, viewed_at__lt=last_7_days
+        product__isnull=False, viewed_at__gte=previous_7_days, viewed_at__lt=last_7_days
     ).count()
     clicks_trend = calculate_trend(clicks_last_7, clicks_previous_7)
+
+    # Zones explorées - comparaison période précédente
+    zones_total = ProductView.objects.filter(product__isnull=True).count()
+    zones_last_7 = ProductView.objects.filter(product__isnull=True, viewed_at__gte=last_7_days).count()
+    zones_previous_7 = ProductView.objects.filter(
+        product__isnull=True, viewed_at__gte=previous_7_days, viewed_at__lt=last_7_days
+    ).count()
+    zones_variation = 0
+    if zones_previous_7 > 0:
+        zones_variation = round(((zones_last_7 - zones_previous_7) / zones_previous_7) * 100, 1)
 
     # Satisfaction - comparaison période précédente
     satisfaction_last_7_stats = ChatbotInteraction.objects.filter(
@@ -238,6 +248,10 @@ def calculate_dashboard_kpis():
         'avg_price_viewed': avg_price_viewed,
         'recommendations_total': recommendations_total,
         'recommendations_ctr': recommendations_ctr,
+        # Stats zones
+        'zones_total': zones_total,
+        'zones_last_7': zones_last_7,
+        'zones_variation': zones_variation,
     }
 
 
@@ -268,6 +282,9 @@ def dashboard_home(request):
     avg_price_viewed = kpis['avg_price_viewed']
     recommendations_total = kpis['recommendations_total']
     recommendations_ctr = kpis['recommendations_ctr']
+    zones_total = kpis['zones_total']
+    zones_last_7 = kpis['zones_last_7']
+    zones_variation = kpis['zones_variation']
 
     # Code legacy (peut être supprimé si tout est dans kpis)
     # ========== PÉRIODE DE COMPARAISON ==========
@@ -343,10 +360,10 @@ def dashboard_home(request):
 
     # ========== PRODUITS ==========
     products_total = Product.objects.filter(available=True).count()
-    product_views_total = ProductView.objects.count()
-    product_views_last_7 = ProductView.objects.filter(viewed_at__gte=last_7_days).count()
+    product_views_total = ProductView.objects.filter(product__isnull=False).count()
+    product_views_last_7 = ProductView.objects.filter(product__isnull=False, viewed_at__gte=last_7_days).count()
     product_views_previous_7 = ProductView.objects.filter(
-        viewed_at__gte=previous_7_days, viewed_at__lt=last_7_days
+        product__isnull=False, viewed_at__gte=previous_7_days, viewed_at__lt=last_7_days
     ).count()
 
     product_views_variation = 0
@@ -398,7 +415,7 @@ def dashboard_home(request):
     ).order_by("-views")[:5]
 
     # ========== SOURCES DE CONSULTATION ==========
-    sources_data = ProductView.objects.values("source").annotate(
+    sources_data = ProductView.objects.filter(product__isnull=False).values("source").annotate(
         count=Count("id")
     ).order_by("-count")
 
@@ -418,7 +435,7 @@ def dashboard_home(request):
 
     sessions_by_day = build_daily_counts(Session.objects, "start_time")
     interactions_by_day = build_daily_counts(ChatbotInteraction.objects, "created_at")
-    views_by_day = build_daily_counts(ProductView.objects, "viewed_at")
+    views_by_day = build_daily_counts(ProductView.objects.filter(product__isnull=False), "viewed_at")
     clicks_by_day = views_by_day  # legacy naming, aligné sur les consultations produits
 
     evolution_data = []
@@ -473,6 +490,11 @@ def dashboard_home(request):
         "recommendations_clicked": recommendations_clicked,
         "recommendations_ctr": recommendations_ctr,
 
+        # Zones
+        "zones_total": zones_total,
+        "zones_last_7": zones_last_7,
+        "zones_variation": zones_variation,
+
         # Top données
         "top_intents": top_intents,
         "top_products": top_products,
@@ -495,9 +517,9 @@ def chart_data(request):
         .order_by("day")
     )
 
-    # Consultations produits : moyenne par jour de semaine
+    # Consultations produits : moyenne par jour de semaine (uniquement produits)
     clicks_qs = (
-        ProductView.objects
+        ProductView.objects.filter(product__isnull=False)
         .annotate(day=ExtractWeekDay("viewed_at"))
         .values("day")
         .annotate(avg_clicks=Count("id") * 1.0 / Count("viewed_at__week", distinct=True))

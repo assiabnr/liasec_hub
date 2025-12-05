@@ -151,16 +151,16 @@ def sessions_view(request):
     bounce_sessions = sessions.filter(duration__lt=timedelta(seconds=30)).count()
     bounce_rate = round((bounce_sessions / total_sessions * 100), 1) if total_sessions else 0
 
-    # Total interactions et clics
+    # Total interactions et clics (uniquement produits)
     total_chatbot_interactions = ChatbotInteraction.objects.filter(session__in=sessions).count()
-    total_product_views = ProductView.objects.filter(session__in=sessions).count()
+    total_product_views = ProductView.objects.filter(product__isnull=False, session__in=sessions).count()
 
     # Sessions avec au moins une interaction chatbot
     sessions_with_chatbot = sessions.filter(chatbot_interactions__isnull=False).distinct().count()
     chatbot_session_rate = round((sessions_with_chatbot / total_sessions * 100), 1) if total_sessions else 0
 
-    # Sessions avec au moins un produit consulté
-    sessions_with_products = sessions.filter(product_views__isnull=False).distinct().count()
+    # Sessions avec au moins un produit consulté (exclure clics zones)
+    sessions_with_products = sessions.filter(product_views__product__isnull=False).distinct().count()
     product_session_rate = round((sessions_with_products / total_sessions * 100), 1) if total_sessions else 0
 
     # Engagement moyen (interactions + vues produits par session)
@@ -476,7 +476,10 @@ def session_detail_view(request, session_id):
     chats = session.chatbot_interactions.all().order_by("created_at")
 
     # ========== PRODUITS CONSULTÉS ==========
-    products = session.product_views.select_related("product").order_by("viewed_at")
+    # Récupérer TOUTES les vues (produits ET zones) pour la timeline
+    all_views = session.product_views.select_related("product").order_by("viewed_at")
+    # Mais pour les stats, uniquement les vraies consultations de produits
+    products = all_views.filter(product__isnull=False)
 
     # ========== RECOMMANDATIONS ==========
     recommendations = session.chatbot_recommendations.select_related("product", "interaction").order_by("recommended_at")
@@ -495,7 +498,7 @@ def session_detail_view(request, session_id):
         session_type = "vide"
 
     # ========== TIMELINE COMPLÈTE (TOUS LES ÉVÉNEMENTS) ==========
-    # Créer une timeline combinant interactions chatbot et vues produits
+    # Créer une timeline combinant interactions chatbot et TOUTES les vues (produits + zones)
     timeline = []
 
     # Ajouter les interactions chatbot
@@ -506,8 +509,8 @@ def session_detail_view(request, session_id):
             "data": chat
         })
 
-    # Ajouter les vues produits
-    for product_view in products:
+    # Ajouter TOUTES les vues (produits + zones)
+    for product_view in all_views:
         timeline.append({
             "type": "product_view",
             "timestamp": product_view.viewed_at,
@@ -563,7 +566,7 @@ def session_detail_view(request, session_id):
         "session": session,
         "duration_formatted": duration_formatted,
         "chats": chats,
-        "products": products,
+        "products": all_views,  # Passer toutes les vues (produits + zones) au template
         "recommendations": recommendations,
         "timeline": timeline,
 

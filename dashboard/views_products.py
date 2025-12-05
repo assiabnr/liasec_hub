@@ -48,12 +48,12 @@ def produits_view(request):
     available_products = Product.objects.filter(available=True).count()
     unavailable_products = Product.objects.filter(available=False).count()
 
-    total_views = ProductView.objects.count()
+    total_views = ProductView.objects.filter(product__isnull=False).count()
     total_recos = ChatbotRecommendation.objects.count()
-    total_clicks = ProductView.objects.exclude(source__isnull=True).count()
+    total_clicks = ProductView.objects.filter(product__isnull=False).exclude(source__isnull=True).count()
 
     # Vues uniques (par produit)
-    unique_viewed_products = ProductView.objects.values('product').distinct().count()
+    unique_viewed_products = ProductView.objects.filter(product__isnull=False).values('product').distinct().count()
 
     # Pourcentages
     pct_available = round((available_products / total_products * 100), 1) if total_products > 0 else 0
@@ -114,7 +114,7 @@ def produits_view(request):
     for day in last_7_days:
         view_labels.append(day.strftime("%d/%m"))
         view_counts.append(
-            ProductView.objects.filter(viewed_at__date=day.date()).count()
+            ProductView.objects.filter(product__isnull=False, viewed_at__date=day.date()).count()
         )
 
     # ========== DISPONIBILITÉ / ANOMALIES ==========
@@ -338,9 +338,9 @@ def products_chart_data(request):
     """
     Données JSON complètes pour les graphiques produits
     """
-    # Top 10 produits les plus consultés
+    # Top 10 produits les plus consultés (uniquement produits)
     top_views = (
-        ProductView.objects.values("product__name", "product__id")
+        ProductView.objects.filter(product__isnull=False).values("product__name", "product__id")
         .annotate(clicks=Count("id"))
         .order_by("-clicks")[:10]
     )
@@ -352,9 +352,9 @@ def products_chart_data(request):
         .order_by("-recos")[:10]
     )
 
-    # Vues par catégorie
+    # Vues par catégorie (uniquement produits)
     views_by_category = (
-        ProductView.objects.values("product__category")
+        ProductView.objects.filter(product__isnull=False).values("product__category")
         .exclude(product__category__isnull=True)
         .annotate(count=Count("id"))
         .order_by("-count")[:8]
@@ -371,24 +371,25 @@ def products_chart_data(request):
     price_distribution = []
     for pr in price_ranges:
         count = ProductView.objects.filter(
+            product__isnull=False,
             product__price__gte=pr["min"],
             product__price__lt=pr["max"]
         ).count()
         price_distribution.append(count)
 
-    # Évolution vues produits (7 derniers jours)
+    # Évolution vues produits (7 derniers jours, uniquement produits)
     today = timezone.now()
     views_7days_labels = []
     views_7days_data = []
     for i in range(6, -1, -1):
         day = today - timedelta(days=i)
         views_7days_labels.append(day.strftime("%d/%m"))
-        count = ProductView.objects.filter(viewed_at__date=day.date()).count()
+        count = ProductView.objects.filter(product__isnull=False, viewed_at__date=day.date()).count()
         views_7days_data.append(count)
 
-    # Sources de consultation des produits
+    # Sources de consultation des produits (uniquement produits)
     sources_distribution = (
-        ProductView.objects.values("source")
+        ProductView.objects.filter(product__isnull=False).values("source")
         .annotate(count=Count("id"))
         .order_by("-count")
     )
