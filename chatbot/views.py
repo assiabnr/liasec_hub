@@ -432,7 +432,8 @@ def chat_api(request):
                 for rec in recommendations
             ]
 
-            for future in as_completed(futures):
+            # IMPORTANT: Parcourir les futures dans l'ordre d'origine pour préserver l'ordre des recommandations
+            for future in futures:
                 produit, product_json = future.result()
                 if produit and product_json:
                     # Enregistrer la recommandation en BD
