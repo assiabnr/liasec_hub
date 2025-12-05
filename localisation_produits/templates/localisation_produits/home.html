@@ -128,6 +128,87 @@
             </select>
           </div>
 
+          <!-- En-tête filtres prix avec compteur de résultats -->
+          <div class="loc-results-header">
+            <h3 class="loc-results-title">
+              <i class="bi bi-funnel"></i>
+              Filtrer par prix
+            </h3>
+            {% if page_obj %}
+              <span class="loc-results-count">
+                {{ page_obj.paginator.count }} résultat{{ page_obj.paginator.count|pluralize }}
+              </span>
+            {% endif %}
+          </div>
+
+          <!-- Filtres prix -->
+          <div class="loc-price-filters">
+            <button
+              type="submit"
+              name="price"
+              value=""
+              class="loc-price-pill {% if not price_key %}active{% endif %}"
+            >
+              Tous les prix
+            </button>
+            <button
+              type="submit"
+              name="price"
+              value="0-10"
+              class="loc-price-pill {% if price_key == '0-10' %}active{% endif %}"
+            >
+              0 - 10 &euro;
+            </button>
+            <button
+              type="submit"
+              name="price"
+              value="10-25"
+              class="loc-price-pill {% if price_key == '10-25' %}active{% endif %}"
+            >
+              10 - 25 &euro;
+            </button>
+            <button
+              type="submit"
+              name="price"
+              value="25-50"
+              class="loc-price-pill {% if price_key == '25-50' %}active{% endif %}"
+            >
+              25 - 50 &euro;
+            </button>
+            <button
+              type="submit"
+              name="price"
+              value="50-100"
+              class="loc-price-pill {% if price_key == '50-100' %}active{% endif %}"
+            >
+              50 - 100 &euro;
+            </button>
+            <button
+              type="submit"
+              name="price"
+              value="100-250"
+              class="loc-price-pill {% if price_key == '100-250' %}active{% endif %}"
+            >
+              100 - 250 &euro;
+            </button>
+            <button
+              type="submit"
+              name="price"
+              value="250-500"
+              class="loc-price-pill {% if price_key == '250-500' %}active{% endif %}"
+            >
+              250 - 500 &euro;
+            </button>
+            <button
+              type="submit"
+              name="price"
+              value="500+"
+              class="loc-price-pill {% if price_key == '500+' %}active{% endif %}"
+            >
+              500 &euro; et +
+            </button>
+          </div>
+
           <!-- Bouton reset des filtres -->
           {% if query or selected_sport or selected_category or selected_brand or price_key or selected_sort %}
             <a href="/chatbot/localisation/" class="loc-reset-btn">
@@ -136,95 +217,6 @@
             </a>
           {% endif %}
         </form>
-
-        <!-- En-tête filtres prix avec compteur de résultats -->
-        <div class="loc-results-header">
-          <h3 class="loc-results-title">
-            <i class="bi bi-funnel"></i>
-            Filtrer par prix
-          </h3>
-          {% if page_obj %}
-            <span class="loc-results-count">
-              {{ page_obj.paginator.count }} résultat{{ page_obj.paginator.count|pluralize }}
-            </span>
-          {% endif %}
-        </div>
-
-        <!-- Filtres prix -->
-        <div class="loc-price-filters">
-          <button
-            type="submit"
-            form="loc-search-form"
-            name="price"
-            value=""
-            class="loc-price-pill {% if not price_key %}active{% endif %}"
-          >
-            Tous les prix
-          </button>
-          <button
-            type="submit"
-            form="loc-search-form"
-            name="price"
-            value="0-10"
-            class="loc-price-pill {% if price_key == '0-10' %}active{% endif %}"
-          >
-            0 - 10 &euro;
-          </button>
-          <button
-            type="submit"
-            form="loc-search-form"
-            name="price"
-            value="10-25"
-            class="loc-price-pill {% if price_key == '10-25' %}active{% endif %}"
-          >
-            10 - 25 &euro;
-          </button>
-          <button
-            type="submit"
-            form="loc-search-form"
-            name="price"
-            value="25-50"
-            class="loc-price-pill {% if price_key == '25-50' %}active{% endif %}"
-          >
-            25 - 50 &euro;
-          </button>
-          <button
-            type="submit"
-            form="loc-search-form"
-            name="price"
-            value="50-100"
-            class="loc-price-pill {% if price_key == '50-100' %}active{% endif %}"
-          >
-            50 - 100 &euro;
-          </button>
-          <button
-            type="submit"
-            form="loc-search-form"
-            name="price"
-            value="100-250"
-            class="loc-price-pill {% if price_key == '100-250' %}active{% endif %}"
-          >
-            100 - 250 &euro;
-          </button>
-          <button
-            type="submit"
-            form="loc-search-form"
-            name="price"
-            value="250-500"
-            class="loc-price-pill {% if price_key == '250-500' %}active{% endif %}"
-          >
-            250 - 500 &euro;
-          </button>
-          <button
-            type="submit"
-            form="loc-search-form"
-            name="price"
-            value="500+"
-            class="loc-price-pill {% if price_key == '500+' %}active{% endif %}"
-          >
-            500 &euro; et +
-          </button>
-        </div>
 
         <!-- Liste des produits -->
         <div class="loc-products-list">
@@ -1162,6 +1154,15 @@
         // Activer la recherche sur submit (Entr├®e)
         if (searchForm) {
           searchForm.addEventListener("submit", function(e) {
+            // Vérifier si le submit vient d'un bouton (select ou button price)
+            const submitter = e.submitter;
+
+            // Si c'est un bouton de filtre prix, laisser le submit natif
+            if (submitter && submitter.tagName === 'BUTTON' && submitter.name === 'price') {
+              console.log('[FILTER] Submit natif autorisé pour bouton prix');
+              return; // Laisser le comportement par défaut
+            }
+
             e.preventDefault();
 
             // Fermer le clavier si ouvert
