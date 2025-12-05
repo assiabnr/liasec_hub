@@ -144,13 +144,25 @@ class _VectorStoreSingleton:
 
 
 # ================================================================
-# Instance globale — importable dans tout Django
+# Lazy singleton — évite le chargement au moment des imports Django
 # ================================================================
-vector_store = _VectorStoreSingleton()
+_vector_store = None
+_vector_store_lock = threading.Lock()
+
+
+def get_vector_store():
+    global _vector_store
+    if _vector_store is None:
+        with _vector_store_lock:
+            if _vector_store is None:
+                _vector_store = _VectorStoreSingleton()
+    return _vector_store
 
 
 # ================================================================
 # API simple à utiliser dans views.py
 # ================================================================
 def search_products(query: str, k: int = 20):
-    return vector_store.search(query, k=k)
+    store = get_vector_store()
+    return store.search(query, k=k)
+

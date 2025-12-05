@@ -12,14 +12,10 @@ DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
 DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
 # =======================
 
-print("[DEBUG] BASE_DIR :", BASE_DIR)
-print("[DEBUG] .env existe :", (BASE_DIR / ".env").exists())
-print("[DEBUG] DEEPSEEK_API_KEY :", repr(DEEPSEEK_API_KEY))
 
-SECRET_KEY = 'django-insecure-wv#3+1*m-mrw!a5sdr(6@vbrrvhz(x1urhg*$3j^%$vve8ufbz'
-DEBUG = True
-
-ALLOWED_HOSTS = ["127.0.0.1", "localhost"]
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "unsafe-dev-key")
+DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() == "true"
+ALLOWED_HOSTS = [h.strip() for h in os.getenv("DJANGO_ALLOWED_HOSTS", "").split(",") if h.strip()]
 
 # --- APPS ---
 INSTALLED_APPS = [
@@ -134,9 +130,8 @@ EMAIL_HOST = "smtp.gmail.com"
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 
-EMAIL_HOST_USER = "testliasec@gmail.com"
-EMAIL_HOST_PASSWORD = "kzflpkscwefwoqyv"  # mot de passe d’application Gmail
-DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
+EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER or "no-reply@localhost"
 SERVER_EMAIL = DEFAULT_FROM_EMAIL
-
 

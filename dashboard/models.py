@@ -72,9 +72,7 @@ class Product(models.Model):
             models.Index(fields=["brand"]),
             models.Index(fields=["category"]),
         ]
-        constraints = [
-            models.CheckConstraint(check=Q(price__gte=0), name="product_price_gte_0"),
-        ]
+
 
     def __str__(self):
         return f"{self.name} ({'Disponible' if self.available else 'Indisponible'})"
