@@ -51,11 +51,14 @@ export async function sendMessage() {
           renderMarkdownLite(introOnly),
           () => speak(introOnly), // Parler EN MÊME TEMPS que le typing
           () => {
+            // Scroller après le message d'intro pour que l'utilisateur le voie
+            scrollBottom(DOM_SELECTORS.chatMessages);
+
             // Afficher le carousel après le typing
             const carousel = createProductCarousel(apiRecs);
             if (carousel) {
               DOM_SELECTORS.chatMessages.appendChild(carousel);
-              scrollBottom(DOM_SELECTORS.chatMessages);
+              // Ne pas scroller après le carousel pour que l'utilisateur voie les produits en entier
 
               // Ajouter le feedback comme élément séparé après le carousel
               if (data.interaction_id && (data.ask_feedback || apiRecs.length)) {
@@ -77,7 +80,7 @@ export async function sendMessage() {
         const carousel = createProductCarousel(apiRecs);
         if (carousel) {
           DOM_SELECTORS.chatMessages.appendChild(carousel);
-          scrollBottom(DOM_SELECTORS.chatMessages);
+          // Ne pas scroller pour que l'utilisateur voie les produits en entier
 
           // Ajouter le feedback comme élément séparé après le carousel
           if (data.interaction_id && (data.ask_feedback || apiRecs.length)) {

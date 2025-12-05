@@ -6,6 +6,49 @@ import { bubble, loaderBubble } from "./ui.js";
 import { speak } from "./speech.js";
 import { hardResetChat } from "./chat.js";
 
+// Fonctions pour cacher/afficher la barre d'input
+function hideInputBar() {
+  const composer = document.querySelector('.composer');
+  const keyboard = document.querySelector('.keyboard');
+
+  if (composer) {
+    composer.style.display = 'none';
+    console.log('[FEEDBACK] Composer caché');
+  } else {
+    console.warn('[FEEDBACK] Composer non trouvé');
+  }
+
+  if (keyboard) {
+    keyboard.style.display = 'none';
+    console.log('[FEEDBACK] Keyboard caché');
+  } else {
+    console.warn('[FEEDBACK] Keyboard non trouvé');
+  }
+
+  console.log('[FEEDBACK] Barre d\'input cachée');
+}
+
+function showInputBar() {
+  const composer = document.querySelector('.composer');
+  const keyboard = document.querySelector('.keyboard');
+
+  if (composer) {
+    composer.style.display = '';
+    console.log('[FEEDBACK] Composer affiché');
+  } else {
+    console.warn('[FEEDBACK] Composer non trouvé');
+  }
+
+  if (keyboard) {
+    keyboard.style.display = '';
+    console.log('[FEEDBACK] Keyboard affiché');
+  } else {
+    console.warn('[FEEDBACK] Keyboard non trouvé');
+  }
+
+  console.log('[FEEDBACK] Barre d\'input affichée');
+}
+
 // Fonction pour afficher la popup d'escalade après 2 feedbacks négatifs
 function showEscaladePopup() {
   console.log("[POPUP] Affichage popup d'escalade");
@@ -185,6 +228,9 @@ export function createFeedbackElement() {
     DOM_SELECTORS.feedbackDock.classList.add("hidden");
   }
 
+  // Cacher la barre d'input quand le feedback est affiché
+  hideInputBar();
+
   const feedbackDiv = document.createElement("div");
   feedbackDiv.className = "feedback";
   feedbackDiv.style.cssText = "margin-top: 16px; max-width: 600px; margin-left: auto; margin-right: auto;";
@@ -231,6 +277,9 @@ export function showFeedbackBlock(chatMessages) {
     DOM_SELECTORS.feedbackDock.innerHTML = "";
     DOM_SELECTORS.feedbackDock.classList.add("hidden");
   }
+
+  // Cacher la barre d'input quand le feedback est affiché
+  hideInputBar();
 
   const wrap = document.createElement("div");
   wrap.className = "message bot";
@@ -347,6 +396,9 @@ async function sendFeedback(positive, feedbackElement) {
       scrollBottom(DOM_SELECTORS.chatMessages);
     }
 
+    // Réafficher la barre d'input après le feedback
+    showInputBar();
+
     // Gérer l'interface selon le type de feedback
     if (!positive) {
       // Si feedback négatif, réactiver le champ de saisie
@@ -367,5 +419,7 @@ async function sendFeedback(positive, feedbackElement) {
   } catch (err) {
     console.error("[FEEDBACK] Erreur:", err);
     loading.remove();
+    // Réafficher la barre d'input même en cas d'erreur
+    showInputBar();
   }
 }
